@@ -62,6 +62,14 @@ jobs:
         run: |
           $exe = Resolve-Path "modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe"
           $errorLog = Join-Path $env:LOCALAPPDATA "AutoHotkeyUX.Modern\startup-error.log"
+          $uninstallKeys = @(
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AutoHotkey",
+            "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AutoHotkey"
+          )
+          $uninstallBefore = @{}
+          foreach ($key in $uninstallKeys) {
+            $uninstallBefore[$key] = Test-Path $key
+          }
 
           if (Test-Path $errorLog) {
             Remove-Item $errorLog -Force
@@ -93,8 +101,15 @@ jobs:
             throw "Bundled AutoHotkeyUX scripts were not materialized."
           }
 
+          foreach ($key in $uninstallKeys) {
+            if (-not $uninstallBefore[$key] -and (Test-Path $key)) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+              throw "Modern shell created a separate AutoHotkey uninstall/app registration: $key"
+            }
+          }
+
           Stop-Process -Id $process.Id -Force
-          Write-Host "Startup smoke test passed: app and bundled AutoHotkey runtime are ready."
+          Write-Host "Startup smoke test passed: bundled runtime is ready and no AutoHotkey app registration was created."
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
