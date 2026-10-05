@@ -53,15 +53,27 @@ jobs:
         shell: pwsh
         run: |
           $exe = Resolve-Path "modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe"
+          $errorLog = Join-Path $env:LOCALAPPDATA "AutoHotkeyUX.Modern\startup-error.log"
+
+          if (Test-Path $errorLog) {
+            Remove-Item $errorLog -Force
+          }
+
           $process = Start-Process -FilePath $exe -PassThru
           Start-Sleep -Seconds 8
+
+          if (Test-Path $errorLog) {
+            Get-Content $errorLog
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "WinUI 3 startup diagnostics reported an error."
+          }
 
           if ($process.HasExited) {
             throw "WinUI 3 executable exited during startup smoke test. Exit code: $($process.ExitCode)"
           }
 
           Stop-Process -Id $process.Id -Force
-          Write-Host "Startup smoke test passed: process remained alive for 8 seconds."
+          Write-Host "Startup smoke test passed: no startup error log and process remained alive for 8 seconds."
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
