@@ -212,6 +212,7 @@
                     </StackPanel>
 
                     <Button
+                        x:Name="ManageRuntimeButton"
                         Grid.Column="1"
                         Content="Manage"
                         VerticalAlignment="Center"
