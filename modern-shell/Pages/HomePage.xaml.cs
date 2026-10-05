@@ -9,6 +9,7 @@ public sealed partial class HomePage : Page
     private readonly AutoHotkeyIntegration _integration;
     private readonly Action _openNewScript;
     private readonly Action _openSettings;
+    private readonly AutoHotkeyInstallerService _installer = new();
 
     /// <summary>
     /// Creates the Home page around the shared AutoHotkey integration service.
@@ -50,7 +51,45 @@ public sealed partial class HomePage : Page
 
     private void NewScriptButton_Click(object sender, RoutedEventArgs e) => _openNewScript();
 
-    private void ManageRuntimeButton_Click(object sender, RoutedEventArgs e) => _openSettings();
+    /// <summary>
+    /// Opens settings for an installed runtime or bootstraps the latest stable AutoHotkey v2 when absent.
+    /// </summary>
+    private async void ManageRuntimeButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (_integration.FindRuntime() is not null)
+        {
+            _openSettings();
+            return;
+        }
+
+        ManageRuntimeButton.IsEnabled = false;
+        ManageRuntimeButton.Content = "Preparing…";
+
+        try
+        {
+            ActionInfoBar.Title = "Install AutoHotkey";
+            ActionInfoBar.Message = "Downloading and verifying the latest stable AutoHotkey v2 installer…";
+            ActionInfoBar.Severity = InfoBarSeverity.Informational;
+            ActionInfoBar.IsOpen = true;
+
+            var result = await _installer.DownloadAndLaunchLatestStableAsync();
+
+            ActionInfoBar.Message =
+                $"AutoHotkey {result.Version} installer launched. Finish setup, then return here; runtime detection will refresh automatically.";
+            ActionInfoBar.Severity = InfoBarSeverity.Success;
+        }
+        catch (Exception ex)
+        {
+            ActionInfoBar.Title = "Install AutoHotkey";
+            ActionInfoBar.Message = ex.Message;
+            ActionInfoBar.Severity = InfoBarSeverity.Error;
+        }
+        finally
+        {
+            ManageRuntimeButton.IsEnabled = true;
+            ManageRuntimeButton.Content = "Install AutoHotkey";
+        }
+    }
 
     /// <summary>
     /// Opens Window Spy and surfaces launch failures inside the page.
