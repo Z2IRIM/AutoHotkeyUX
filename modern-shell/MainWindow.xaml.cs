@@ -149,18 +149,6 @@ public partial class MainWindow : Window
         UpdateScriptPreview();
     }
 
-    /// <summary>
-    /// Opens the existing AutoHotkey launcher configuration for advanced cases the compact page intentionally does not duplicate.
-    /// </summary>
-    private void OpenLegacyLauncherSettings()
-    {
-        var script = Path.Combine(_integration.UxDirectory, "ui-launcherconfig.ahk");
-        var exe = _integration.GetAutoHotkeyExecutable();
-        if (exe is null || !File.Exists(script))
-        {
-            throw new InvalidOperationException("The existing AutoHotkey launcher settings could not be opened.");
-        }
-
         Process.Start(new ProcessStartInfo(exe, $"\"{script}\"")
         {
             WorkingDirectory = _integration.UxDirectory,
@@ -282,7 +270,7 @@ public partial class MainWindow : Window
     private void ManageRuntimeButton_Click(object sender, RoutedEventArgs e) => ShowPage(SettingsPage);
 
     /// <summary>
-    /// Delegates launcher enable/disable semantics to the existing proven launcher settings UI instead of duplicating registry verb logic.
+    /// Applies launcher enable/disable state through the existing per-user AutoHotkey shell association.
     /// </summary>
     private void UseLauncherCheckBox_Changed(object sender, RoutedEventArgs e)
     {
@@ -291,17 +279,22 @@ public partial class MainWindow : Window
             return;
         }
 
-        SettingsStatusText.Text = "Opening the existing launcher configuration for this system-level change…";
         try
         {
-            OpenLegacyLauncherSettings();
+            var build = InterpreterComboBox.SelectedItem is ComboBoxItem item
+                ? item.Content?.ToString() ?? string.Empty
+                : string.Empty;
+
+            _integration.SetLauncherMode(UseLauncherCheckBox.IsChecked == true, build);
+            SettingsStatusText.Text = UseLauncherCheckBox.IsChecked == true
+                ? "Automatic version detection enabled."
+                : "Specific v2 interpreter enabled.";
         }
         catch (Exception ex)
         {
             SettingsStatusText.Text = ex.Message;
+            LoadSettings();
         }
-
-        LoadSettings();
     }
 
     /// <summary>
@@ -322,6 +315,10 @@ public partial class MainWindow : Window
         };
 
         _settings.Write(@"Launcher\v2", "Build", value);
+        if (UseLauncherCheckBox.IsChecked != true)
+        {
+            _integration.SetLauncherMode(false, value);
+        }
         SettingsStatusText.Text = "Interpreter preference saved.";
     }
 
