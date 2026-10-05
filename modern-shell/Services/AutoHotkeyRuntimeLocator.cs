@@ -108,11 +108,22 @@ internal sealed class AutoHotkeyRuntimeLocator
                 "Windows App Paths");
         }
 
+        foreach (var root in ReadUninstallInstallLocations())
+        {
+            foreach (var candidate in ExpandInstallRoot(
+                         root,
+                         "Uninstall registry",
+                         preferredBuild))
+            {
+                yield return candidate;
+            }
+        }
+
         foreach (var root in GetKnownInstallRoots())
         {
             foreach (var candidate in ExpandInstallRoot(
                          root,
-                         "Program Files",
+                         "Known install location",
                          preferredBuild))
             {
                 yield return candidate;
@@ -278,25 +289,56 @@ internal sealed class AutoHotkeyRuntimeLocator
     }
 
     /// <summary>
-    /// Returns standard Program Files roots where AutoHotkey is commonly installed.
+    /// Reads the install location recorded by the official AutoHotkey uninstaller registration.
+    /// </summary>
+    private static IEnumerable<string> ReadUninstallInstallLocations()
+    {
+        foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
+        {
+            string? value = null;
+            try
+            {
+                using var key = hive.OpenSubKey(
+                    @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AutoHotkey");
+                value = key?.GetValue("InstallLocation")?.ToString();
+            }
+            catch
+            {
+                // Continue with remaining discovery sources.
+            }
+
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                yield return value.Trim('"');
+            }
+        }
+    }
+
+    /// <summary>
+    /// Returns official default install roots for all-user and per-user AutoHotkey installations.
     /// </summary>
     private static IEnumerable<string> GetKnownInstallRoots()
     {
-        foreach (var baseDirectory in new[]
+        foreach (var root in new[]
                  {
-                     Environment.GetFolderPath(
-                         Environment.SpecialFolder.ProgramFiles),
-                     Environment.GetFolderPath(
-                         Environment.SpecialFolder.ProgramFilesX86),
-                     Environment.GetEnvironmentVariable("ProgramW6432")
-                         ?? string.Empty
+                     Path.Combine(
+                         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                         "AutoHotkey"),
+                     Path.Combine(
+                         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                         "AutoHotkey"),
+                     Path.Combine(
+                         Environment.GetEnvironmentVariable("ProgramW6432") ?? string.Empty,
+                         "AutoHotkey"),
+                     Path.Combine(
+                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                         "Programs",
+                         "AutoHotkey")
                  })
         {
-            if (!string.IsNullOrWhiteSpace(baseDirectory))
+            if (!string.IsNullOrWhiteSpace(root))
             {
-                yield return Path.Combine(
-                    baseDirectory,
-                    "AutoHotkey");
+                yield return root;
             }
         }
     }
