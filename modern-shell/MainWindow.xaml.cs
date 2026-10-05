@@ -26,7 +26,8 @@ public sealed partial class MainWindow : Window
         Title = "AutoHotkey";
         AppWindow.Resize(new SizeInt32(1120, 720));
 
-        _runtimeLocator = new AutoHotkeyRuntimeLocator();
+        var embeddedRuntime = new EmbeddedAutoHotkeyRuntime();
+        _runtimeLocator = new AutoHotkeyRuntimeLocator(embeddedRuntime);
         _integration = new AutoHotkeyIntegration(_runtimeLocator);
         _settings = new AutoHotkeySettings();
 
