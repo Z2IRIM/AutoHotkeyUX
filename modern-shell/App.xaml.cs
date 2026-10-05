@@ -1,29 +1,28 @@
-using System.Windows;
-using System.Windows.Threading;
+using Microsoft.UI.Xaml;
 
 namespace AutoHotkeyUX.Modern;
 
 public partial class App : Application
 {
+    private Window? _window;
+
+    public static Window? MainWindowInstance { get; private set; }
+
     /// <summary>
-    /// Installs a final UI exception guard so unexpected failures are visible instead of silently closing the shell.
+    /// Initializes the WinUI 3 application.
     /// </summary>
     public App()
     {
-        DispatcherUnhandledException += OnDispatcherUnhandledException;
+        InitializeComponent();
     }
 
     /// <summary>
-    /// Reports an unhandled UI exception and keeps the application from crashing without context.
+    /// Creates and activates the single main application window.
     /// </summary>
-    private static void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+    protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        MessageBox.Show(
-            e.Exception.Message,
-            "AutoHotkey",
-            MessageBoxButton.OK,
-            MessageBoxImage.Error);
-
-        e.Handled = true;
+        _window = new MainWindow();
+        MainWindowInstance = _window;
+        _window.Activate();
     }
 }

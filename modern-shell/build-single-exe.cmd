@@ -6,7 +6,7 @@ cd /d "%~dp0"
 where dotnet >nul 2>nul
 if errorlevel 1 (
   echo .NET 8 SDK was not found.
-  echo Install it from https://dotnet.microsoft.com/download/dotnet/8.0
+  echo Install it with: winget install --id Microsoft.DotNet.SDK.8 -e
   exit /b 1
 )
 
@@ -16,9 +16,13 @@ dotnet publish "AutoHotkeyUX.Modern.csproj" ^
   -c Release ^
   -r win-x64 ^
   --self-contained true ^
+  -p:Platform=x64 ^
+  -p:WindowsPackageType=None ^
+  -p:WindowsAppSDKSelfContained=true ^
+  -p:EnableMsixTooling=true ^
   -p:PublishSingleFile=true ^
+  -p:IncludeAllContentForSelfExtract=true ^
   -p:IncludeNativeLibrariesForSelfExtract=true ^
-  -p:EnableCompressionInSingleFile=true ^
   -o "artifacts\win-x64"
 
 if errorlevel 1 exit /b %errorlevel%

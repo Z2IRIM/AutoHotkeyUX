@@ -1,49 +1,60 @@
 # AutoHotkey Modern UX
 
-A small Windows desktop shell for the existing AutoHotkeyUX functionality.
+A small WinUI 3 shell for the daily-use AutoHotkeyUX workflows.
+
+## Technology
+
+- C#
+- .NET 8
+- WinUI 3
+- Windows App SDK 2.5.1
+- unpackaged
+- self-contained
+- x64 single-file publish
+
+The modern shell does not replace the AutoHotkey interpreter. It discovers and reuses an installed AutoHotkey v2 runtime and the existing AutoHotkeyUX scripts.
 
 ## Scope
 
-The first version intentionally keeps the project small:
-
 - Home dashboard
 - New Script
-- Launcher / interpreter settings
-- Editor command setting
-- Update-check preference
-- Window Spy shortcut
-- Ahk2Exe shortcut
-- AutoHotkey v2 documentation shortcut
+- Blank / Hotkeys / Automation starter templates
+- Window Spy
+- Ahk2Exe
+- v2 documentation
+- launcher / interpreter preferences
+- Edit Script editor command
+- update-check preference
 
-The existing AutoHotkey runtime and AutoHotkeyUX scripts remain the source of truth for runtime behavior. This app is a modern Windows UI layer, not a replacement interpreter.
+Installer and uninstaller modernization remain outside this first pass.
 
-## Requirements
+## Runtime detection
 
-For development:
+The shell checks, in order:
 
-- Windows 10/11
-- .NET 8 SDK
+1. AutoHotkey InstallDir registry values
+2. the effective .ahk Open shell association
+3. Windows App Paths
+4. standard Program Files locations
+5. PATH
 
-For the published executable:
-
-- Windows x64
-- AutoHotkey v2 should already be installed for runtime-dependent actions such as Window Spy and Ahk2Exe.
-
-## Run from source
-
-~~~powershell
-cd modern-shell
-dotnet run
-~~~
+The Home and Settings pages show the exact executable path and discovery source.
 
 ## Build
 
 ~~~powershell
 cd modern-shell
-dotnet build -c Release
+dotnet build -c Release -p:Platform=x64
 ~~~
 
-## Publish as one EXE
+## Run from source
+
+~~~powershell
+cd modern-shell
+dotnet run -c Release -p:Platform=x64
+~~~
+
+## Publish a single EXE
 
 Run:
 
@@ -57,15 +68,13 @@ Output:
 modern-shell\artifacts\win-x64\AutoHotkeyUX.Modern.exe
 ~~~
 
-The project is configured as a self-contained .NET 8 win-x64 single-file application, so the target machine does not need a separate .NET runtime installation.
+The executable is an unpackaged, self-contained WinUI 3 single-file deployment. Windows App SDK and .NET dependencies are bundled and extracted to a temporary directory when the EXE starts.
 
-## Integration
+## Existing AutoHotkey compatibility
 
-The shell reuses the existing AutoHotkey registry schema:
+The shell continues to use the established settings and shell-association locations:
 
 - HKCU\Software\AutoHotkey\...
 - HKCU\Software\Classes\AutoHotkeyScript\...
 
-It detects the normal AutoHotkey install directory and reuses the existing UX scripts where appropriate.
-
-The modern shell does not modify the C++ AutoHotkey runtime.
+The existing .ahk UX remains available and the C++ AutoHotkey runtime is not modified.

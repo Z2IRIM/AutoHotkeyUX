@@ -1,374 +1,387 @@
 using Microsoft.Win32;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Text;
 
-namespace AutoHotkeyUX.Modern;
+namespace AutoHotkeyUX.Modern.Services;
 
 /// <summary>
-/// Provides Windows and AutoHotkey integration for the modern shell.
+/// Provides Windows and AutoHotkey actions used by the WinUI 3 presentation layer.
 /// </summary>
 internal sealed class AutoHotkeyIntegration
 {
-    private const string AutoHotkeyKey = @"Software\AutoHotkey";
-    private readonly string _uxDirectory;
+    private readonly AutoHotkeyRuntimeLocator _runtimeLocator;
 
     /// <summary>
-    /// Captures the UX directory so existing AutoHotkey scripts and tools can be reused.
+    /// Stores the shared runtime locator so all actions use the same discovery rules.
     /// </summary>
-    public AutoHotkeyIntegration()
+    internal AutoHotkeyIntegration(
+        AutoHotkeyRuntimeLocator runtimeLocator)
     {
-        _uxDirectory = ResolveUxDirectory();
-    }
-
-    public string UxDirectory => _uxDirectory;
-
-    /// <summary>
-    /// Resolves the installed AutoHotkey root from the same registry locations used by the legacy UX.
-    /// </summary>
-    public string? GetInstallDirectory()
-    {
-        foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
-        {
-            using var key = hive.OpenSubKey(AutoHotkeyKey);
-            var value = key?.GetValue("InstallDir") as string;
-            if (!string.IsNullOrWhiteSpace(value) && Directory.Exists(value))
-            {
-                return value;
-            }
-        }
-
-        return null;
+        _runtimeLocator = runtimeLocator;
     }
 
     /// <summary>
-    /// Finds the preferred AutoHotkey v2 executable in an installed AutoHotkey tree.
+    /// Returns the currently preferred AutoHotkey runtime.
     /// </summary>
-    public string? GetAutoHotkeyExecutable(string preferredBuild = "")
+    internal AutoHotkeyRuntimeInfo? FindRuntime(
+        string preferredBuild = "")
+        => _runtimeLocator.FindPreferred(preferredBuild);
+
+    /// <summary>
+    /// Reports whether the effective .ahk open command currently uses launcher.ahk.
+    /// </summary>
+    internal bool IsLauncherEnabled()
     {
-        var root = GetInstallDirectory();
-        if (root is null)
+        try
         {
-            return FindFromPath("AutoHotkey.exe");
+            using var key = Registry.ClassesRoot.OpenSubKey(
+                @"AutoHotkeyScript\shell\open\command");
+            var command =
+                key?.GetValue(null)?.ToString()
+                ?? string.Empty;
+
+            return command.Contains(
+                "launcher.ahk",
+                StringComparison.OrdinalIgnoreCase);
         }
-
-        var preferred = preferredBuild switch
+        catch
         {
-            "32-bit" => Path.Combine(root, "v2", "AutoHotkey32.exe"),
-            "64-bit" => Path.Combine(root, "v2", "AutoHotkey64.exe"),
-            _ => string.Empty
-        };
-
-        if (!string.IsNullOrEmpty(preferred) && File.Exists(preferred))
-        {
-            return preferred;
+            return false;
         }
-
-        var candidates = Environment.Is64BitOperatingSystem
-            ? new[]
-            {
-                Path.Combine(root, "v2", "AutoHotkey64.exe"),
-                Path.Combine(root, "v2", "AutoHotkey.exe"),
-                Path.Combine(root, "AutoHotkey.exe")
-            }
-            : new[]
-            {
-                Path.Combine(root, "v2", "AutoHotkey32.exe"),
-                Path.Combine(root, "v2", "AutoHotkey.exe"),
-                Path.Combine(root, "AutoHotkey.exe")
-            };
-
-        return candidates.FirstOrDefault(File.Exists) ?? FindFromPath("AutoHotkey.exe");
     }
 
     /// <summary>
-    /// Returns a concise runtime description for the Home page.
+    /// Opens Window Spy using the user's copy first and the installed UX copy as fallback.
     /// </summary>
-    public string GetRuntimeDescription()
-    {
-        var exe = GetAutoHotkeyExecutable();
-        if (exe is null)
-        {
-            return "AutoHotkey runtime was not detected.";
-        }
-
-        var version = FileVersionInfo.GetVersionInfo(exe).ProductVersion ?? "v2";
-        var architecture = exe.Contains("64", StringComparison.OrdinalIgnoreCase) ? "64-bit"
-            : exe.Contains("32", StringComparison.OrdinalIgnoreCase) ? "32-bit"
-            : Environment.Is64BitProcess ? "64-bit" : "32-bit";
-
-        return $"AutoHotkey {version} · {architecture} · {exe}";
-    }
-
-    /// <summary>
-    /// Opens Window Spy using the installed copy first and the repository script as a fallback.
-    /// </summary>
-    public void OpenWindowSpy()
+    internal void OpenWindowSpy()
     {
         var documentsCopy = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            Environment.GetFolderPath(
+                Environment.SpecialFolder.MyDocuments),
             "AutoHotkey",
             "WindowSpy.ahk");
 
         if (File.Exists(documentsCopy))
         {
-            Process.Start(new ProcessStartInfo(documentsCopy) { UseShellExecute = true });
+            Process.Start(
+                new ProcessStartInfo(documentsCopy)
+                {
+                    UseShellExecute = true
+                });
             return;
         }
 
-        RunAhkScript(Path.Combine(_uxDirectory, "WindowSpy.ahk"));
+        RunAhkScript(
+            Path.Combine(
+                ResolveUxDirectory(),
+                "WindowSpy.ahk"));
     }
 
     /// <summary>
-    /// Opens Ahk2Exe or starts the existing AutoHotkeyUX compiler installer when absent.
+    /// Opens Ahk2Exe or starts the existing AutoHotkeyUX compiler installer when needed.
     /// </summary>
-    public void OpenCompiler()
+    internal void OpenCompiler()
     {
-        var installRoot = GetInstallDirectory();
-        var compiler = installRoot is null ? null : Path.Combine(installRoot, "Compiler", "Ahk2Exe.exe");
-        if (compiler is not null && File.Exists(compiler))
+        var installRoot =
+            _runtimeLocator.FindInstallDirectory();
+
+        var compiler = installRoot is null
+            ? null
+            : Path.Combine(
+                installRoot,
+                "Compiler",
+                "Ahk2Exe.exe");
+
+        if (compiler is not null
+            && File.Exists(compiler))
         {
-            Process.Start(new ProcessStartInfo(compiler) { UseShellExecute = true });
+            Process.Start(
+                new ProcessStartInfo(compiler)
+                {
+                    UseShellExecute = true
+                });
             return;
         }
 
-        RunAhkScript(Path.Combine(_uxDirectory, "install-ahk2exe.ahk"));
+        RunAhkScript(
+            Path.Combine(
+                ResolveUxDirectory(),
+                "install-ahk2exe.ahk"));
     }
 
     /// <summary>
-    /// Opens the local v2 help file when installed, otherwise the official online documentation.
+    /// Opens local v2 help when available and otherwise the official web documentation.
     /// </summary>
-    public void OpenDocumentation()
+    internal void OpenDocumentation()
     {
-        var help = GetInstallDirectory() is { } root
-            ? Path.Combine(root, "v2", "AutoHotkey.chm")
-            : null;
+        var installRoot =
+            _runtimeLocator.FindInstallDirectory();
 
-        if (help is not null && File.Exists(help))
+        var help = installRoot is null
+            ? null
+            : Path.Combine(
+                installRoot,
+                "v2",
+                "AutoHotkey.chm");
+
+        if (help is not null
+            && File.Exists(help))
         {
-            Process.Start(new ProcessStartInfo("hh.exe", $"\"{help}\"") { UseShellExecute = true });
+            Process.Start(
+                new ProcessStartInfo(
+                    "hh.exe",
+                    $"\"{help}\"")
+                {
+                    UseShellExecute = true
+                });
             return;
         }
 
-        Process.Start(new ProcessStartInfo("https://www.autohotkey.com/docs/v2/") { UseShellExecute = true });
+        Process.Start(
+            new ProcessStartInfo(
+                "https://www.autohotkey.com/docs/v2/")
+            {
+                UseShellExecute = true
+            });
     }
 
     /// <summary>
     /// Creates a UTF-8 AutoHotkey script without overwriting an existing file.
     /// </summary>
-    public string CreateScript(string directory, string requestedName, string content)
+    internal string CreateScript(
+        string directory,
+        string requestedName,
+        string content)
     {
         Directory.CreateDirectory(directory);
 
-        var safeName = SanitizeFileName(requestedName);
+        var safeName =
+            SanitizeFileName(requestedName);
+
         if (string.IsNullOrWhiteSpace(safeName))
         {
             safeName = "Untitled";
         }
 
-        if (safeName.EndsWith(".ahk", StringComparison.OrdinalIgnoreCase))
+        if (safeName.EndsWith(
+                ".ahk",
+                StringComparison.OrdinalIgnoreCase))
         {
             safeName = safeName[..^4];
         }
 
-        var path = Path.Combine(directory, safeName + ".ahk");
+        var path =
+            Path.Combine(
+                directory,
+                safeName + ".ahk");
+
         var index = 1;
+
         while (File.Exists(path))
         {
-            path = Path.Combine(directory, $"{safeName}-{index++}.ahk");
+            path = Path.Combine(
+                directory,
+                $"{safeName}-{index++}.ahk");
         }
 
-        File.WriteAllText(path, content, new UTF8Encoding(false));
+        File.WriteAllText(
+            path,
+            content,
+            new UTF8Encoding(false));
+
         return path;
     }
 
     /// <summary>
-    /// Applies the existing launcher or a specific v2 interpreter to the per-user shell association.
+    /// Reveals a created script in File Explorer.
     /// </summary>
-    public void SetLauncherMode(bool useLauncher, string preferredBuild)
+    internal void RevealFile(string path)
     {
-        var key = @"Software\Classes\AutoHotkeyScript\Shell";
+        Process.Start(
+            new ProcessStartInfo(
+                "explorer.exe",
+                $"/select,\"{path}\"")
+            {
+                UseShellExecute = true
+            });
+    }
+
+    /// <summary>
+    /// Applies the launcher or a concrete v2 runtime to the per-user .ahk shell association.
+    /// </summary>
+    internal void SetLauncherMode(
+        bool useLauncher,
+        string preferredBuild)
+    {
+        const string shellKey =
+            @"Software\Classes\AutoHotkeyScript\Shell";
+
         string command;
         string friendlyName;
 
         if (useLauncher)
         {
-            var exe = GetAutoHotkeyExecutable()
-                ?? throw new InvalidOperationException("AutoHotkey v2 is not installed or could not be detected.");
-            var launcher = Path.Combine(_uxDirectory, "launcher.ahk");
+            var runtime =
+                FindRuntime()
+                ?? throw new InvalidOperationException(
+                    "AutoHotkey v2 is not installed or could not be detected.");
+
+            var launcher =
+                Path.Combine(
+                    ResolveUxDirectory(),
+                    "launcher.ahk");
+
             if (!File.Exists(launcher))
             {
-                throw new FileNotFoundException("The AutoHotkey launcher script could not be found.", launcher);
+                throw new FileNotFoundException(
+                    "The AutoHotkey launcher script could not be found.",
+                    launcher);
             }
 
-            command = $"\"{exe}\" \"{launcher}\" \"%1\" %*";
-            friendlyName = "AutoHotkey Launcher";
+            command =
+                $"\"{runtime.Path}\" \"{launcher}\" \"%1\" %*";
+
+            friendlyName =
+                "AutoHotkey Launcher";
         }
         else
         {
-            var exe = GetAutoHotkeyExecutable(preferredBuild)
-                ?? throw new InvalidOperationException("No suitable AutoHotkey v2 interpreter was found.");
-            command = $"\"{exe}\" \"%1\" %*";
-            friendlyName = FileVersionInfo.GetVersionInfo(exe).FileDescription ?? "AutoHotkey";
+            var runtime =
+                FindRuntime(preferredBuild)
+                ?? throw new InvalidOperationException(
+                    "No suitable AutoHotkey v2 interpreter was found.");
+
+            command =
+                $"\"{runtime.Path}\" \"%1\" %*";
+
+            friendlyName =
+                FileVersionInfo
+                    .GetVersionInfo(runtime.Path)
+                    .FileDescription
+                ?? "AutoHotkey";
         }
 
-        using var shell = Registry.CurrentUser.CreateSubKey(key);
-        using var open = shell.CreateSubKey("Open");
-        open.SetValue("FriendlyAppName", friendlyName, RegistryValueKind.String);
-        using var openCommand = open.CreateSubKey("Command");
-        openCommand.SetValue(null, command, RegistryValueKind.String);
-        using var runAsCommand = shell.CreateSubKey(@"RunAs\Command");
-        runAsCommand.SetValue(null, command, RegistryValueKind.String);
+        using var shell =
+            Registry.CurrentUser.CreateSubKey(
+                shellKey);
+
+        using var open =
+            shell.CreateSubKey("Open");
+
+        open.SetValue(
+            "FriendlyAppName",
+            friendlyName,
+            RegistryValueKind.String);
+
+        using var openCommand =
+            open.CreateSubKey("Command");
+
+        openCommand.SetValue(
+            null,
+            command,
+            RegistryValueKind.String);
+
+        using var runAsCommand =
+            shell.CreateSubKey(
+                @"RunAs\Command");
+
+        runAsCommand.SetValue(
+            null,
+            command,
+            RegistryValueKind.String);
     }
 
     /// <summary>
-    /// Runs an existing AutoHotkey UX script through the detected v2 interpreter.
+    /// Runs an existing AutoHotkeyUX script with the discovered v2 runtime.
     /// </summary>
-    private void RunAhkScript(string scriptPath)
+    private void RunAhkScript(
+        string scriptPath)
     {
         if (!File.Exists(scriptPath))
         {
-            throw new FileNotFoundException("The AutoHotkey UX script could not be found.", scriptPath);
+            throw new FileNotFoundException(
+                "The AutoHotkey UX script could not be found.",
+                scriptPath);
         }
 
-        var exe = GetAutoHotkeyExecutable()
-            ?? throw new InvalidOperationException("AutoHotkey v2 is not installed or could not be detected.");
+        var runtime =
+            FindRuntime()
+            ?? throw new InvalidOperationException(
+                "AutoHotkey v2 is not installed or could not be detected.");
 
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = exe,
-            Arguments = $"\"{scriptPath}\"",
-            WorkingDirectory = Path.GetDirectoryName(scriptPath)!,
-            UseShellExecute = true
-        });
+        Process.Start(
+            new ProcessStartInfo
+            {
+                FileName = runtime.Path,
+                Arguments = $"\"{scriptPath}\"",
+                WorkingDirectory =
+                    Path.GetDirectoryName(
+                        scriptPath)!,
+                UseShellExecute = true
+            });
     }
 
     /// <summary>
-    /// Resolves the UX folder for installed, repository and published layouts.
+    /// Resolves the AutoHotkeyUX directory for installed and repository development layouts.
     /// </summary>
     private string ResolveUxDirectory()
     {
-        var installRoot = GetInstallDirectory();
-        var candidates = new[]
-        {
-            AppContext.BaseDirectory,
-            Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..")),
-            installRoot is null ? string.Empty : Path.Combine(installRoot, "UX")
-        };
+        var installRoot =
+            _runtimeLocator.FindInstallDirectory();
 
-        return candidates.FirstOrDefault(path =>
-            !string.IsNullOrWhiteSpace(path) &&
-            File.Exists(Path.Combine(path, "WindowSpy.ahk")))
-            ?? AppContext.BaseDirectory;
+        if (!string.IsNullOrWhiteSpace(
+                installRoot))
+        {
+            var installedUx =
+                Path.Combine(
+                    installRoot,
+                    "UX");
+
+            if (File.Exists(
+                    Path.Combine(
+                        installedUx,
+                        "WindowSpy.ahk")))
+            {
+                return installedUx;
+            }
+        }
+
+        var current =
+            new DirectoryInfo(
+                AppContext.BaseDirectory);
+
+        for (var depth = 0;
+             current is not null && depth < 8;
+             depth++)
+        {
+            if (File.Exists(
+                    Path.Combine(
+                        current.FullName,
+                        "WindowSpy.ahk")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException(
+            "AutoHotkeyUX scripts could not be located.");
     }
 
     /// <summary>
     /// Removes Windows-invalid filename characters from a requested script name.
     /// </summary>
-    private static string SanitizeFileName(string value)
+    private static string SanitizeFileName(
+        string value)
     {
-        var invalid = Path.GetInvalidFileNameChars();
-        return new string(value.Where(c => !invalid.Contains(c)).ToArray()).Trim();
-    }
+        var invalid =
+            Path.GetInvalidFileNameChars();
 
-    /// <summary>
-    /// Searches PATH for an executable without launching a shell.
-    /// </summary>
-    private static string? FindFromPath(string executable)
-    {
-        var path = Environment.GetEnvironmentVariable("PATH");
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        foreach (var directory in path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            try
-            {
-                var candidate = Path.Combine(directory.Trim(), executable);
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-            }
-            catch
-            {
-                // Ignore malformed PATH entries and continue searching.
-            }
-        }
-
-        return null;
-    }
-}
-
-/// <summary>
-/// Reads and writes only the existing AutoHotkey registry-backed UX settings.
-/// </summary>
-internal sealed class AutoHotkeySettings
-{
-    private const string BaseKey = @"Software\AutoHotkey";
-
-    /// <summary>
-    /// Reads a string setting using the same HKCU hierarchy as inc/config.ahk.
-    /// </summary>
-    public string Read(string section, string name, string defaultValue = "")
-    {
-        using var key = Registry.CurrentUser.OpenSubKey($@"{BaseKey}\{section}");
-        return key?.GetValue(name)?.ToString() ?? defaultValue;
-    }
-
-    /// <summary>
-    /// Writes a string setting using the same HKCU hierarchy as inc/config.ahk.
-    /// </summary>
-    public void Write(string section, string name, string value)
-    {
-        using var key = Registry.CurrentUser.CreateSubKey($@"{BaseKey}\{section}");
-        key.SetValue(name, value, RegistryValueKind.String);
-    }
-
-    /// <summary>
-    /// Reads a DWORD-style boolean setting while accepting legacy string values.
-    /// </summary>
-    public bool ReadBoolean(string section, string name, bool defaultValue)
-    {
-        using var key = Registry.CurrentUser.OpenSubKey($@"{BaseKey}\{section}");
-        var value = key?.GetValue(name);
-        return value switch
-        {
-            int number => number != 0,
-            string text when bool.TryParse(text, out var parsed) => parsed,
-            string text when int.TryParse(text, out var number) => number != 0,
-            _ => defaultValue
-        };
-    }
-
-    /// <summary>
-    /// Writes a registry DWORD boolean compatible with existing AutoHotkey UX reads.
-    /// </summary>
-    public void WriteBoolean(string section, string name, bool value)
-    {
-        using var key = Registry.CurrentUser.CreateSubKey($@"{BaseKey}\{section}");
-        key.SetValue(name, value ? 1 : 0, RegistryValueKind.DWord);
-    }
-
-    /// <summary>
-    /// Reads the current Edit Script shell command from the effective file association.
-    /// </summary>
-    public string ReadEditorCommand()
-    {
-        using var key = Registry.ClassesRoot.OpenSubKey(@"AutoHotkeyScript\shell\edit\command");
-        return key?.GetValue(null)?.ToString() ?? string.Empty;
-    }
-
-    /// <summary>
-    /// Writes the per-user Edit Script shell command without requiring elevation.
-    /// </summary>
-    public void WriteEditorCommand(string command)
-    {
-        using var key = Registry.CurrentUser.CreateSubKey(
-            @"Software\Classes\AutoHotkeyScript\shell\edit\command");
-        key.SetValue(null, command, RegistryValueKind.String);
+        return new string(
+                value
+                    .Where(c => !invalid.Contains(c))
+                    .ToArray())
+            .Trim();
     }
 }
