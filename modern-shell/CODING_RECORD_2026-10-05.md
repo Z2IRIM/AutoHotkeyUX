@@ -117,3 +117,16 @@ Delete modern-shell/ and .github/workflows/modern-wpf-shell.yml, or simply stop 
 - Confirm CI build/publish.
 - Smoke-test the generated EXE on Windows with an installed AutoHotkey v2.
 - If the first pass is stable, installer UI can be modernized separately later.
+
+
+## Follow-up fix — CI syntax failure
+
+GitHub Actions first build failed in `MainWindow.xaml.cs` around line 152 with 13 C# syntax errors. The root cause was an orphaned `Process.Start(...)` block left behind after the launcher-setting refactor removed its original method wrapper.
+
+Fix:
+
+- removed the detached statement block;
+- no business behavior was changed;
+- commit: `ac24691c47eb936bae256c76cea62aa712ff5042`.
+
+Validation status: the source-level defect identified by the CI log is fixed. A new Windows CI run is still required before claiming build success.
