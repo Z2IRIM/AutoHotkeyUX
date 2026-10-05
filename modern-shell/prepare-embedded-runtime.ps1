@@ -99,7 +99,12 @@ $manifest = [ordered]@{
     sourceTag = "v$runtimeVersion"
 }
 
-$manifest | ConvertTo-Json | Set-Content -Path $manifestPath -Encoding UTF8
+$manifestJson = $manifest | ConvertTo-Json
+[System.IO.File]::WriteAllText(
+    $manifestPath,
+    $manifestJson,
+    (New-Object System.Text.UTF8Encoding($false))
+)
 
 Write-Host "Embedded AutoHotkey runtime payload ready:"
 Write-Host "  version: $runtimeVersion"
