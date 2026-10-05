@@ -72,11 +72,22 @@ public sealed partial class HomePage : Page
             ActionInfoBar.Severity = InfoBarSeverity.Informational;
             ActionInfoBar.IsOpen = true;
 
-            var result = await _installer.DownloadAndLaunchLatestStableAsync();
+            var result = await _installer.DownloadAndInstallLatestStableAsync();
 
-            ActionInfoBar.Message =
-                $"AutoHotkey {result.Version} installer launched. Finish setup, then return here; runtime detection will refresh automatically.";
-            ActionInfoBar.Severity = InfoBarSeverity.Success;
+            RefreshRuntime();
+
+            if (_integration.FindRuntime() is not null)
+            {
+                ActionInfoBar.Message =
+                    $"AutoHotkey {result.Version} installed successfully.";
+                ActionInfoBar.Severity = InfoBarSeverity.Success;
+            }
+            else
+            {
+                ActionInfoBar.Message =
+                    $"AutoHotkey {result.Version} setup exited with code {result.ExitCode}, but no runtime was detected. Reopen the app after completing setup.";
+                ActionInfoBar.Severity = InfoBarSeverity.Warning;
+            }
         }
         catch (Exception ex)
         {
