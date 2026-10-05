@@ -16,6 +16,16 @@ internal sealed record AutoHotkeyRuntimeInfo(
 /// </summary>
 internal sealed class AutoHotkeyRuntimeLocator
 {
+    private readonly EmbeddedAutoHotkeyRuntime? _embeddedRuntime;
+
+    internal AutoHotkeyRuntimeLocator(
+        EmbeddedAutoHotkeyRuntime? embeddedRuntime = null)
+    {
+        _embeddedRuntime = embeddedRuntime;
+    }
+
+    internal string? LastEmbeddedRuntimeError { get; private set; }
+
     private static readonly string[] RuntimeFileNames =
     [
         "AutoHotkey64.exe",
@@ -83,6 +93,27 @@ internal sealed class AutoHotkeyRuntimeLocator
     /// </summary>
     private IEnumerable<RuntimeCandidate> EnumerateCandidates(string preferredBuild)
     {
+        if (_embeddedRuntime is not null)
+        {
+            if (_embeddedRuntime.TryEnsureReady(out var state, out var error)
+                && state is not null)
+            {
+                LastEmbeddedRuntimeError = null;
+
+                foreach (var candidate in ExpandInstallRoot(
+                             state.RootDirectory,
+                             "Built-in runtime",
+                             preferredBuild))
+                {
+                    yield return candidate;
+                }
+            }
+            else
+            {
+                LastEmbeddedRuntimeError = error;
+            }
+        }
+
         foreach (var root in ReadInstallDirectories())
         {
             foreach (var candidate in ExpandInstallRoot(
