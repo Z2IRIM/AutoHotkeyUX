@@ -72,8 +72,21 @@ jobs:
             throw "WinUI 3 executable exited during startup smoke test. Exit code: $($process.ExitCode)"
           }
 
+          $runtime = Join-Path $env:LOCALAPPDATA "AutoHotkeyUX.Modern\runtime\2.0.29\v2\AutoHotkey64.exe"
+          $windowSpy = Join-Path $env:LOCALAPPDATA "AutoHotkeyUX.Modern\runtime\2.0.29\UX\WindowSpy.ahk"
+
+          if (-not (Test-Path $runtime)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "Bundled AutoHotkey runtime was not materialized."
+          }
+
+          if (-not (Test-Path $windowSpy)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "Bundled AutoHotkeyUX scripts were not materialized."
+          }
+
           Stop-Process -Id $process.Id -Force
-          Write-Host "Startup smoke test passed: no startup error log and process remained alive for 8 seconds."
+          Write-Host "Startup smoke test passed: app and bundled AutoHotkey runtime are ready."
 
       - name: Upload executable
         uses: actions/upload-artifact@v4
