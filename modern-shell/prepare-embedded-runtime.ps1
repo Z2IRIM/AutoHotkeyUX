@@ -22,7 +22,17 @@ $manifestPath = Join-Path $outputDir "runtime-manifest.json"
 New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 
 function Get-Sha256([string]$Path) {
-    return (Get-FileHash -Algorithm SHA256 -Path $Path).Hash.ToUpperInvariant()
+    $stream = [System.IO.File]::OpenRead($Path)
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+
+    try {
+        $hash = $sha256.ComputeHash($stream)
+        return ([System.BitConverter]::ToString($hash)).Replace("-", "")
+    }
+    finally {
+        $sha256.Dispose()
+        $stream.Dispose()
+    }
 }
 
 $runtimeReady = $false
