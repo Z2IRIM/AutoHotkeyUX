@@ -128,3 +128,20 @@ Revert this WinUI 3 rewrite commit to return to the previously compiling WPF she
 ## CI trigger
 
 WinUI 3 workflow registration confirmed on branch; this update triggers the first Windows compile gate for the rewritten shell.
+
+
+## Follow-up — WinUI resource dictionary startup failure
+
+Real-machine diagnostics identified the startup failure as a WinUI XAML resource lookup error:
+
+`Cannot find a Resource with the Name/Key TabViewButtonBackground`
+
+Root cause: `App.xaml` did not load `Microsoft.UI.Xaml.Controls.XamlControlsResources`, so built-in WinUI control templates such as `NavigationView` could not resolve all required theme resources on the user's machine.
+
+Fix:
+
+- added `xmlns:muxc="using:Microsoft.UI.Xaml.Controls"`;
+- added `<muxc:XamlControlsResources />` to `Application.Resources`;
+- tightened GitHub Actions startup smoke testing so `startup-error.log` causes CI failure even if a diagnostic MessageBox keeps the process alive.
+
+No AutoHotkey runtime or registry behavior changed.
