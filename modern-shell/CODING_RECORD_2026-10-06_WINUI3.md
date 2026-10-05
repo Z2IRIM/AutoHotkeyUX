@@ -123,3 +123,8 @@ Revert this WinUI 3 rewrite commit to return to the previously compiling WPF she
 - Run the generated EXE on the user's Windows machine.
 - Confirm runtime detection now resolves the installed interpreter.
 - Address visual or integration defects found by that smoke test.
+
+
+## CI trigger
+
+WinUI 3 workflow registration confirmed on branch; this update triggers the first Windows compile gate for the rewritten shell.
