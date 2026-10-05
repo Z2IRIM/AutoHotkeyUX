@@ -1,0 +1,53 @@
+name: Modern WPF Shell
+
+on:
+  pull_request:
+    paths:
+      - "modern-shell/**"
+      - ".github/workflows/modern-wpf-shell.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build modern-shell/AutoHotkeyUX.Modern.csproj -c Release
+
+      - name: Publish single EXE
+        shell: pwsh
+        run: >
+          dotnet publish modern-shell/AutoHotkeyUX.Modern.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -o modern-shell/artifacts/win-x64
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $exe = "modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe"
+          if (-not (Test-Path $exe)) {
+            throw "Single-file executable was not produced."
+          }
+          Get-Item $exe | Format-List Name, Length, FullName
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoHotkeyUX.Modern-win-x64
+          path: modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe
+          if-no-files-found: error
