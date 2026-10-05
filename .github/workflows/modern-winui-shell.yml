@@ -76,29 +76,38 @@ jobs:
           }
 
           $process = Start-Process -FilePath $exe -PassThru
-          Start-Sleep -Seconds 8
-
-          if (Test-Path $errorLog) {
-            Get-Content $errorLog
-            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            throw "WinUI 3 startup diagnostics reported an error."
-          }
-
-          if ($process.HasExited) {
-            throw "WinUI 3 executable exited during startup smoke test. Exit code: $($process.ExitCode)"
-          }
 
           $runtime = Join-Path $env:LOCALAPPDATA "AutoHotkeyUX.Modern\runtime\2.0.29\v2\AutoHotkey64.exe"
           $windowSpy = Join-Path $env:LOCALAPPDATA "AutoHotkeyUX.Modern\runtime\2.0.29\UX\WindowSpy.ahk"
+          $deadline = (Get-Date).AddSeconds(30)
+
+          while ((Get-Date) -lt $deadline) {
+            if (Test-Path $errorLog) {
+              Get-Content $errorLog
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+              throw "WinUI 3 startup diagnostics reported an error."
+            }
+
+            $process.Refresh()
+            if ($process.HasExited) {
+              throw "WinUI 3 executable exited during startup smoke test. Exit code: $($process.ExitCode)"
+            }
+
+            if ((Test-Path $runtime) -and (Test-Path $windowSpy)) {
+              break
+            }
+
+            Start-Sleep -Seconds 1
+          }
 
           if (-not (Test-Path $runtime)) {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            throw "Bundled AutoHotkey runtime was not materialized."
+            throw "Bundled AutoHotkey runtime was not materialized within 30 seconds."
           }
 
           if (-not (Test-Path $windowSpy)) {
             Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
-            throw "Bundled AutoHotkeyUX scripts were not materialized."
+            throw "Bundled AutoHotkeyUX scripts were not materialized within 30 seconds."
           }
 
           foreach ($key in $uninstallKeys) {
