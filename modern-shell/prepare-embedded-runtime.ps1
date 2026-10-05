@@ -9,8 +9,8 @@ $runtimeVersion = "2.0.29"
 $runtimeFileName = "AutoHotkey_$runtimeVersion.zip"
 $runtimeSha256 = "B2D0200724A6B6AD22C965C939C5E5A2C64A35D1CCB455A3CA3F8CE415C5A296"
 $runtimeUrls = @(
-    "https://www.autohotkey.com/download/2.0/$runtimeFileName",
-    "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$runtimeVersion/$runtimeFileName"
+    "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$runtimeVersion/$runtimeFileName",
+    "https://www.autohotkey.com/download/2.0/$runtimeFileName"
 )
 $runtimeUrl = $runtimeUrls[0]
 
