@@ -148,14 +148,6 @@ public partial class MainWindow : Window
 
         UpdateScriptPreview();
     }
-
-        Process.Start(new ProcessStartInfo(exe, $"\"{script}\"")
-        {
-            WorkingDirectory = _integration.UxDirectory,
-            UseShellExecute = true
-        });
-    }
-
     private void HomeNavButton_Click(object sender, RoutedEventArgs e) => ShowPage(HomePage);
     private void NewScriptNavButton_Click(object sender, RoutedEventArgs e) => ShowPage(NewScriptPage);
     private void SettingsNavButton_Click(object sender, RoutedEventArgs e) => ShowPage(SettingsPage);
