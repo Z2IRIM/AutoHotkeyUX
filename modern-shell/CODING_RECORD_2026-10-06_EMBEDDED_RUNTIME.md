@@ -80,3 +80,13 @@ The existing AutoHotkey instance previously installed during testing remains in 
 - Confirm the single EXE extracts and uses the built-in runtime after the system AutoHotkey installation is removed.
 - The optional Windows `.ahk` association flow should later be updated to explicitly target the private runtime.
 - WinUI 3 Gallery-inspired visual redesign remains separate and still requires preview approval before UI implementation.
+
+
+## Windows Apps regression guard
+
+The CI startup smoke test snapshots the AutoHotkey uninstall/app registration keys before launching the modern shell and fails if the shell creates either key:
+
+- `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\AutoHotkey`
+- `HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\AutoHotkey`
+
+The same smoke test also requires the private `AutoHotkey64.exe` and `UX\WindowSpy.ahk` files to be materialized. This directly guards the product requirement that the bundled runtime must not create a second Windows Apps entry.
