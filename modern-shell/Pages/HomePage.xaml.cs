@@ -35,9 +35,10 @@ public sealed partial class HomePage : Page
         if (runtime is null)
         {
             RuntimeStatusIcon.Glyph = "\uE711";
-            RuntimeStatusText.Text = "Runtime not detected";
+            RuntimeStatusText.Text = "AutoHotkey not installed";
             RuntimeDetailsText.Text =
-                "No AutoHotkey v2 executable was found in registry, file associations, App Paths, Program Files or PATH.";
+                "AutoHotkey v2 is not installed on this PC. Install the latest stable release to enable scripts and tools.";
+            ManageRuntimeButton.Content = "Install AutoHotkey";
             return;
         }
 
@@ -45,6 +46,7 @@ public sealed partial class HomePage : Page
         RuntimeStatusText.Text = $"AutoHotkey {runtime.Version} detected";
         RuntimeDetailsText.Text =
             $"{runtime.Path} · {runtime.Architecture} · discovered via {runtime.DiscoverySource}";
+        ManageRuntimeButton.Content = "Manage";
     }
 
     private void HomePage_Loaded(object sender, RoutedEventArgs e) => RefreshRuntime();
