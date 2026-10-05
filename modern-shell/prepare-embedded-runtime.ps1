@@ -96,7 +96,13 @@ Copy-Item (Join-Path $repoRoot "inc") (Join-Path $stagingRoot "inc") -Recurse -F
 Copy-Item (Join-Path $repoRoot "Templates") (Join-Path $stagingRoot "Templates") -Recurse -Force
 
 Remove-Item $uxZip -Force -ErrorAction SilentlyContinue
-Compress-Archive -Path (Join-Path $stagingRoot "*") -DestinationPath $uxZip -CompressionLevel Optimal
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory(
+    $stagingRoot,
+    $uxZip,
+    [System.IO.Compression.CompressionLevel]::Optimal,
+    $false
+)
 Remove-Item $stagingRoot -Recurse -Force
 
 $uxSha256 = Get-Sha256 $uxZip
@@ -109,7 +115,15 @@ $manifest = [ordered]@{
     sourceTag = "v$runtimeVersion"
 }
 
-$manifestJson = $manifest | ConvertTo-Json
+$manifestJson = @"
+{
+  "version": "$runtimeVersion",
+  "runtimeSha256": "$runtimeSha256",
+  "uxSha256": "$uxSha256",
+  "sourceUrl": "$runtimeUrl",
+  "sourceTag": "v$runtimeVersion"
+}
+"@
 [System.IO.File]::WriteAllText(
     $manifestPath,
     $manifestJson,
