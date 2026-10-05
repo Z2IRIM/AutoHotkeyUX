@@ -49,6 +49,20 @@ jobs:
           }
           Get-Item $exe | Format-List Name, Length, FullName
 
+      - name: Launch smoke test
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path "modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe"
+          $process = Start-Process -FilePath $exe -PassThru
+          Start-Sleep -Seconds 8
+
+          if ($process.HasExited) {
+            throw "WinUI 3 executable exited during startup smoke test. Exit code: $($process.ExitCode)"
+          }
+
+          Stop-Process -Id $process.Id -Force
+          Write-Host "Startup smoke test passed: process remained alive for 8 seconds."
+
       - name: Upload executable
         uses: actions/upload-artifact@v4
         with:
