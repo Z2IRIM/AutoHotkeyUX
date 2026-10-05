@@ -63,11 +63,7 @@ internal sealed class AutoHotkeyIntegration
 
         if (File.Exists(documentsCopy))
         {
-            Process.Start(
-                new ProcessStartInfo(documentsCopy)
-                {
-                    UseShellExecute = true
-                });
+            RunAhkScript(documentsCopy);
             return;
         }
 
