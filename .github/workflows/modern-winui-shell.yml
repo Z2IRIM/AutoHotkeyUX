@@ -9,7 +9,7 @@ on:
     paths:
       - "modern-shell/**/*.cs"
       - "modern-shell/**/*.xaml"
-      - "modern-shell/**/*.csproj"
+      - "modern-shell/AutoHotkeyUX.Modern.csproj"
       - "modern-shell/**/*.ps1"
       - "modern-shell/**/*.cmd"
       - ".github/workflows/modern-winui-shell.yml"
