@@ -5,7 +5,7 @@ using System.Text;
 namespace AutoHotkeyUX.Modern;
 
 /// <summary>
-/// Provides the Windows and AutoHotkey integration required by the modern shell.
+/// Provides Windows and AutoHotkey integration for the modern shell.
 /// </summary>
 internal sealed class AutoHotkeyIntegration
 {
@@ -43,12 +43,24 @@ internal sealed class AutoHotkeyIntegration
     /// <summary>
     /// Finds the preferred AutoHotkey v2 executable in an installed AutoHotkey tree.
     /// </summary>
-    public string? GetAutoHotkeyExecutable()
+    public string? GetAutoHotkeyExecutable(string preferredBuild = "")
     {
         var root = GetInstallDirectory();
         if (root is null)
         {
             return FindFromPath("AutoHotkey.exe");
+        }
+
+        var preferred = preferredBuild switch
+        {
+            "32-bit" => Path.Combine(root, "v2", "AutoHotkey32.exe"),
+            "64-bit" => Path.Combine(root, "v2", "AutoHotkey64.exe"),
+            _ => string.Empty
+        };
+
+        if (!string.IsNullOrEmpty(preferred) && File.Exists(preferred))
+        {
+            return preferred;
         }
 
         var candidates = Environment.Is64BitOperatingSystem
@@ -170,6 +182,45 @@ internal sealed class AutoHotkeyIntegration
     }
 
     /// <summary>
+    /// Applies the existing launcher or a specific v2 interpreter to the per-user shell association.
+    /// </summary>
+    public void SetLauncherMode(bool useLauncher, string preferredBuild)
+    {
+        var key = @"Software\Classes\AutoHotkeyScript\Shell";
+        string command;
+        string friendlyName;
+
+        if (useLauncher)
+        {
+            var exe = GetAutoHotkeyExecutable()
+                ?? throw new InvalidOperationException("AutoHotkey v2 is not installed or could not be detected.");
+            var launcher = Path.Combine(_uxDirectory, "launcher.ahk");
+            if (!File.Exists(launcher))
+            {
+                throw new FileNotFoundException("The AutoHotkey launcher script could not be found.", launcher);
+            }
+
+            command = $"\"{exe}\" \"{launcher}\" \"%1\" %*";
+            friendlyName = "AutoHotkey Launcher";
+        }
+        else
+        {
+            var exe = GetAutoHotkeyExecutable(preferredBuild)
+                ?? throw new InvalidOperationException("No suitable AutoHotkey v2 interpreter was found.");
+            command = $"\"{exe}\" \"%1\" %*";
+            friendlyName = FileVersionInfo.GetVersionInfo(exe).FileDescription ?? "AutoHotkey";
+        }
+
+        using var shell = Registry.CurrentUser.CreateSubKey(key);
+        using var open = shell.CreateSubKey("Open");
+        open.SetValue("FriendlyAppName", friendlyName, RegistryValueKind.String);
+        using var openCommand = open.CreateSubKey("Command");
+        openCommand.SetValue(null, command, RegistryValueKind.String);
+        using var runAsCommand = shell.CreateSubKey(@"RunAs\Command");
+        runAsCommand.SetValue(null, command, RegistryValueKind.String);
+    }
+
+    /// <summary>
     /// Runs an existing AutoHotkey UX script through the detected v2 interpreter.
     /// </summary>
     private void RunAhkScript(string scriptPath)
@@ -196,11 +247,12 @@ internal sealed class AutoHotkeyIntegration
     /// </summary>
     private string ResolveUxDirectory()
     {
+        var installRoot = GetInstallDirectory();
         var candidates = new[]
         {
             AppContext.BaseDirectory,
             Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..")),
-            GetInstallDirectory() is { } root ? Path.Combine(root, "UX") : string.Empty
+            installRoot is null ? string.Empty : Path.Combine(installRoot, "UX")
         };
 
         return candidates.FirstOrDefault(path =>
@@ -261,7 +313,7 @@ internal sealed class AutoHotkeySettings
     /// </summary>
     public string Read(string section, string name, string defaultValue = "")
     {
-        using var key = Registry.CurrentUser.OpenSubKey(Path.Combine(BaseKey, section));
+        using var key = Registry.CurrentUser.OpenSubKey($@"{BaseKey}\{section}");
         return key?.GetValue(name)?.ToString() ?? defaultValue;
     }
 
@@ -270,7 +322,7 @@ internal sealed class AutoHotkeySettings
     /// </summary>
     public void Write(string section, string name, string value)
     {
-        using var key = Registry.CurrentUser.CreateSubKey(Path.Combine(BaseKey, section));
+        using var key = Registry.CurrentUser.CreateSubKey($@"{BaseKey}\{section}");
         key.SetValue(name, value, RegistryValueKind.String);
     }
 
@@ -279,7 +331,7 @@ internal sealed class AutoHotkeySettings
     /// </summary>
     public bool ReadBoolean(string section, string name, bool defaultValue)
     {
-        using var key = Registry.CurrentUser.OpenSubKey(Path.Combine(BaseKey, section));
+        using var key = Registry.CurrentUser.OpenSubKey($@"{BaseKey}\{section}");
         var value = key?.GetValue(name);
         return value switch
         {
@@ -295,7 +347,7 @@ internal sealed class AutoHotkeySettings
     /// </summary>
     public void WriteBoolean(string section, string name, bool value)
     {
-        using var key = Registry.CurrentUser.CreateSubKey(Path.Combine(BaseKey, section));
+        using var key = Registry.CurrentUser.CreateSubKey($@"{BaseKey}\{section}");
         key.SetValue(name, value ? 1 : 0, RegistryValueKind.DWord);
     }
 
