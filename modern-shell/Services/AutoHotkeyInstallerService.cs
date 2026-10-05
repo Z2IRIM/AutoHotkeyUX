@@ -62,10 +62,16 @@ internal sealed class AutoHotkeyInstallerService
 
             File.Move(tempPath, installerPath, true);
 
+            var installDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Programs",
+                "AutoHotkey");
+
             using var process = Process.Start(
                 new ProcessStartInfo
                 {
                     FileName = installerPath,
+                    Arguments = $"/silent /user /to \"{installDirectory}\"",
                     UseShellExecute = true
                 })
                 ?? throw new InvalidOperationException(
