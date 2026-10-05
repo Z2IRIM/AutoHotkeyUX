@@ -7,7 +7,11 @@ concurrency:
 on:
   pull_request:
     paths:
-      - "modern-shell/**"
+      - "modern-shell/**/*.cs"
+      - "modern-shell/**/*.xaml"
+      - "modern-shell/**/*.csproj"
+      - "modern-shell/**/*.ps1"
+      - "modern-shell/**/*.cmd"
       - ".github/workflows/modern-winui-shell.yml"
   workflow_dispatch:
 
