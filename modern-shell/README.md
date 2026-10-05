@@ -12,7 +12,7 @@ A small WinUI 3 shell for the daily-use AutoHotkeyUX workflows.
 - self-contained
 - x64 single-file publish
 
-The modern shell does not replace the AutoHotkey interpreter. It discovers and reuses an installed AutoHotkey v2 runtime and the existing AutoHotkeyUX scripts.
+The modern shell ships with a verified AutoHotkey v2 portable runtime embedded inside the single-file EXE. On first launch, the runtime and the required AutoHotkeyUX scripts are materialized into the app's private LocalAppData directory. A separate AutoHotkey installation is not required.
 
 ## Scope
 
@@ -26,19 +26,21 @@ The modern shell does not replace the AutoHotkey interpreter. It discovers and r
 - Edit Script editor command
 - update-check preference
 
-Installer and uninstaller modernization remain outside this first pass.
+The runtime is private to the modern shell and does not register a separate AutoHotkey application in Windows Apps.
 
-## Runtime detection
+## Bundled runtime
 
-The shell checks, in order:
+The build pins AutoHotkey v2.0.29 portable ZIP and verifies its SHA-256 before embedding it.
 
-1. AutoHotkey InstallDir registry values
-2. the effective .ahk Open shell association
-3. Windows App Paths
-4. standard Program Files locations
-5. PATH
+At runtime the EXE validates and extracts the embedded payload to:
 
-The Home and Settings pages show the exact executable path and discovery source.
+~~~text
+%LOCALAPPDATA%\AutoHotkeyUX.Modern\runtime\2.0.29\
+  v2\
+  UX\
+~~~
+
+The bundled runtime is preferred over any separately installed AutoHotkey version. System-wide discovery remains as a fallback only.
 
 ## Build
 
@@ -68,7 +70,7 @@ Output:
 modern-shell\artifacts\win-x64\AutoHotkeyUX.Modern.exe
 ~~~
 
-The executable is an unpackaged, self-contained WinUI 3 single-file deployment. Windows App SDK and .NET dependencies are bundled and extracted to a temporary directory when the EXE starts.
+The executable is an unpackaged, self-contained WinUI 3 single-file deployment. Windows App SDK, .NET, the AutoHotkey portable runtime, and the required AutoHotkeyUX scripts are bundled into the published EXE.
 
 ## Existing AutoHotkey compatibility
 
