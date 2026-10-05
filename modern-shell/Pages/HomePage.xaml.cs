@@ -9,7 +9,6 @@ public sealed partial class HomePage : Page
     private readonly AutoHotkeyIntegration _integration;
     private readonly Action _openNewScript;
     private readonly Action _openSettings;
-    private readonly AutoHotkeyInstallerService _installer = new();
 
     /// <summary>
     /// Creates the Home page around the shared AutoHotkey integration service.
@@ -35,10 +34,10 @@ public sealed partial class HomePage : Page
         if (runtime is null)
         {
             RuntimeStatusIcon.Glyph = "\uE711";
-            RuntimeStatusText.Text = "AutoHotkey not installed";
+            RuntimeStatusText.Text = "Built-in runtime unavailable";
             RuntimeDetailsText.Text =
-                "AutoHotkey v2 is not installed on this PC. Install the latest stable release to enable scripts and tools.";
-            ManageRuntimeButton.Content = "Install AutoHotkey";
+                "The bundled AutoHotkey runtime could not be prepared. Retry, then check startup diagnostics if the problem continues.";
+            ManageRuntimeButton.Content = "Retry";
             return;
         }
 
@@ -54,9 +53,9 @@ public sealed partial class HomePage : Page
     private void NewScriptButton_Click(object sender, RoutedEventArgs e) => _openNewScript();
 
     /// <summary>
-    /// Opens settings for an installed runtime or bootstraps the latest stable AutoHotkey v2 when absent.
+    /// Opens settings when a runtime is ready or retries bundled-runtime materialization.
     /// </summary>
-    private async void ManageRuntimeButton_Click(object sender, RoutedEventArgs e)
+    private void ManageRuntimeButton_Click(object sender, RoutedEventArgs e)
     {
         if (_integration.FindRuntime() is not null)
         {
@@ -64,43 +63,15 @@ public sealed partial class HomePage : Page
             return;
         }
 
-        ManageRuntimeButton.IsEnabled = false;
-        ManageRuntimeButton.Content = "Preparing…";
+        RefreshRuntime();
 
-        try
+        if (_integration.FindRuntime() is null)
         {
-            ActionInfoBar.Title = "Install AutoHotkey";
-            ActionInfoBar.Message = "Downloading and verifying the latest stable AutoHotkey v2 installer…";
-            ActionInfoBar.Severity = InfoBarSeverity.Informational;
+            ActionInfoBar.Title = "Built-in AutoHotkey runtime";
+            ActionInfoBar.Message =
+                "The bundled runtime is still unavailable. Restart the app and check startup-error.log if this persists.";
+            ActionInfoBar.Severity = InfoBarSeverity.Warning;
             ActionInfoBar.IsOpen = true;
-
-            var result = await _installer.DownloadAndInstallLatestStableAsync();
-
-            RefreshRuntime();
-
-            if (_integration.FindRuntime() is not null)
-            {
-                ActionInfoBar.Message =
-                    $"AutoHotkey {result.Version} installed successfully.";
-                ActionInfoBar.Severity = InfoBarSeverity.Success;
-            }
-            else
-            {
-                ActionInfoBar.Message =
-                    $"AutoHotkey {result.Version} setup exited with code {result.ExitCode}, but no runtime was detected. Reopen the app after completing setup.";
-                ActionInfoBar.Severity = InfoBarSeverity.Warning;
-            }
-        }
-        catch (Exception ex)
-        {
-            ActionInfoBar.Title = "Install AutoHotkey";
-            ActionInfoBar.Message = ex.Message;
-            ActionInfoBar.Severity = InfoBarSeverity.Error;
-        }
-        finally
-        {
-            ManageRuntimeButton.IsEnabled = true;
-            ManageRuntimeButton.Content = "Install AutoHotkey";
         }
     }
 
