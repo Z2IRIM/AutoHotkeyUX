@@ -8,7 +8,11 @@ $ErrorActionPreference = "Stop"
 $runtimeVersion = "2.0.29"
 $runtimeFileName = "AutoHotkey_$runtimeVersion.zip"
 $runtimeSha256 = "B2D0200724A6B6AD22C965C939C5E5A2C64A35D1CCB455A3CA3F8CE415C5A296"
-$runtimeUrl = "https://www.autohotkey.com/download/2.0/$runtimeFileName"
+$runtimeUrls = @(
+    "https://www.autohotkey.com/download/2.0/$runtimeFileName",
+    "https://github.com/AutoHotkey/AutoHotkey/releases/download/v$runtimeVersion/$runtimeFileName"
+)
+$runtimeUrl = $runtimeUrls[0]
 
 $outputDir = Join-Path $ProjectDir "RuntimePayload"
 $runtimeZip = Join-Path $outputDir "AutoHotkey.runtime.zip"
@@ -31,7 +35,26 @@ if (-not $runtimeReady) {
     Remove-Item $partial -Force -ErrorAction SilentlyContinue
 
     Write-Host "Downloading AutoHotkey v$runtimeVersion portable runtime..."
-    Invoke-WebRequest -UseBasicParsing -Uri $runtimeUrl -OutFile $partial
+
+    $downloaded = $false
+    foreach ($candidateUrl in $runtimeUrls) {
+        try {
+            Invoke-WebRequest -UseBasicParsing -Uri $candidateUrl -OutFile $partial -Headers @{
+                "User-Agent" = "AutoHotkeyUX.Modern build"
+            }
+            $runtimeUrl = $candidateUrl
+            $downloaded = $true
+            break
+        }
+        catch {
+            Remove-Item $partial -Force -ErrorAction SilentlyContinue
+            Write-Warning "Runtime download failed from $candidateUrl"
+        }
+    }
+
+    if (-not $downloaded) {
+        throw "Unable to download the AutoHotkey portable runtime from official sources."
+    }
 
     $actual = Get-Sha256 $partial
     if ($actual -ne $runtimeSha256) {
