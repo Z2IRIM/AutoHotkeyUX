@@ -20,7 +20,8 @@ internal sealed class AutoHotkeyRuntimeLocator
     [
         "AutoHotkey64.exe",
         "AutoHotkey.exe",
-        "AutoHotkey32.exe"
+        "AutoHotkey32.exe",
+        "AutoHotkeyUX.exe"
     ];
 
     /// <summary>
@@ -154,6 +155,12 @@ internal sealed class AutoHotkeyRuntimeLocator
                 Path.Combine(root, fileName),
                 source);
         }
+
+        // AutoHotkey v2's installer gives AutoHotkeyUX its own interpreter copy.
+        // The legacy UX and shell verbs may point to this executable directly.
+        yield return new RuntimeCandidate(
+            Path.Combine(root, "UX", "AutoHotkeyUX.exe"),
+            source);
     }
 
     /// <summary>
@@ -318,16 +325,10 @@ internal sealed class AutoHotkeyRuntimeLocator
                 return null;
             }
 
-            var architecture = Path.GetFileName(path).Contains(
-                "32",
-                StringComparison.OrdinalIgnoreCase)
-                ? "32-bit"
-                : "64-bit";
-
             return new AutoHotkeyRuntimeInfo(
                 path,
                 version,
-                architecture,
+                GetExecutableArchitecture(path),
                 source,
                 InferInstallDirectory(path));
         }
@@ -343,12 +344,39 @@ internal sealed class AutoHotkeyRuntimeLocator
     private static bool LooksLikeAutoHotkeyRuntime(string path)
     {
         var name = Path.GetFileName(path);
-        return name.StartsWith(
-                   "AutoHotkey",
-                   StringComparison.OrdinalIgnoreCase)
-               && !name.Contains(
-                   "UX",
-                   StringComparison.OrdinalIgnoreCase);
+        return RuntimeFileNames.Contains(
+            name,
+            StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Reads the PE machine type so AutoHotkeyUX.exe can report its real architecture.
+    /// </summary>
+    private static string GetExecutableArchitecture(string path)
+    {
+        try
+        {
+            using var stream = File.OpenRead(path);
+            using var reader = new BinaryReader(stream);
+
+            stream.Position = 0x3C;
+            var peOffset = reader.ReadInt32();
+
+            stream.Position = peOffset + 4;
+            var machine = reader.ReadUInt16();
+
+            return machine switch
+            {
+                0x014c => "32-bit",
+                0x8664 => "64-bit",
+                0xAA64 => "ARM64",
+                _ => "Unknown"
+            };
+        }
+        catch
+        {
+            return "Unknown";
+        }
     }
 
     /// <summary>
@@ -364,6 +392,9 @@ internal sealed class AutoHotkeyRuntimeLocator
 
         if (directory.Name.Equals(
                 "v2",
+                StringComparison.OrdinalIgnoreCase)
+            || directory.Name.Equals(
+                "UX",
                 StringComparison.OrdinalIgnoreCase))
         {
             return directory.Parent?.FullName;
