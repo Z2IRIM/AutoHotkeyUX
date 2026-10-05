@@ -15,8 +15,16 @@ public partial class App : Application
     /// </summary>
     public App()
     {
-        InitializeComponent();
-        UnhandledException += App_UnhandledException;
+        try
+        {
+            InitializeComponent();
+            UnhandledException += App_UnhandledException;
+        }
+        catch (Exception ex)
+        {
+            ReportStartupFailure("App XAML initialization failed", ex);
+            throw;
+        }
     }
 
     /// <summary>
