@@ -8,56 +8,37 @@
         Background="Transparent"
         UseLayoutRounding="True">
         <Grid.RowDefinitions>
-            <RowDefinition Height="48" />
+            <RowDefinition Height="56" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="240" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- The title bar is part of the app surface so Mica and navigation feel continuous. -->
         <Grid
             x:Name="AppTitleBar"
             Grid.Row="0"
             Grid.ColumnSpan="2"
             Background="Transparent">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="240" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="160" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel
-                Orientation="Horizontal"
-                Spacing="9"
-                Margin="14,0,0,0"
-                VerticalAlignment="Center">
-                <Border
-                    Width="26"
-                    Height="26"
-                    CornerRadius="7"
-                    Background="{ThemeResource AccentFillColorDefaultBrush}">
-                    <TextBlock
-                        Text="H"
-                        FontSize="12"
-                        FontWeight="SemiBold"
-                        Foreground="White"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center" />
-                </Border>
-                <TextBlock
-                    Text="AutoHotkey"
-                    FontSize="13"
-                    FontWeight="SemiBold"
-                    VerticalAlignment="Center" />
-            </StackPanel>
+            <TextBlock
+                Margin="20,0,0,0"
+                Text="AutoHotkey"
+                FontSize="16"
+                FontWeight="SemiBold"
+                VerticalAlignment="Center" />
 
             <AutoSuggestBox
                 x:Name="GlobalSearchBox"
                 Grid.Column="1"
-                Width="340"
-                Height="32"
+                Width="430"
+                Height="40"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 PlaceholderText="Search scripts, tools and settings"
@@ -65,11 +46,10 @@
                 QuerySubmitted="GlobalSearchBox_QuerySubmitted" />
         </Grid>
 
-        <!-- Lightweight custom sidebar matching the approved Gallery preview. -->
         <Grid
             Grid.Row="1"
             Grid.Column="0"
-            Padding="10,14,10,12"
+            Padding="12,20,12,14"
             Background="{ThemeResource LayerFillColorAltBrush}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
@@ -78,47 +58,23 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid
+            <StackPanel
                 Grid.Row="0"
-                Margin="6,0,6,16"
-                ColumnSpacing="11">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="40" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <Border
-                    Width="38"
-                    Height="38"
-                    CornerRadius="10"
-                    Background="{ThemeResource AccentFillColorDefaultBrush}">
-                    <TextBlock
-                        Text="H"
-                        Foreground="White"
-                        FontSize="17"
-                        FontWeight="SemiBold"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center" />
-                </Border>
-
-                <StackPanel
-                    Grid.Column="1"
-                    Spacing="1"
-                    VerticalAlignment="Center">
-                    <TextBlock
-                        Text="AutoHotkey"
-                        FontSize="14"
-                        FontWeight="SemiBold" />
-                    <TextBlock
-                        Text="Modern workspace"
-                        FontSize="11"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                </StackPanel>
-            </Grid>
+                Margin="14,0,14,24"
+                Spacing="4">
+                <TextBlock
+                    Text="AutoHotkey"
+                    FontSize="18"
+                    FontWeight="SemiBold" />
+                <TextBlock
+                    Text="Modern workspace"
+                    FontSize="13"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
 
             <StackPanel
                 Grid.Row="1"
-                Spacing="2">
+                Spacing="4">
                 <RadioButton
                     x:Name="HomeNavButton"
                     GroupName="PrimaryNavigation"
@@ -145,28 +101,28 @@
 
             <Border
                 Grid.Row="3"
-                Margin="4,12,4,0"
-                Padding="12,10"
-                CornerRadius="10"
+                Margin="4,14,4,0"
+                Padding="15,13"
+                CornerRadius="11"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1">
-                <StackPanel Spacing="3">
+                <StackPanel Spacing="5">
                     <TextBlock
                         Text="AutoHotkey v2.0.29"
-                        FontSize="11"
+                        FontSize="13"
                         FontWeight="SemiBold" />
                     <StackPanel
                         Orientation="Horizontal"
-                        Spacing="6">
+                        Spacing="7">
                         <Ellipse
-                            Width="7"
-                            Height="7"
+                            Width="8"
+                            Height="8"
                             Fill="#34C36D"
                             VerticalAlignment="Center" />
                         <TextBlock
                             Text="Built-in runtime"
-                            FontSize="10"
+                            FontSize="12"
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
                 </StackPanel>
