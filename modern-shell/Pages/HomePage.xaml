@@ -3,262 +3,101 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <Page.Resources>
+        <Style x:Key="RailRowButtonStyle" TargetType="Button">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="10,8" />
+            <Setter Property="CornerRadius" Value="8" />
+        </Style>
+    </Page.Resources>
+
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel
-            MaxWidth="1080"
-            Padding="40,34,40,48"
-            Spacing="28"
-            HorizontalAlignment="Stretch">
+        <Grid
+            x:Name="HomeLayoutGrid"
+            MaxWidth="1160"
+            Padding="28,24,28,40"
+            ColumnSpacing="18">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="RailColumn" Width="242" />
+            </Grid.ColumnDefinitions>
 
-            <Grid ColumnSpacing="24">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+            <VisualStateManager.VisualStateGroups>
+                <VisualStateGroup>
+                    <VisualState x:Name="Narrow">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="0" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="RightRail.Visibility" Value="Collapsed" />
+                            <Setter Target="RailColumn.Width" Value="0" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Wide">
+                        <VisualState.StateTriggers>
+                            <AdaptiveTrigger MinWindowWidth="1060" />
+                        </VisualState.StateTriggers>
+                        <VisualState.Setters>
+                            <Setter Target="RightRail.Visibility" Value="Visible" />
+                            <Setter Target="RailColumn.Width" Value="242" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateManager.VisualStateGroups>
 
-                <StackPanel Spacing="7">
+            <StackPanel
+                Grid.Column="0"
+                Spacing="18">
+                <StackPanel Spacing="5">
                     <TextBlock
-                        Text="AUTOMATION WORKSPACE"
-                        Style="{StaticResource EyebrowTextStyle}" />
+                        Text="Welcome"
+                        FontSize="11"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     <TextBlock
-                        Text="Welcome back"
+                        Text="Do more with AutoHotkey"
                         Style="{StaticResource PageTitleTextStyle}" />
                     <TextBlock
                         Text="Create scripts, inspect windows, compile utilities and keep your AutoHotkey runtime in one place."
                         Style="{StaticResource PageSubtitleTextStyle}"
-                        MaxWidth="700" />
+                        MaxWidth="620" />
                 </StackPanel>
 
                 <Border
-                    Grid.Column="1"
-                    Padding="13,8"
-                    CornerRadius="18"
-                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="12"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
-                    VerticalAlignment="Top">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <FontIcon
-                            x:Name="RuntimeStatusIcon"
-                            Glyph="&#xE73E;"
-                            FontSize="12"
-                            VerticalAlignment="Center" />
-                        <TextBlock
-                            x:Name="RuntimeStatusText"
-                            Text="Detecting runtime…"
-                            FontSize="12"
-                            FontWeight="SemiBold"
-                            VerticalAlignment="Center" />
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <Button
-                x:Name="NewScriptButton"
-                Style="{StaticResource InteractiveCardButtonStyle}"
-                Padding="22"
-                MinHeight="152"
-                Click="NewScriptButton_Click">
-                <Grid ColumnSpacing="20">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="56" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <Border
-                        Width="54"
-                        Height="54"
-                        CornerRadius="14"
-                        Background="{ThemeResource AccentFillColorDefaultBrush}"
-                        VerticalAlignment="Center">
-                        <FontIcon
-                            Glyph="&#xE943;"
-                            FontSize="24"
-                            Foreground="White"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center" />
-                    </Border>
-
-                    <StackPanel
-                        Grid.Column="1"
-                        Spacing="6"
-                        VerticalAlignment="Center">
-                        <TextBlock
-                            Text="Create a new script"
-                            FontSize="19"
-                            FontWeight="SemiBold" />
-                        <TextBlock
-                            Text="Start with a blank file or choose a focused starter template."
-                            FontSize="13"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            TextWrapping="Wrap" />
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock
-                                Text="AutoHotkey v2"
-                                FontSize="11"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <TextBlock
-                                Text="•"
-                                FontSize="11"
-                                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                            <TextBlock
-                                Text="UTF-8"
-                                FontSize="11"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <TextBlock
-                                Text="•"
-                                FontSize="11"
-                                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                            <TextBlock
-                                Text="Never overwrites existing files"
-                                FontSize="11"
-                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-                    </StackPanel>
-
-                    <Border
-                        Grid.Column="2"
-                        Width="36"
-                        Height="36"
-                        CornerRadius="18"
-                        Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                        VerticalAlignment="Center">
-                        <FontIcon
-                            Glyph="&#xE76C;"
-                            FontSize="15"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center" />
-                    </Border>
-                </Grid>
-            </Button>
-
-            <StackPanel Spacing="14">
-                <Grid>
-                    <StackPanel Spacing="3">
-                        <TextBlock
-                            Text="Tools"
-                            Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock
-                            Text="Quick access to the utilities used most often."
-                            FontSize="12"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    </StackPanel>
-                </Grid>
-
-                <Grid ColumnSpacing="14">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-
-                    <Button
-                        Grid.Column="0"
-                        MinHeight="154"
-                        Style="{StaticResource InteractiveCardButtonStyle}"
-                        Click="WindowSpyButton_Click">
-                        <StackPanel Spacing="12">
-                            <Border Style="{StaticResource IconBadgeStyle}">
-                                <FontIcon
-                                    Glyph="&#xE890;"
-                                    FontSize="18"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center" />
-                            </Border>
-                            <StackPanel Spacing="4">
-                                <TextBlock
-                                    Text="Window Spy"
-                                    FontWeight="SemiBold"
-                                    FontSize="14" />
-                                <TextBlock
-                                    Text="Inspect windows, controls, coordinates and process details."
-                                    TextWrapping="Wrap"
-                                    FontSize="12"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Button>
-
-                    <Button
-                        Grid.Column="1"
-                        MinHeight="154"
-                        Style="{StaticResource InteractiveCardButtonStyle}"
-                        Click="CompileButton_Click">
-                        <StackPanel Spacing="12">
-                            <Border Style="{StaticResource IconBadgeStyle}">
-                                <FontIcon
-                                    Glyph="&#xE943;"
-                                    FontSize="18"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center" />
-                            </Border>
-                            <StackPanel Spacing="4">
-                                <TextBlock
-                                    Text="Compile"
-                                    FontWeight="SemiBold"
-                                    FontSize="14" />
-                                <TextBlock
-                                    Text="Turn an AutoHotkey script into a standalone executable."
-                                    TextWrapping="Wrap"
-                                    FontSize="12"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Button>
-
-                    <Button
-                        Grid.Column="2"
-                        MinHeight="154"
-                        Style="{StaticResource InteractiveCardButtonStyle}"
-                        Click="DocumentationButton_Click">
-                        <StackPanel Spacing="12">
-                            <Border Style="{StaticResource IconBadgeStyle}">
-                                <FontIcon
-                                    Glyph="&#xE897;"
-                                    FontSize="18"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center" />
-                            </Border>
-                            <StackPanel Spacing="4">
-                                <TextBlock
-                                    Text="Documentation"
-                                    FontWeight="SemiBold"
-                                    FontSize="14" />
-                                <TextBlock
-                                    Text="Open the local AutoHotkey v2 help and language reference."
-                                    TextWrapping="Wrap"
-                                    FontSize="12"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Button>
-                </Grid>
-            </StackPanel>
-
-            <StackPanel Spacing="14">
-                <TextBlock
-                    Text="Runtime"
-                    Style="{StaticResource SectionTitleTextStyle}" />
-
-                <Border
-                    Style="{StaticResource SurfaceCardStyle}"
                     Padding="18">
-                    <Grid ColumnSpacing="18">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop
+                                Color="{ThemeResource CardBackgroundFillColorDefault}"
+                                Offset="0" />
+                            <GradientStop
+                                Color="{ThemeResource AccentFillColorTertiary}"
+                                Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+
+                    <Grid ColumnSpacing="14">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="44" />
+                            <ColumnDefinition Width="46" />
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
                         <Border
-                            Width="42"
-                            Height="42"
-                            CornerRadius="21"
-                            Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                            Width="44"
+                            Height="44"
+                            CornerRadius="10"
+                            Background="#217D91"
+                            VerticalAlignment="Center">
                             <FontIcon
-                                Glyph="&#xE7F8;"
-                                FontSize="17"
+                                Glyph="&#xE943;"
+                                FontSize="20"
+                                Foreground="White"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center" />
                         </Border>
@@ -268,32 +107,598 @@
                             Spacing="4"
                             VerticalAlignment="Center">
                             <TextBlock
-                                Text="Built-in AutoHotkey runtime"
-                                FontSize="13"
+                                Text="Create a new script"
+                                FontSize="14"
                                 FontWeight="SemiBold" />
                             <TextBlock
-                                x:Name="RuntimeDetailsText"
-                                Text="Detecting AutoHotkey…"
+                                Text="Start with a blank file or choose a focused starter template."
+                                FontSize="11"
                                 TextWrapping="Wrap"
-                                FontSize="12"
                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock
+                                Text="AutoHotkey v2  ·  UTF-8  ·  Never overwrites existing files"
+                                FontSize="10"
+                                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                         </StackPanel>
 
                         <Button
-                            x:Name="ManageRuntimeButton"
+                            x:Name="NewScriptButton"
                             Grid.Column="2"
-                            Content="Manage"
+                            Content="Create script"
+                            Style="{StaticResource AccentButtonStyle}"
                             VerticalAlignment="Center"
-                            Click="ManageRuntimeButton_Click" />
+                            Click="NewScriptButton_Click" />
                     </Grid>
                 </Border>
+
+                <StackPanel Spacing="10">
+                    <StackPanel Spacing="2">
+                        <TextBlock
+                            Text="Tools"
+                            Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock
+                            Text="Quick access to the utilities used most often."
+                            FontSize="11"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            Grid.Column="0"
+                            MinHeight="126"
+                            Style="{StaticResource InteractiveCardButtonStyle}"
+                            Click="WindowSpyButton_Click">
+                            <Grid>
+                                <StackPanel Spacing="10">
+                                    <Border
+                                        Width="34"
+                                        Height="34"
+                                        CornerRadius="9"
+                                        Background="#7457E8"
+                                        HorizontalAlignment="Left">
+                                        <FontIcon
+                                            Glyph="&#xE890;"
+                                            FontSize="16"
+                                            Foreground="White"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock
+                                            Text="Window Spy"
+                                            FontWeight="SemiBold"
+                                            FontSize="12" />
+                                        <TextBlock
+                                            Text="Inspect windows, controls, coordinates and process details."
+                                            TextWrapping="Wrap"
+                                            FontSize="10"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <FontIcon
+                                    Glyph="&#xE76C;"
+                                    FontSize="11"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            Grid.Column="1"
+                            MinHeight="126"
+                            Style="{StaticResource InteractiveCardButtonStyle}"
+                            Click="CompileButton_Click">
+                            <Grid>
+                                <StackPanel Spacing="10">
+                                    <Border
+                                        Width="34"
+                                        Height="34"
+                                        CornerRadius="9"
+                                        Background="#418AF0"
+                                        HorizontalAlignment="Left">
+                                        <FontIcon
+                                            Glyph="&#xE943;"
+                                            FontSize="16"
+                                            Foreground="White"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock
+                                            Text="Compile"
+                                            FontWeight="SemiBold"
+                                            FontSize="12" />
+                                        <TextBlock
+                                            Text="Turn an AutoHotkey script into a standalone executable."
+                                            TextWrapping="Wrap"
+                                            FontSize="10"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <FontIcon
+                                    Glyph="&#xE76C;"
+                                    FontSize="11"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            Grid.Column="2"
+                            MinHeight="126"
+                            Style="{StaticResource InteractiveCardButtonStyle}"
+                            Click="DocumentationButton_Click">
+                            <Grid>
+                                <StackPanel Spacing="10">
+                                    <Border
+                                        Width="34"
+                                        Height="34"
+                                        CornerRadius="9"
+                                        Background="#63C998"
+                                        HorizontalAlignment="Left">
+                                        <FontIcon
+                                            Glyph="&#xE897;"
+                                            FontSize="16"
+                                            Foreground="#073B2D"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
+                                    </Border>
+                                    <StackPanel Spacing="4">
+                                        <TextBlock
+                                            Text="Documentation"
+                                            FontWeight="SemiBold"
+                                            FontSize="12" />
+                                        <TextBlock
+                                            Text="Open the local AutoHotkey v2 help and language reference."
+                                            TextWrapping="Wrap"
+                                            FontSize="10"
+                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <FontIcon
+                                    Glyph="&#xE76C;"
+                                    FontSize="11"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </Grid>
+                        </Button>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <TextBlock
+                        Text="Runtime"
+                        Style="{StaticResource SectionTitleTextStyle}" />
+
+                    <Border
+                        Style="{StaticResource SurfaceCardStyle}"
+                        Padding="12">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="34" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border
+                                Width="32"
+                                Height="32"
+                                CornerRadius="9"
+                                Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                                <FontIcon
+                                    x:Name="RuntimeStatusIcon"
+                                    Glyph="&#xE7F8;"
+                                    FontSize="14"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                            </Border>
+
+                            <StackPanel
+                                Grid.Column="1"
+                                Spacing="3"
+                                VerticalAlignment="Center">
+                                <StackPanel
+                                    Orientation="Horizontal"
+                                    Spacing="8">
+                                    <TextBlock
+                                        x:Name="RuntimeStatusText"
+                                        Text="Detecting AutoHotkey…"
+                                        FontSize="11"
+                                        FontWeight="SemiBold" />
+                                    <Border
+                                        x:Name="RuntimeReadyBadge"
+                                        Padding="7,2"
+                                        CornerRadius="9"
+                                        Background="#2434C36D">
+                                        <TextBlock
+                                            Text="Ready"
+                                            FontSize="9"
+                                            Foreground="#34C36D" />
+                                    </Border>
+                                </StackPanel>
+                                <TextBlock
+                                    x:Name="RuntimeDetailsText"
+                                    Text="Preparing the built-in runtime…"
+                                    TextWrapping="NoWrap"
+                                    TextTrimming="CharacterEllipsis"
+                                    FontSize="9"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+
+                            <Button
+                                x:Name="ManageRuntimeButton"
+                                Grid.Column="2"
+                                Content="Manage"
+                                VerticalAlignment="Center"
+                                Click="ManageRuntimeButton_Click" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <Grid>
+                        <TextBlock
+                            Text="Recent Scripts"
+                            Style="{StaticResource SectionTitleTextStyle}" />
+                        <Button
+                            HorizontalAlignment="Right"
+                            Content="Open folder"
+                            Padding="9,4"
+                            FontSize="10"
+                            Click="OpenScriptsFolderButton_Click" />
+                    </Grid>
+
+                    <Border Style="{StaticResource SurfaceCardStyle}">
+                        <Grid>
+                            <ItemsControl
+                                x:Name="RecentScriptsList">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid
+                                            Padding="12,8"
+                                            ColumnSpacing="10">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="18" />
+                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="80" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <FontIcon
+                                                Glyph="&#xE8A5;"
+                                                FontSize="12"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="1"
+                                                Text="{Binding Name}"
+                                                FontSize="10"
+                                                FontWeight="SemiBold"
+                                                TextTrimming="CharacterEllipsis"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="2"
+                                                Text="{Binding Path}"
+                                                FontSize="9"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                TextTrimming="CharacterEllipsis"
+                                                VerticalAlignment="Center" />
+
+                                            <TextBlock
+                                                Grid.Column="3"
+                                                Text="{Binding ModifiedText}"
+                                                FontSize="9"
+                                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock
+                                x:Name="RecentScriptsEmptyText"
+                                Text="No scripts found in Documents\AutoHotkey yet."
+                                Padding="14,12"
+                                FontSize="10"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                Visibility="Collapsed" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <InfoBar
+                    x:Name="ActionInfoBar"
+                    IsOpen="False"
+                    IsClosable="True"
+                    Severity="Informational" />
             </StackPanel>
 
-            <InfoBar
-                x:Name="ActionInfoBar"
-                IsOpen="False"
-                IsClosable="True"
-                Severity="Informational" />
-        </StackPanel>
+            <!-- Optional guide rail mirrors the Gallery layout without inventing extra app pages. -->
+            <StackPanel
+                x:Name="RightRail"
+                Grid.Column="1"
+                Spacing="12">
+                <Border Style="{StaticResource SurfaceCardStyle}">
+                    <StackPanel>
+                        <Grid
+                            Padding="12,11"
+                            ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="26" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                Glyph="&#xE82F;"
+                                FontSize="14"
+                                Foreground="#D9A300"
+                                VerticalAlignment="Center" />
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="Getting Started"
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                VerticalAlignment="Center" />
+                        </Grid>
+
+                        <Rectangle
+                            Height="1"
+                            Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                        <Button
+                            Style="{StaticResource RailRowButtonStyle}"
+                            Click="NewScriptButton_Click">
+                            <Grid ColumnSpacing="9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border
+                                    Width="24"
+                                    Height="24"
+                                    CornerRadius="12"
+                                    Background="{ThemeResource AccentFillColorTertiaryBrush}">
+                                    <TextBlock
+                                        Text="1"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock
+                                        Text="Create your first script"
+                                        FontSize="10"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        Text="Open a blank file or template"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            Style="{StaticResource RailRowButtonStyle}"
+                            Click="DocumentationButton_Click">
+                            <Grid ColumnSpacing="9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border
+                                    Width="24"
+                                    Height="24"
+                                    CornerRadius="12"
+                                    Background="{ThemeResource AccentFillColorTertiaryBrush}">
+                                    <TextBlock
+                                        Text="2"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock
+                                        Text="Learn the basics"
+                                        FontSize="10"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        Text="Syntax, hotkeys and variables"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            Style="{StaticResource RailRowButtonStyle}"
+                            Click="WindowSpyButton_Click">
+                            <Grid ColumnSpacing="9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border
+                                    Width="24"
+                                    Height="24"
+                                    CornerRadius="12"
+                                    Background="{ThemeResource AccentFillColorTertiaryBrush}">
+                                    <TextBlock
+                                        Text="3"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock
+                                        Text="Explore tools"
+                                        FontSize="10"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        Text="Use Window Spy and compiler tools"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            Style="{StaticResource RailRowButtonStyle}"
+                            Click="DocumentationButton_Click">
+                            <Grid ColumnSpacing="9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border
+                                    Width="24"
+                                    Height="24"
+                                    CornerRadius="12"
+                                    Background="{ThemeResource AccentFillColorTertiaryBrush}">
+                                    <TextBlock
+                                        Text="4"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+                                </Border>
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock
+                                        Text="Read the documentation"
+                                        FontSize="10"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        Text="Detailed help and examples"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SurfaceCardStyle}">
+                    <StackPanel>
+                        <Grid
+                            Padding="12,11"
+                            ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="26" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon
+                                Glyph="&#xE8B7;"
+                                FontSize="14"
+                                Foreground="#D9A300"
+                                VerticalAlignment="Center" />
+                            <TextBlock
+                                Grid.Column="1"
+                                Text="Examples"
+                                FontSize="11"
+                                FontWeight="SemiBold"
+                                VerticalAlignment="Center" />
+                        </Grid>
+
+                        <Rectangle
+                            Height="1"
+                            Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                        <Button
+                            Style="{StaticResource RailRowButtonStyle}"
+                            Click="NewScriptButton_Click">
+                            <Grid ColumnSpacing="9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon
+                                    Glyph="&#xE765;"
+                                    FontSize="13"
+                                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock
+                                        Text="Hotkey example"
+                                        FontSize="10"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        Text="Start from the Hotkeys template"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            Style="{StaticResource RailRowButtonStyle}"
+                            Click="NewScriptButton_Click">
+                            <Grid ColumnSpacing="9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon
+                                    Glyph="&#xE8B7;"
+                                    FontSize="13"
+                                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock
+                                        Text="Window management"
+                                        FontSize="10"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        Text="Build a desktop automation script"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            Style="{StaticResource RailRowButtonStyle}"
+                            Click="NewScriptButton_Click">
+                            <Grid ColumnSpacing="9">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="26" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <FontIcon
+                                    Glyph="&#xE8D2;"
+                                    FontSize="13"
+                                    Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center" />
+                                <StackPanel Grid.Column="1" Spacing="1">
+                                    <TextBlock
+                                        Text="Text expansion"
+                                        FontSize="10"
+                                        FontWeight="SemiBold" />
+                                    <TextBlock
+                                        Text="Create a lightweight helper script"
+                                        FontSize="9"
+                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
     </ScrollViewer>
 </Page>
