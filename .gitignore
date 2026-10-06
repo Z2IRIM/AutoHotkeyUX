@@ -1,0 +1,7 @@
+**/bin/
+**/obj/
+modern-shell/artifacts/
+modern-shell/RuntimePayload/
+modern-shell/backups/
+backups/
+.verification/
