@@ -12,6 +12,7 @@ public partial class App : Application
     private MainWindow? _window;
     private ApplicationServices? _services;
     private TrayIconService? _tray;
+    private ApplicationIconService? _icon;
     private readonly string[] _arguments;
     private readonly SingleInstanceService _singleInstance;
     private readonly DispatcherQueue _dispatcher;
@@ -42,7 +43,7 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Creates and activates the single main application window with startup diagnostics.
+    /// Creates the embedded icons and single main application window with startup diagnostics.
     /// </summary>
     protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
@@ -50,7 +51,9 @@ public partial class App : Application
         {
             _services = new ApplicationServices();
             await Task.Run(_services.Initialize);
-            _window = new MainWindow(_services);
+            try { _icon = new ApplicationIconService(); }
+            catch (Exception iconError) { ServiceDiagnostics.Write("Icon", "Using the default application icon after loading failed.", iconError); }
+            _window = new MainWindow(_services, _icon);
             MainWindowInstance = _window;
             _window.AppWindow.Closing += (_, closing) =>
             {
@@ -63,7 +66,7 @@ public partial class App : Application
             };
             try
             {
-                _tray = new TrayIconService(WinRT.Interop.WindowNative.GetWindowHandle(_window), ShowWindow, ExitManager);
+                _tray = new TrayIconService(WinRT.Interop.WindowNative.GetWindowHandle(_window), ShowWindow, ExitManager, _icon?.TrayIcon ?? IntPtr.Zero);
             }
             catch (Exception trayError)
             {
@@ -96,8 +99,11 @@ public partial class App : Application
         {
             Program.ExitCode = 1;
             ReportStartupFailure(_arguments.Contains("--verify-ui") ? "UI verification failed" : "MainWindow startup failed", ex);
+            _quitting = true;
             _tray?.Dispose();
             _services?.Dispose();
+            _window?.Close();
+            _icon?.Dispose();
             Exit();
         }
     }
@@ -138,7 +144,7 @@ public partial class App : Application
         WriteStartupStatus();
     }
 
-    /// <summary>Exits the manager intentionally while persisting and retaining running scripts.</summary>
+    /// <summary>Exits the manager, retaining scripts and releasing native icons after their consumers close.</summary>
     private void ExitManager()
     {
         if (_quitting) return;
@@ -146,10 +152,11 @@ public partial class App : Application
         _tray?.Dispose();
         _services?.Dispose();
         _window?.Close();
+        _icon?.Dispose();
         Exit();
     }
 
-    /// <summary>Records actual window visibility and interpreter states for silent-start troubleshooting.</summary>
+    /// <summary>Records actual window visibility, icon initialization and interpreter states for troubleshooting.</summary>
     private void WriteStartupStatus()
     {
         try
@@ -160,6 +167,8 @@ public partial class App : Application
                 ProcessId = Environment.ProcessId,
                 ExecutablePath = Environment.ProcessPath,
                 WindowShown = _window?.AppWindow.IsVisible ?? false,
+                CustomWindowIconApplied = _window?.HasCustomIcon ?? false,
+                CustomTrayIconRegistered = _tray?.UsesCustomIcon ?? false,
                 StartWithWindows = _services?.WindowsStartup.IsEnabled ?? false,
                 ExplorerShortcuts = _services?.ScriptStartup.ExplorerEnabled ?? false,
                 Sessions = _services?.Execution.Snapshot(),

@@ -99,6 +99,14 @@ Source-only backup: run `powershell -NoProfile -ExecutionPolicy Bypass -File .\p
 
 Incremental source package: `powershell -NoProfile -ExecutionPolicy Bypass -File .\package-source.ps1 -Incremental -BaseRef <commit>`. This includes tracked changes against the specified baseline and a deletion manifest; its default output is `C:\DESKTOP\srcpack_Area\AutoHotkeyUX`.
 
+## Application icon
+
+The approved green H keycap is compiled into the EXE and embedded for native window/taskbar and tray use. `Assets/AutoHotkey.svg` is the editable master; `AutoHotkey.ico` contains 16, 20, 24, 32, 40, 48, 64, 128 and 256 px frames. The application needs no external icon file or Node.js runtime.
+
+To regenerate the committed ICO/PNG after editing the SVG, run `node modern-shell/build-icon.mjs` from a development environment with `sharp` available. An optional second argument supplies a directory for module resolution: `node modern-shell/build-icon.mjs <node_modules-directory>`. Normal .NET builds use the committed ICO directly.
+
+Native icon initialization is recorded in `state/manager.log`; `manager-startup.json` records window icon application and tray registration. Generated `artifacts/` and developer `backups/` are excluded from the self-extracting publish payload.
+
 ## Existing AutoHotkey compatibility
 
 The shell continues to use the established settings and shell-association locations:

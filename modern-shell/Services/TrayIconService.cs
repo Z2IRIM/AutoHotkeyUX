@@ -10,14 +10,17 @@ internal sealed class TrayIconService : IDisposable
     private readonly Action _open;
     private readonly Action _exit;
     private readonly SubclassProcedure _procedure;
+    private readonly IntPtr _icon;
     private readonly uint _taskbarCreated = RegisterWindowMessage("TaskbarCreated");
     private bool _disposed;
+    internal bool UsesCustomIcon => _icon != IntPtr.Zero;
 
-    /// <summary>Registers a window subclass and an accessible notification-area entry.</summary>
-    internal TrayIconService(IntPtr window, Action open, Action exit)
+    /// <summary>Registers an accessible notification entry using an application-owned icon when available.</summary>
+    internal TrayIconService(IntPtr window, Action open, Action exit, IntPtr icon)
     {
         _window = window; _open = open; _exit = exit;
         _procedure = WindowProcedure;
+        _icon = icon;
         if (!SetWindowSubclass(window, _procedure, 1, IntPtr.Zero))
             throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
         try { AddIcon(); }
@@ -68,12 +71,12 @@ internal sealed class TrayIconService : IDisposable
         finally { DestroyMenu(menu); }
     }
 
-    /// <summary>Builds the native structure using the standard application icon and a concise tooltip.</summary>
+    /// <summary>Builds the native structure using the approved icon with a standard fallback and concise tooltip.</summary>
     private NotifyIconData CreateData() => new()
     {
         Size = (uint)Marshal.SizeOf<NotifyIconData>(), Window = _window, Id = 1,
         Flags = 1 | 2 | 4, Callback = CallbackMessage,
-        Icon = LoadIcon(IntPtr.Zero, (IntPtr)32512), Tip = "AutoHotkey · Open workspace",
+        Icon = _icon != IntPtr.Zero ? _icon : LoadIcon(IntPtr.Zero, (IntPtr)32512), Tip = "AutoHotkey · Open workspace",
         Info = string.Empty, InfoTitle = string.Empty
     };
 

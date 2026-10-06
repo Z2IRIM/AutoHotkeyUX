@@ -21,11 +21,12 @@ public sealed partial class MainWindow : Window
     private NewScriptPage? _newScriptPage;
     private SettingsPage? _settingsPage;
     private ScriptsPage? _scriptsPage;
+    internal bool HasCustomIcon { get; private set; }
 
     /// <summary>
-    /// Initializes the integrated Windows 11 shell and shared AutoHotkey services.
+    /// Initializes the integrated Windows 11 shell, approved icon and shared AutoHotkey services.
     /// </summary>
-    internal MainWindow(ApplicationServices services)
+    internal MainWindow(ApplicationServices services, ApplicationIconService? icon)
     {
         InitializeComponent();
 
@@ -33,12 +34,25 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new SizeInt32(1280, 820));
         AppWindow.Changed += AppWindow_Changed;
         ConfigureWindowChrome();
+        ConfigureWindowIcon(icon);
 
         _services = services;
         _integration = services.Integration;
         _settings = services.Settings;
 
         NavigateTo("home");
+    }
+
+    /// <summary>Applies the embedded H icon to native window/taskbar surfaces while keeping the workspace usable on failure.</summary>
+    private void ConfigureWindowIcon(ApplicationIconService? icon)
+    {
+        if (icon is null) return;
+        try
+        {
+            AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(icon.WindowIcon));
+            HasCustomIcon = true;
+        }
+        catch (Exception ex) { ServiceDiagnostics.Write("Icon", "The custom window icon could not be applied.", ex); }
     }
 
     /// <summary>

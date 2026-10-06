@@ -7,6 +7,7 @@
     <RootNamespace>AutoHotkeyUX.Modern</RootNamespace>
     <AssemblyName>AutoHotkeyUX.Modern</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\AutoHotkey.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
 
@@ -25,6 +26,8 @@
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <!-- Keep previous releases and source backups out of self-extracting publish inputs. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);artifacts\**;backups\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -33,6 +36,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The icon is compiled/embedded; its editable artwork is a development asset. -->
+    <None Remove="Assets\AutoHotkey.ico;Assets\AutoHotkey.svg;Assets\AutoHotkey.png" />
+    <Content Remove="Assets\AutoHotkey.ico;Assets\AutoHotkey.svg;Assets\AutoHotkey.png" />
+    <EmbeddedResource Include="Assets\AutoHotkey.ico"
+                      LogicalName="AutoHotkeyUX.Modern.AppIcon.ico" />
     <EmbeddedResource Include="Resources\ExplorerShortcuts.ahk"
                       LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.ahk" />
     <EmbeddedResource Include="RuntimePayload\AutoHotkey.runtime.zip"

@@ -5,9 +5,10 @@ namespace AutoHotkeyUX.Modern;
 
 public sealed partial class MainWindow
 {
-    /// <summary>Loads real XAML pages and checks navigation/search for the explicit --verify-ui diagnostic command.</summary>
+    /// <summary>Checks embedded icon application and real XAML navigation/search for the explicit --verify-ui command.</summary>
     internal async Task<object> VerifyPagesAsync()
     {
+        if (!HasCustomIcon) throw new InvalidOperationException("The embedded application icon was not applied to the window.");
         var checks = new List<object>();
         foreach (var tag in new[] { "home", "new", "settings", "scripts", "home", "scripts" })
         {
@@ -34,7 +35,7 @@ public sealed partial class MainWindow
         var minimumPageWidth = _scriptsPage.ActualWidth;
         AppWindow.Resize(originalSize);
         NavigateTo("home");
-        return new { Passed = true, Checks = checks, ScriptsSearch = true, MinimumSizeActionLayout = true,
+        return new { Passed = true, CustomWindowIconApplied = HasCustomIcon, Checks = checks, ScriptsSearch = true, MinimumSizeActionLayout = true,
             MinimumPageWidth = minimumPageWidth, CatalogCount = _services.Catalog.Snapshot().Count, RuntimePath = _integration.FindRuntime()?.Path };
     }
 }

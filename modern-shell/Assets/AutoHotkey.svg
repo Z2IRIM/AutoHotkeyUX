@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">AutoHotkey green H keycap</title>
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#199465"/>
+      <stop offset=".75" stop-color="#0a6848"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#6bddae"/>
+      <stop offset=".36" stop-color="#2bc792"/>
+      <stop offset="1" stop-color="#119b74"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#c4ffe4" stop-opacity=".55"/>
+      <stop offset=".5" stop-color="#72edbd" stop-opacity=".1"/>
+      <stop offset="1" stop-color="#0a8a60" stop-opacity=".5"/>
+    </linearGradient>
+  </defs>
+  <rect x="20.5" y="30.7" width="215" height="204.8" rx="43" fill="url(#base)"/>
+  <rect x="33.3" y="20.5" width="189.4" height="189.4" rx="34.1" fill="url(#face)"/>
+  <rect x="34.3" y="21.5" width="187.4" height="187.4" rx="33.1" fill="none" stroke="url(#edge)" stroke-width="2"/>
+  <path d="M82.8 62.2H105Q107.2 62.2 107.2 64.4V100H148.8V64.4Q148.8 62.2 151 62.2H173.2Q175.4 62.2 175.4 64.4V162.3Q175.4 164.5 173.2 164.5H151Q148.8 164.5 148.8 162.3V126.6H107.2V162.3Q107.2 164.5 105 164.5H82.8Q80.6 164.5 80.6 162.3V64.4Q80.6 62.2 82.8 62.2Z" fill="#ffffff"/>
+</svg>
