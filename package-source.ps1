@@ -43,10 +43,14 @@ function New-SourceArchive {
     New-Item -ItemType Directory -Path $taskOutput -Force | Out-Null
     $kind = if ($Incremental) { 'delta' } else { 'source' }
     $archivePath = Join-Path $taskOutput ("AutoHotkeyUX-$kind-" + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.zip')
+    Add-Type -AssemblyName System.IO.Compression
     Add-Type -AssemblyName System.IO.Compression.FileSystem
-    $stream = [System.IO.File]::Open($archivePath, [System.IO.FileMode]::CreateNew)
-    $archive = [System.IO.Compression.ZipArchive]::new($stream, [System.IO.Compression.ZipArchiveMode]::Create)
+    $stream = $null
+    $archive = $null
+    $completed = $false
     try {
+        $stream = [System.IO.File]::Open($archivePath, [System.IO.FileMode]::CreateNew)
+        $archive = [System.IO.Compression.ZipArchive]::new($stream, [System.IO.Compression.ZipArchiveMode]::Create, $true)
         foreach ($file in $files) {
             $name = $file.FullName.Substring($taskRoot.Length).Replace('\', '/')
             [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $file.FullName, $name, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
@@ -62,8 +66,19 @@ function New-SourceArchive {
             } | ConvertTo-Json -Depth 4))
         }
         finally { $writer.Dispose() }
+        $archive.Dispose()
+        $archive = $null
+        $completed = $true
     }
-    finally { $archive.Dispose(); $stream.Dispose() }
+    finally {
+        try { if ($null -ne $archive) { $archive.Dispose() } }
+        finally {
+            if ($null -ne $stream) {
+                $stream.Dispose()
+                if (-not $completed) { Remove-Item -LiteralPath $archivePath -Force }
+            }
+        }
+    }
     Write-Host $archivePath
 }
 

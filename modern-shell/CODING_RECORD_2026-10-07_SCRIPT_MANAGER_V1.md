@@ -76,7 +76,7 @@
 | 后台启动 | 最终 EXE `--background`，实际 AppWindow.IsVisible 状态 | PASS，WindowShown=false，Explorer 脚本 Running |
 | 单实例唤回 | 再次运行同一 EXE，读取实际状态与进程列表 | PASS，仍为 PID 29624，WindowShown=true，仅 1 个 manager；脚本 PID 34180 未重复启动 |
 | 当前用户启动项 | HKCU Run AutoHotkeyUX.Modern | PASS，指向最终 artifacts EXE + `--background` |
-| 打包脚本 | PowerShell AST 解析、源码 ZIP 条目检查 | 语法 PASS；增量包在本机指定目录交付 |
+| 打包脚本 | Windows PowerShell 5.1.26100.9444 实际执行、PowerShell 7 执行与源码 ZIP 条目检查 | PASS；33 个源码/文档文件，排除项为 0；增量包在本机指定目录交付 |
 
 45 项覆盖：空/缺失根目录、创建/修改/重命名/删除/重建、debounce、多个脚本、缺脚本/缺 runtime、中文空格路径、重复 Run、Stop/Restart、应用退出保留进程、精确恢复、错误开始时间/错误 runtime/失效 PID、坏 JSON、正常/非零/语法错误立即退出、12 次自然退出与 Stop 竞态、子应用保留、单个失效 startup 不阻塞后续脚本、AHK v2 语法、编辑命令引号、常用格式真实内容、重名目标、越界、ADS、保留名称、大小写冲突、CRC 和失败回滚。
 
@@ -90,6 +90,7 @@
 6. 固实 RAR 提交目录遇到短暂 Windows 分享/访问冲突；只重试提交，实测 retry 后通过。
 7. 独立只读审阅发现 Process 锁死锁/同步重入、失效 startup 阻断启动、关联开关忙碌状态吞操作；均已修复并针对性验证。
 8. 有真实脚本时 UI 诊断未等待异步 TextChanged；修正诊断等待后，源代码及发布包 UI 均通过。诊断失败现在返回非零且不会弹出阻塞对话框。
+9. Windows PowerShell 5.1 不会由 FileSystem 自动加载 ZipArchive 所在程序集；显式加载 System.IO.Compression 后实际执行通过，异常时释放句柄并清理本次不完整的 ZIP。
 
 ## Validation boundaries / 已知限制
 
