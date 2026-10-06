@@ -3,51 +3,84 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <NavigationView
-        x:Name="RootNavigation"
-        IsBackButtonVisible="Collapsed"
-        IsPaneToggleButtonVisible="False"
-        IsSettingsVisible="False"
-        AlwaysShowHeader="False"
-        PaneDisplayMode="Left"
-        IsPaneOpen="True"
-        OpenPaneLength="236"
-        CompactPaneLength="48"
-        SelectionChanged="RootNavigation_SelectionChanged">
+    <Grid
+        x:Name="RootLayout"
+        Background="Transparent">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <NavigationView.MenuItems>
-            <NavigationViewItem
-                Content="Home"
-                Tag="home"
-                Margin="0,2">
-                <NavigationViewItem.Icon>
-                    <FontIcon Glyph="&#xE80F;" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
+        <!-- The title bar is part of the app surface so Mica and navigation feel continuous. -->
+        <Grid
+            x:Name="AppTitleBar"
+            Grid.Row="0"
+            Grid.ColumnSpan="2"
+            Background="Transparent">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="160" />
+            </Grid.ColumnDefinitions>
 
-            <NavigationViewItem
-                Content="New Script"
-                Tag="new"
-                Margin="0,2">
-                <NavigationViewItem.Icon>
-                    <FontIcon Glyph="&#xE710;" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="9"
+                Margin="14,0,0,0"
+                VerticalAlignment="Center">
+                <Border
+                    Width="26"
+                    Height="26"
+                    CornerRadius="7"
+                    Background="{ThemeResource AccentFillColorDefaultBrush}">
+                    <TextBlock
+                        Text="H"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        Foreground="White"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center" />
+                </Border>
+                <TextBlock
+                    Text="AutoHotkey"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    VerticalAlignment="Center" />
+            </StackPanel>
 
-            <NavigationViewItem
-                Content="Settings"
-                Tag="settings"
-                Margin="0,2">
-                <NavigationViewItem.Icon>
-                    <FontIcon Glyph="&#xE713;" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-        </NavigationView.MenuItems>
+            <AutoSuggestBox
+                x:Name="GlobalSearchBox"
+                Grid.Column="1"
+                Width="340"
+                Height="32"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                PlaceholderText="Search scripts, tools and settings"
+                QueryIcon="Find"
+                QuerySubmitted="GlobalSearchBox_QuerySubmitted" />
+        </Grid>
 
-        <NavigationView.PaneHeader>
+        <!-- Lightweight custom sidebar matching the approved Gallery preview. -->
+        <Grid
+            Grid.Row="1"
+            Grid.Column="0"
+            Padding="10,14,10,12"
+            Background="{ThemeResource LayerFillColorAltBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
             <Grid
-                Padding="6,12,8,18"
-                ColumnSpacing="12">
+                Grid.Row="0"
+                Margin="6,0,6,16"
+                ColumnSpacing="11">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="40" />
                     <ColumnDefinition Width="*" />
@@ -69,8 +102,8 @@
 
                 <StackPanel
                     Grid.Column="1"
-                    VerticalAlignment="Center"
-                    Spacing="1">
+                    Spacing="1"
+                    VerticalAlignment="Center">
                     <TextBlock
                         Text="AutoHotkey"
                         FontSize="14"
@@ -81,29 +114,67 @@
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
             </Grid>
-        </NavigationView.PaneHeader>
 
-        <NavigationView.PaneFooter>
+            <StackPanel
+                Grid.Row="1"
+                Spacing="2">
+                <ToggleButton
+                    x:Name="HomeNavButton"
+                    Content="Home"
+                    Tag="&#xE80F;"
+                    Style="{StaticResource SidebarNavButtonStyle}"
+                    Click="SidebarNavButton_Click" />
+                <ToggleButton
+                    x:Name="NewScriptNavButton"
+                    Content="New Script"
+                    Tag="&#xE710;"
+                    Style="{StaticResource SidebarNavButtonStyle}"
+                    Click="SidebarNavButton_Click" />
+                <ToggleButton
+                    x:Name="SettingsNavButton"
+                    Content="Settings"
+                    Tag="&#xE713;"
+                    Style="{StaticResource SidebarNavButtonStyle}"
+                    Click="SidebarNavButton_Click" />
+            </StackPanel>
+
             <Border
-                Margin="8,12,8,10"
+                Grid.Row="3"
+                Margin="4,12,4,0"
                 Padding="12,10"
                 CornerRadius="10"
-                Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1">
                 <StackPanel Spacing="3">
                     <TextBlock
-                        Text="AutoHotkey v2"
-                        FontSize="12"
-                        FontWeight="SemiBold" />
-                    <TextBlock
-                        Text="Built-in runtime"
+                        Text="AutoHotkey v2.0.29"
                         FontSize="11"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        FontWeight="SemiBold" />
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="6">
+                        <Ellipse
+                            Width="7"
+                            Height="7"
+                            Fill="#34C36D"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            Text="Built-in runtime"
+                            FontSize="10"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
                 </StackPanel>
             </Border>
-        </NavigationView.PaneFooter>
-
-        <Grid Background="Transparent">
-            <ContentPresenter x:Name="PageHost" />
         </Grid>
-    </NavigationView>
+
+        <Border
+            Grid.Row="1"
+            Grid.Column="1"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            BorderThickness="1,0,0,0"
+            Background="{ThemeResource LayerFillColorDefaultBrush}">
+            <ContentPresenter x:Name="PageHost" />
+        </Border>
+    </Grid>
 </Window>
