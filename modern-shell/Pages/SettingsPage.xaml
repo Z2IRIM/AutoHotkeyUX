@@ -1,0 +1,252 @@
+<Page
+    x:Class="AutoHotkeyUX.Modern.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel
+            MaxWidth="1080"
+            Padding="44,40,44,56"
+            Spacing="30">
+
+            <StackPanel Spacing="9">
+                <TextBlock
+                    Text="SETTINGS"
+                    Style="{StaticResource EyebrowTextStyle}" />
+                <TextBlock
+                    Text="Preferences"
+                    Style="{StaticResource PageTitleTextStyle}" />
+                <TextBlock
+                    Text="Control the built-in runtime, script launcher behavior, editor integration and update preference."
+                    Style="{StaticResource PageSubtitleTextStyle}"
+                    MaxWidth="760" />
+            </StackPanel>
+
+            <StackPanel Spacing="16">
+                <TextBlock
+                    Text="Runtime"
+                    Style="{StaticResource SectionTitleTextStyle}" />
+
+                <Border
+                    Style="{StaticResource SurfaceCardStyle}"
+                    Padding="22">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="54" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border
+                            Width="52"
+                            Height="52"
+                            CornerRadius="26"
+                            Background="{ThemeResource AccentFillColorTertiaryBrush}">
+                            <FontIcon
+                                Glyph="&#xE7F8;"
+                                FontSize="21"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center" />
+                        </Border>
+
+                        <StackPanel
+                            Grid.Column="1"
+                            Spacing="5"
+                            VerticalAlignment="Center">
+                            <TextBlock
+                                Text="Built-in AutoHotkey runtime"
+                                FontSize="16"
+                                FontWeight="SemiBold" />
+                            <TextBlock
+                                x:Name="RuntimePathText"
+                                Text="Detecting…"
+                                TextWrapping="Wrap"
+                                FontSize="15"
+                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="16">
+                <StackPanel Spacing="4">
+                    <TextBlock
+                        Text="Launcher"
+                        Style="{StaticResource SectionTitleTextStyle}" />
+                    <TextBlock
+                        Text="Choose how scripts resolve their AutoHotkey interpreter."
+                        FontSize="15"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+
+                <Border Style="{StaticResource SurfaceCardStyle}">
+                    <StackPanel>
+                        <Grid Padding="22,21" ColumnSpacing="24">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock
+                                    Text="Auto-detect script version"
+                                    FontWeight="SemiBold"
+                                    FontSize="16" />
+                                <TextBlock
+                                    Text="Use the AutoHotkey launcher to select the correct interpreter for each script."
+                                    FontSize="15"
+                                    TextWrapping="Wrap"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+
+                            <ToggleSwitch
+                                x:Name="UseLauncherToggle"
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Toggled="UseLauncherToggle_Toggled" />
+                        </Grid>
+
+                        <Rectangle
+                            Height="1"
+                            Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                        <Grid Padding="22,21" ColumnSpacing="24">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="275" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock
+                                    Text="Default v2 interpreter"
+                                    FontWeight="SemiBold"
+                                    FontSize="16" />
+                                <TextBlock
+                                    Text="Preferred architecture when more than one compatible v2 runtime is available."
+                                    FontSize="15"
+                                    TextWrapping="Wrap"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+
+                            <ComboBox
+                                x:Name="InterpreterComboBox"
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Center"
+                                SelectionChanged="InterpreterComboBox_SelectionChanged">
+                                <ComboBoxItem Content="Latest 2.x" />
+                                <ComboBoxItem Content="64-bit" />
+                                <ComboBoxItem Content="32-bit" />
+                            </ComboBox>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="16">
+                <StackPanel Spacing="4">
+                    <TextBlock
+                        Text="Windows integration"
+                        Style="{StaticResource SectionTitleTextStyle}" />
+                    <TextBlock
+                        Text="Keep common script actions connected to the tools you actually use."
+                        FontSize="15"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+
+                <Border Style="{StaticResource SurfaceCardStyle}">
+                    <StackPanel>
+                        <Grid Padding="22,21" ColumnSpacing="24">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="475" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock
+                                    Text="Script editor"
+                                    FontWeight="SemiBold"
+                                    FontSize="16" />
+                                <TextBlock
+                                    Text="Command used by the Windows Edit Script action."
+                                    FontSize="15"
+                                    TextWrapping="Wrap"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+
+                            <Grid
+                                Grid.Column="1"
+                                ColumnSpacing="8"
+                                VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox
+                                    x:Name="EditorCommandTextBox"
+                                    PlaceholderText="Editor command" />
+                                <Button
+                                    Grid.Column="1"
+                                    Content="Save"
+                                    MinWidth="88"
+                                    Click="SaveEditorButton_Click" />
+                            </Grid>
+                        </Grid>
+
+                        <Rectangle
+                            Height="1"
+                            Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                        <Grid Padding="22,21" ColumnSpacing="24">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock
+                                    Text="Check for updates"
+                                    FontWeight="SemiBold"
+                                    FontSize="16" />
+                                <TextBlock
+                                    Text="Preserve the existing AutoHotkeyUX update-check preference."
+                                    FontSize="15"
+                                    TextWrapping="Wrap"
+                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+
+                            <ToggleSwitch
+                                x:Name="CheckUpdatesToggle"
+                                Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Toggled="CheckUpdatesToggle_Toggled" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <Border
+                Style="{StaticResource SurfaceCardStyle}"
+                Padding="20,16">
+                <StackPanel
+                    Orientation="Horizontal"
+                    Spacing="9">
+                    <FontIcon
+                        Glyph="&#xE946;"
+                        FontSize="16"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock
+                        Text="Changes are stored per user and applied without reinstalling the modern shell."
+                        FontSize="15"
+                        TextWrapping="Wrap"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+
+            <InfoBar
+                x:Name="SettingsInfoBar"
+                IsOpen="False"
+                IsClosable="True" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

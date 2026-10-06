@@ -1,0 +1,128 @@
+name: Modern WinUI 3 Shell
+
+concurrency:
+  group: modern-winui-shell-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    paths:
+      - "modern-shell/**/*.cs"
+      - "modern-shell/**/*.xaml"
+      - "modern-shell/AutoHotkeyUX.Modern.csproj"
+      - "modern-shell/**/*.ps1"
+      - "modern-shell/**/*.cmd"
+      - ".github/workflows/modern-winui-shell.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build modern-shell/AutoHotkeyUX.Modern.csproj -c Release -p:Platform=x64
+
+      - name: Publish single EXE
+        shell: pwsh
+        run: >
+          dotnet publish modern-shell/AutoHotkeyUX.Modern.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -p:Platform=x64
+          -p:WindowsPackageType=None
+          -p:WindowsAppSDKSelfContained=true
+          -p:EnableMsixTooling=true
+          -p:PublishSingleFile=true
+          -p:IncludeAllContentForSelfExtract=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -o modern-shell/artifacts/win-x64
+
+      - name: Verify executable
+        shell: pwsh
+        run: |
+          $exe = "modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe"
+          if (-not (Test-Path $exe)) {
+            throw "Single-file executable was not produced."
+          }
+          Get-Item $exe | Format-List Name, Length, FullName
+
+      - name: Launch smoke test
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path "modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe"
+          $errorLog = Join-Path $env:LOCALAPPDATA "AutoHotkeyUX.Modern\startup-error.log"
+          $uninstallKeys = @(
+            "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AutoHotkey",
+            "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\AutoHotkey"
+          )
+          $uninstallBefore = @{}
+          foreach ($key in $uninstallKeys) {
+            $uninstallBefore[$key] = Test-Path $key
+          }
+
+          if (Test-Path $errorLog) {
+            Remove-Item $errorLog -Force
+          }
+
+          $process = Start-Process -FilePath $exe -PassThru
+
+          $runtime = Join-Path $env:LOCALAPPDATA "AutoHotkeyUX.Modern\runtime\2.0.29\v2\AutoHotkey64.exe"
+          $windowSpy = Join-Path $env:LOCALAPPDATA "AutoHotkeyUX.Modern\runtime\2.0.29\UX\WindowSpy.ahk"
+          $deadline = (Get-Date).AddSeconds(30)
+
+          while ((Get-Date) -lt $deadline) {
+            if (Test-Path $errorLog) {
+              Get-Content $errorLog
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+              throw "WinUI 3 startup diagnostics reported an error."
+            }
+
+            $process.Refresh()
+            if ($process.HasExited) {
+              throw "WinUI 3 executable exited during startup smoke test. Exit code: $($process.ExitCode)"
+            }
+
+            if ((Test-Path $runtime) -and (Test-Path $windowSpy)) {
+              break
+            }
+
+            Start-Sleep -Seconds 1
+          }
+
+          if (-not (Test-Path $runtime)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "Bundled AutoHotkey runtime was not materialized within 30 seconds."
+          }
+
+          if (-not (Test-Path $windowSpy)) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+            throw "Bundled AutoHotkeyUX scripts were not materialized within 30 seconds."
+          }
+
+          foreach ($key in $uninstallKeys) {
+            if (-not $uninstallBefore[$key] -and (Test-Path $key)) {
+              Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+              throw "Modern shell created a separate AutoHotkey uninstall/app registration: $key"
+            }
+          }
+
+          Stop-Process -Id $process.Id -Force
+          Write-Host "Startup smoke test passed: bundled runtime is ready and no AutoHotkey app registration was created."
+
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoHotkeyUX.Modern-WinUI3-win-x64
+          path: modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe
+          if-no-files-found: error

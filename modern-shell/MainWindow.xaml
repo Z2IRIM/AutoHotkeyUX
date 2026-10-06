@@ -1,0 +1,141 @@
+<Window
+    x:Class="AutoHotkeyUX.Modern.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid
+        x:Name="RootLayout"
+        Background="Transparent"
+        UseLayoutRounding="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Grid
+            x:Name="AppTitleBar"
+            Grid.Row="0"
+            Grid.ColumnSpan="2"
+            Background="Transparent">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="160" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock
+                Margin="20,0,0,0"
+                Text="AutoHotkey"
+                FontSize="16"
+                FontWeight="SemiBold"
+                VerticalAlignment="Center" />
+
+            <AutoSuggestBox
+                x:Name="GlobalSearchBox"
+                Grid.Column="1"
+                Width="430"
+                Height="40"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                PlaceholderText="Search scripts, tools and settings"
+                QueryIcon="Find"
+                QuerySubmitted="GlobalSearchBox_QuerySubmitted" />
+        </Grid>
+
+        <Grid
+            Grid.Row="1"
+            Grid.Column="0"
+            Padding="12,20,12,14"
+            Background="{ThemeResource LayerFillColorAltBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel
+                Grid.Row="0"
+                Margin="14,0,14,24"
+                Spacing="4">
+                <TextBlock
+                    Text="AutoHotkey"
+                    FontSize="18"
+                    FontWeight="SemiBold" />
+                <TextBlock
+                    Text="Modern workspace"
+                    FontSize="13"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </StackPanel>
+
+            <StackPanel
+                Grid.Row="1"
+                Spacing="4">
+                <RadioButton
+                    x:Name="HomeNavButton"
+                    GroupName="PrimaryNavigation"
+                    IsChecked="True"
+                    Content="Home"
+                    Tag="&#xE80F;"
+                    Style="{StaticResource SidebarNavButtonStyle}"
+                    Click="SidebarNavButton_Click" />
+                <RadioButton
+                    x:Name="NewScriptNavButton"
+                    GroupName="PrimaryNavigation"
+                    Content="New Script"
+                    Tag="&#xE710;"
+                    Style="{StaticResource SidebarNavButtonStyle}"
+                    Click="SidebarNavButton_Click" />
+                <RadioButton
+                    x:Name="SettingsNavButton"
+                    GroupName="PrimaryNavigation"
+                    Content="Settings"
+                    Tag="&#xE713;"
+                    Style="{StaticResource SidebarNavButtonStyle}"
+                    Click="SidebarNavButton_Click" />
+            </StackPanel>
+
+            <Border
+                Grid.Row="3"
+                Margin="4,14,4,0"
+                Padding="15,13"
+                CornerRadius="11"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1">
+                <StackPanel Spacing="5">
+                    <TextBlock
+                        Text="AutoHotkey v2.0.29"
+                        FontSize="13"
+                        FontWeight="SemiBold" />
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="7">
+                        <Ellipse
+                            Width="8"
+                            Height="8"
+                            Fill="#34C36D"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            Text="Built-in runtime"
+                            FontSize="12"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Border
+            Grid.Row="1"
+            Grid.Column="1"
+            BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+            BorderThickness="1,0,0,0"
+            Background="{ThemeResource LayerFillColorDefaultBrush}">
+            <ContentPresenter x:Name="PageHost" />
+        </Border>
+    </Grid>
+</Window>
