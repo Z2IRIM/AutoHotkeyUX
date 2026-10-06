@@ -6,10 +6,10 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel
             MaxWidth="1080"
-            Padding="40,34,40,48"
-            Spacing="28">
+            Padding="44,40,44,56"
+            Spacing="30">
 
-            <StackPanel Spacing="7">
+            <StackPanel Spacing="9">
                 <TextBlock
                     Text="SETTINGS"
                     Style="{StaticResource EyebrowTextStyle}" />
@@ -22,78 +22,78 @@
                     MaxWidth="760" />
             </StackPanel>
 
-            <StackPanel Spacing="14">
+            <StackPanel Spacing="16">
                 <TextBlock
                     Text="Runtime"
                     Style="{StaticResource SectionTitleTextStyle}" />
 
                 <Border
                     Style="{StaticResource SurfaceCardStyle}"
-                    Padding="18">
+                    Padding="22">
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="44" />
+                            <ColumnDefinition Width="54" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
                         <Border
-                            Width="42"
-                            Height="42"
-                            CornerRadius="21"
+                            Width="52"
+                            Height="52"
+                            CornerRadius="26"
                             Background="{ThemeResource AccentFillColorTertiaryBrush}">
                             <FontIcon
                                 Glyph="&#xE7F8;"
-                                FontSize="17"
+                                FontSize="21"
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center" />
                         </Border>
 
                         <StackPanel
                             Grid.Column="1"
-                            Spacing="4"
+                            Spacing="5"
                             VerticalAlignment="Center">
                             <TextBlock
                                 Text="Built-in AutoHotkey runtime"
-                                FontSize="13"
+                                FontSize="16"
                                 FontWeight="SemiBold" />
                             <TextBlock
                                 x:Name="RuntimePathText"
                                 Text="Detecting…"
                                 TextWrapping="Wrap"
-                                FontSize="12"
+                                FontSize="15"
                                 Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         </StackPanel>
                     </Grid>
                 </Border>
             </StackPanel>
 
-            <StackPanel Spacing="14">
-                <StackPanel Spacing="3">
+            <StackPanel Spacing="16">
+                <StackPanel Spacing="4">
                     <TextBlock
                         Text="Launcher"
                         Style="{StaticResource SectionTitleTextStyle}" />
                     <TextBlock
                         Text="Choose how scripts resolve their AutoHotkey interpreter."
-                        FontSize="12"
+                        FontSize="15"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
 
                 <Border Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel>
-                        <Grid Padding="18,17" ColumnSpacing="24">
+                        <Grid Padding="22,21" ColumnSpacing="24">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Spacing="4">
+                            <StackPanel Spacing="5">
                                 <TextBlock
                                     Text="Auto-detect script version"
                                     FontWeight="SemiBold"
-                                    FontSize="13" />
+                                    FontSize="16" />
                                 <TextBlock
                                     Text="Use the AutoHotkey launcher to select the correct interpreter for each script."
-                                    FontSize="12"
+                                    FontSize="15"
                                     TextWrapping="Wrap"
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
@@ -109,20 +109,20 @@
                             Height="1"
                             Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
 
-                        <Grid Padding="18,17" ColumnSpacing="24">
+                        <Grid Padding="22,21" ColumnSpacing="24">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="220" />
+                                <ColumnDefinition Width="275" />
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Spacing="4">
+                            <StackPanel Spacing="5">
                                 <TextBlock
                                     Text="Default v2 interpreter"
                                     FontWeight="SemiBold"
-                                    FontSize="13" />
+                                    FontSize="16" />
                                 <TextBlock
                                     Text="Preferred architecture when more than one compatible v2 runtime is available."
-                                    FontSize="12"
+                                    FontSize="15"
                                     TextWrapping="Wrap"
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
@@ -142,33 +142,33 @@
                 </Border>
             </StackPanel>
 
-            <StackPanel Spacing="14">
-                <StackPanel Spacing="3">
+            <StackPanel Spacing="16">
+                <StackPanel Spacing="4">
                     <TextBlock
                         Text="Windows integration"
                         Style="{StaticResource SectionTitleTextStyle}" />
                     <TextBlock
                         Text="Keep common script actions connected to the tools you actually use."
-                        FontSize="12"
+                        FontSize="15"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
 
                 <Border Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel>
-                        <Grid Padding="18,17" ColumnSpacing="24">
+                        <Grid Padding="22,21" ColumnSpacing="24">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="380" />
+                                <ColumnDefinition Width="475" />
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Spacing="4">
+                            <StackPanel Spacing="5">
                                 <TextBlock
                                     Text="Script editor"
                                     FontWeight="SemiBold"
-                                    FontSize="13" />
+                                    FontSize="16" />
                                 <TextBlock
                                     Text="Command used by the Windows Edit Script action."
-                                    FontSize="12"
+                                    FontSize="15"
                                     TextWrapping="Wrap"
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
@@ -188,7 +188,7 @@
                                 <Button
                                     Grid.Column="1"
                                     Content="Save"
-                                    MinWidth="70"
+                                    MinWidth="88"
                                     Click="SaveEditorButton_Click" />
                             </Grid>
                         </Grid>
@@ -197,20 +197,20 @@
                             Height="1"
                             Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
 
-                        <Grid Padding="18,17" ColumnSpacing="24">
+                        <Grid Padding="22,21" ColumnSpacing="24">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <StackPanel Spacing="4">
+                            <StackPanel Spacing="5">
                                 <TextBlock
                                     Text="Check for updates"
                                     FontWeight="SemiBold"
-                                    FontSize="13" />
+                                    FontSize="16" />
                                 <TextBlock
                                     Text="Preserve the existing AutoHotkeyUX update-check preference."
-                                    FontSize="12"
+                                    FontSize="15"
                                     TextWrapping="Wrap"
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
@@ -227,17 +227,17 @@
 
             <Border
                 Style="{StaticResource SurfaceCardStyle}"
-                Padding="16,13">
+                Padding="20,16">
                 <StackPanel
                     Orientation="Horizontal"
                     Spacing="9">
                     <FontIcon
                         Glyph="&#xE946;"
-                        FontSize="13"
+                        FontSize="16"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     <TextBlock
                         Text="Changes are stored per user and applied without reinstalling the modern shell."
-                        FontSize="12"
+                        FontSize="15"
                         TextWrapping="Wrap"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
