@@ -5,7 +5,8 @@
 
     <Grid
         x:Name="RootLayout"
-        Background="Transparent">
+        Background="Transparent"
+        UseLayoutRounding="True">
         <Grid.RowDefinitions>
             <RowDefinition Height="48" />
             <RowDefinition Height="*" />
@@ -118,20 +119,24 @@
             <StackPanel
                 Grid.Row="1"
                 Spacing="2">
-                <ToggleButton
+                <RadioButton
                     x:Name="HomeNavButton"
+                    GroupName="PrimaryNavigation"
+                    IsChecked="True"
                     Content="Home"
                     Tag="&#xE80F;"
                     Style="{StaticResource SidebarNavButtonStyle}"
                     Click="SidebarNavButton_Click" />
-                <ToggleButton
+                <RadioButton
                     x:Name="NewScriptNavButton"
+                    GroupName="PrimaryNavigation"
                     Content="New Script"
                     Tag="&#xE710;"
                     Style="{StaticResource SidebarNavButtonStyle}"
                     Click="SidebarNavButton_Click" />
-                <ToggleButton
+                <RadioButton
                     x:Name="SettingsNavButton"
+                    GroupName="PrimaryNavigation"
                     Content="Settings"
                     Tag="&#xE713;"
                     Style="{StaticResource SidebarNavButtonStyle}"
