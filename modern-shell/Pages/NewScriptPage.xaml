@@ -221,11 +221,11 @@
                         Padding="14"
                         AcceptsReturn="True"
                         IsReadOnly="True"
-                        FontFamily="Cascadia Mono, Consolas"
+                        FontFamily="Consolas"
                         FontSize="12"
                         TextWrapping="NoWrap"
-                        HorizontalScrollBarVisibility="Auto"
-                        VerticalScrollBarVisibility="Auto" />
+                        ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto" />
                 </Border>
             </StackPanel>
 
