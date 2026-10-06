@@ -1,8 +1,14 @@
 using AutoHotkeyUX.Modern.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using System.Diagnostics;
 
 namespace AutoHotkeyUX.Modern.Pages;
+
+internal sealed record RecentScriptItem(
+    string Name,
+    string Path,
+    string ModifiedText);
 
 public sealed partial class HomePage : Page
 {
@@ -33,22 +39,31 @@ public sealed partial class HomePage : Page
         var runtime = _integration.FindRuntime();
         if (runtime is null)
         {
-            RuntimeStatusIcon.Glyph = "\uE711";
+            RuntimeStatusIcon.Glyph = "";
             RuntimeStatusText.Text = "Built-in runtime unavailable";
             RuntimeDetailsText.Text =
-                "The bundled AutoHotkey runtime could not be prepared. Retry, then check startup diagnostics if the problem continues.";
+                "The bundled AutoHotkey runtime could not be prepared.";
+            RuntimeReadyBadge.Visibility = Visibility.Collapsed;
             ManageRuntimeButton.Content = "Retry";
             return;
         }
 
-        RuntimeStatusIcon.Glyph = "\uE73E";
-        RuntimeStatusText.Text = $"AutoHotkey {runtime.Version} detected";
+        RuntimeStatusIcon.Glyph = "";
+        RuntimeStatusText.Text = $"AutoHotkey {runtime.Version}";
         RuntimeDetailsText.Text =
-            $"{runtime.Path} · {runtime.Architecture} · discovered via {runtime.DiscoverySource}";
+            $"{runtime.Path} · {runtime.Architecture} · {runtime.DiscoverySource}";
+        RuntimeReadyBadge.Visibility = Visibility.Visible;
         ManageRuntimeButton.Content = "Manage";
     }
 
-    private void HomePage_Loaded(object sender, RoutedEventArgs e) => RefreshRuntime();
+    /// <summary>
+    /// Refreshes runtime and recent-script information whenever the Home page returns to view.
+    /// </summary>
+    private void HomePage_Loaded(object sender, RoutedEventArgs e)
+    {
+        RefreshRuntime();
+        RefreshRecentScripts();
+    }
 
     private void NewScriptButton_Click(object sender, RoutedEventArgs e) => _openNewScript();
 
@@ -76,6 +91,23 @@ public sealed partial class HomePage : Page
     }
 
     /// <summary>
+    /// Opens the user's AutoHotkey documents directory without requiring a shell file association.
+    /// </summary>
+    private void OpenScriptsFolderButton_Click(object sender, RoutedEventArgs e)
+    {
+        var directory = GetScriptsDirectory();
+        Directory.CreateDirectory(directory);
+
+        Process.Start(
+            new ProcessStartInfo(
+                "explorer.exe",
+                $""{directory}"")
+            {
+                UseShellExecute = true
+            });
+    }
+
+    /// <summary>
     /// Opens Window Spy and surfaces launch failures inside the page.
     /// </summary>
     private void WindowSpyButton_Click(object sender, RoutedEventArgs e)
@@ -97,6 +129,94 @@ public sealed partial class HomePage : Page
     private void DocumentationButton_Click(object sender, RoutedEventArgs e)
     {
         RunAction("Documentation", _integration.OpenDocumentation);
+    }
+
+    /// <summary>
+    /// Reads up to three recently modified .ahk files from the normal Documents\AutoHotkey workspace.
+    /// </summary>
+    private void RefreshRecentScripts()
+    {
+        var directory = GetScriptsDirectory();
+
+        if (!Directory.Exists(directory))
+        {
+            RecentScriptsList.ItemsSource = Array.Empty<RecentScriptItem>();
+            RecentScriptsEmptyText.Visibility = Visibility.Visible;
+            return;
+        }
+
+        try
+        {
+            var recent = Directory
+                .EnumerateFiles(
+                    directory,
+                    "*.ahk",
+                    SearchOption.TopDirectoryOnly)
+                .Select(path => new FileInfo(path))
+                .OrderByDescending(file => file.LastWriteTimeUtc)
+                .Take(3)
+                .Select(file => new RecentScriptItem(
+                    file.Name,
+                    file.FullName,
+                    FormatRelativeTime(file.LastWriteTimeUtc)))
+                .ToList();
+
+            RecentScriptsList.ItemsSource = recent;
+            RecentScriptsEmptyText.Visibility =
+                recent.Count == 0
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+        }
+        catch
+        {
+            RecentScriptsList.ItemsSource = Array.Empty<RecentScriptItem>();
+            RecentScriptsEmptyText.Visibility = Visibility.Visible;
+        }
+    }
+
+    /// <summary>
+    /// Resolves the conventional per-user script workspace used by the UX shell.
+    /// </summary>
+    private static string GetScriptsDirectory()
+        => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "AutoHotkey");
+
+    /// <summary>
+    /// Produces a compact, stable relative timestamp for the recent-scripts surface.
+    /// </summary>
+    private static string FormatRelativeTime(DateTime modifiedUtc)
+    {
+        var elapsed = DateTime.UtcNow - modifiedUtc;
+
+        if (elapsed < TimeSpan.Zero)
+        {
+            elapsed = TimeSpan.Zero;
+        }
+
+        if (elapsed.TotalMinutes < 1)
+        {
+            return "just now";
+        }
+
+        if (elapsed.TotalHours < 1)
+        {
+            return $"{Math.Max(1, (int)elapsed.TotalMinutes)}m ago";
+        }
+
+        if (elapsed.TotalDays < 1)
+        {
+            return $"{Math.Max(1, (int)elapsed.TotalHours)}h ago";
+        }
+
+        if (elapsed.TotalDays < 7)
+        {
+            return $"{Math.Max(1, (int)elapsed.TotalDays)}d ago";
+        }
+
+        return modifiedUtc
+            .ToLocalTime()
+            .ToString("yyyy-MM-dd");
     }
 
     /// <summary>
