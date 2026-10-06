@@ -41,13 +41,15 @@ public sealed partial class NewScriptPage : Page
     }
 
     /// <summary>
-    /// Applies the WinUI accent border only to the selected template.
+    /// Applies the shared selected-card treatment without changing template behavior.
     /// </summary>
     private static void SetTemplateSelected(Button button, bool selected)
     {
         button.BorderThickness = selected ? new Thickness(2) : new Thickness(1);
         button.BorderBrush = (Brush)Application.Current.Resources[
             selected ? "AccentFillColorDefaultBrush" : "CardStrokeColorDefaultBrush"];
+        button.Background = (Brush)Application.Current.Resources[
+            selected ? "AccentFillColorTertiaryBrush" : "CardBackgroundFillColorDefaultBrush"];
     }
 
     /// <summary>
