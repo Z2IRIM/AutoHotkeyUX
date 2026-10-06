@@ -6,8 +6,8 @@
     <ScrollViewer VerticalScrollBarVisibility="Auto">
         <StackPanel
             MaxWidth="1080"
-            Padding="40,34,40,48"
-            Spacing="28">
+            Padding="44,40,44,56"
+            Spacing="30">
 
             <StackPanel Spacing="7">
                 <TextBlock
@@ -22,24 +22,24 @@
                     MaxWidth="720" />
             </StackPanel>
 
-            <StackPanel Spacing="14">
+            <StackPanel Spacing="16">
                 <TextBlock
                     Text="Script details"
                     Style="{StaticResource SectionTitleTextStyle}" />
 
                 <Border
                     Style="{StaticResource SurfaceCardStyle}"
-                    Padding="20">
+                    Padding="24">
                     <Grid ColumnSpacing="18">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="1.25*" />
                         </Grid.ColumnDefinitions>
 
-                        <StackPanel Spacing="8">
+                        <StackPanel Spacing="10">
                             <TextBlock
                                 Text="Name"
-                                FontSize="12"
+                                FontSize="15"
                                 FontWeight="SemiBold" />
                             <TextBox
                                 x:Name="ScriptNameTextBox"
@@ -48,18 +48,18 @@
                                 TextChanged="ScriptInput_Changed" />
                             <TextBlock
                                 Text=".ahk is added automatically when omitted."
-                                FontSize="11"
+                                FontSize="13"
                                 Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                         </StackPanel>
 
                         <StackPanel
                             Grid.Column="1"
-                            Spacing="8">
+                            Spacing="10">
                             <TextBlock
                                 Text="Location"
-                                FontSize="12"
+                                FontSize="15"
                                 FontWeight="SemiBold" />
-                            <Grid ColumnSpacing="8">
+                            <Grid ColumnSpacing="10">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
@@ -71,30 +71,30 @@
                                 <Button
                                     Grid.Column="1"
                                     Content="Browse"
-                                    MinWidth="86"
+                                    MinWidth="108"
                                     Click="BrowseScriptLocationButton_Click" />
                             </Grid>
                             <TextBlock
                                 Text="Existing scripts are never replaced."
-                                FontSize="11"
+                                FontSize="13"
                                 Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                         </StackPanel>
                     </Grid>
                 </Border>
             </StackPanel>
 
-            <StackPanel Spacing="14">
+            <StackPanel Spacing="16">
                 <StackPanel Spacing="3">
                     <TextBlock
                         Text="Starter template"
                         Style="{StaticResource SectionTitleTextStyle}" />
                     <TextBlock
                         Text="Start small. You can replace everything later."
-                        FontSize="12"
+                        FontSize="15"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
 
-                <Grid ColumnSpacing="14">
+                <Grid ColumnSpacing="16">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
@@ -105,16 +105,16 @@
                         x:Name="BlankTemplateButton"
                         Grid.Column="0"
                         Tag="Blank"
-                        MinHeight="146"
+                        MinHeight="180"
                         Style="{StaticResource InteractiveCardButtonStyle}"
                         BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
                         BorderThickness="2"
                         Click="TemplateButton_Click">
-                        <StackPanel Spacing="12">
+                        <StackPanel Spacing="15">
                             <Border Style="{StaticResource IconBadgeStyle}">
                                 <FontIcon
                                     Glyph="&#xE8A5;"
-                                    FontSize="18"
+                                    FontSize="22"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center" />
                             </Border>
@@ -122,10 +122,10 @@
                                 <TextBlock
                                     Text="Blank"
                                     FontWeight="SemiBold"
-                                    FontSize="14" />
+                                    FontSize="17" />
                                 <TextBlock
                                     Text="Only #Requires and room to start writing."
-                                    FontSize="12"
+                                    FontSize="15"
                                     TextWrapping="Wrap"
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
@@ -136,14 +136,14 @@
                         x:Name="HotkeysTemplateButton"
                         Grid.Column="1"
                         Tag="Hotkeys"
-                        MinHeight="146"
+                        MinHeight="180"
                         Style="{StaticResource InteractiveCardButtonStyle}"
                         Click="TemplateButton_Click">
-                        <StackPanel Spacing="12">
+                        <StackPanel Spacing="15">
                             <Border Style="{StaticResource IconBadgeStyle}">
                                 <FontIcon
                                     Glyph="&#xE765;"
-                                    FontSize="18"
+                                    FontSize="22"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center" />
                             </Border>
@@ -151,10 +151,10 @@
                                 <TextBlock
                                     Text="Hotkeys"
                                     FontWeight="SemiBold"
-                                    FontSize="14" />
+                                    FontSize="17" />
                                 <TextBlock
                                     Text="A compact keyboard shortcut starter."
-                                    FontSize="12"
+                                    FontSize="15"
                                     TextWrapping="Wrap"
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
@@ -165,14 +165,14 @@
                         x:Name="AutomationTemplateButton"
                         Grid.Column="2"
                         Tag="Automation"
-                        MinHeight="146"
+                        MinHeight="180"
                         Style="{StaticResource InteractiveCardButtonStyle}"
                         Click="TemplateButton_Click">
-                        <StackPanel Spacing="12">
+                        <StackPanel Spacing="15">
                             <Border Style="{StaticResource IconBadgeStyle}">
                                 <FontIcon
                                     Glyph="&#xE945;"
-                                    FontSize="18"
+                                    FontSize="22"
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center" />
                             </Border>
@@ -180,10 +180,10 @@
                                 <TextBlock
                                     Text="Automation"
                                     FontWeight="SemiBold"
-                                    FontSize="14" />
+                                    FontSize="17" />
                                 <TextBlock
                                     Text="A desktop automation entry point with a first action."
-                                    FontSize="12"
+                                    FontSize="15"
                                     TextWrapping="Wrap"
                                     Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
@@ -192,7 +192,7 @@
                 </Grid>
             </StackPanel>
 
-            <StackPanel Spacing="14">
+            <StackPanel Spacing="16">
                 <Grid>
                     <StackPanel Spacing="3">
                         <TextBlock
@@ -200,7 +200,7 @@
                             Style="{StaticResource SectionTitleTextStyle}" />
                         <TextBlock
                             Text="This is exactly what will be written to the new file."
-                            FontSize="12"
+                            FontSize="15"
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
 
@@ -208,21 +208,21 @@
                         Text="Read only"
                         HorizontalAlignment="Right"
                         VerticalAlignment="Center"
-                        FontSize="11"
+                        FontSize="13"
                         Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                 </Grid>
 
                 <Border
                     Style="{StaticResource SurfaceCardStyle}"
-                    Padding="12">
+                    Padding="15">
                     <TextBox
                         x:Name="ScriptPreviewTextBox"
-                        MinHeight="190"
-                        Padding="14"
+                        MinHeight="240"
+                        Padding="17"
                         AcceptsReturn="True"
                         IsReadOnly="True"
                         FontFamily="Consolas"
-                        FontSize="12"
+                        FontSize="15"
                         TextWrapping="NoWrap"
                         ScrollViewer.HorizontalScrollBarVisibility="Auto"
                         ScrollViewer.VerticalScrollBarVisibility="Auto" />
@@ -231,7 +231,7 @@
 
             <Border
                 Style="{StaticResource SurfaceCardStyle}"
-                Padding="18,14">
+                Padding="22,18">
                 <Grid ColumnSpacing="18">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -244,12 +244,12 @@
                         VerticalAlignment="Center">
                         <FontIcon
                             Glyph="&#xE946;"
-                            FontSize="14"
+                            FontSize="17"
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         <TextBlock
                             x:Name="CreateScriptStatusText"
                             VerticalAlignment="Center"
-                            FontSize="12"
+                            FontSize="15"
                             Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                             TextWrapping="Wrap" />
                     </StackPanel>
@@ -257,7 +257,7 @@
                     <Button
                         Grid.Column="1"
                         Content="Create script"
-                        MinWidth="124"
+                        MinWidth="155"
                         Style="{StaticResource AccentButtonStyle}"
                         Click="CreateScriptButton_Click" />
                 </Grid>
