@@ -133,3 +133,22 @@ Mitigation:
 GitHub Actions `Modern WinUI 3 Shell` is the blocking compile / package / startup gate.
 
 A local Windows 11 visual pass is still required after CI because automated CI cannot judge visual fidelity, Mica appearance, DPI spacing or caption-button alignment.
+
+
+## Final CI result
+
+GitHub Actions Run #52:
+
+- Build: PASS
+- Publish single EXE: PASS
+- Verify executable: PASS
+- Launch smoke test: PASS
+- Embedded runtime materialization: PASS
+- No separate AutoHotkey app registration: PASS
+- Artifact upload: PASS
+
+Validated UI/runtime head:
+
+`94b7f84f69d3d9cc8929e8d45cb8d88c624cf6d9`
+
+The custom Mica title bar, custom sidebar and rebuilt Home page all passed the startup diagnostics gate.
