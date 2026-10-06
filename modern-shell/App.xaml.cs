@@ -13,10 +13,12 @@ public partial class App : Application
     private ApplicationServices? _services;
     private TrayIconService? _tray;
     private ApplicationIconService? _icon;
+    private ShortcutCommandService? _shortcuts;
     private readonly string[] _arguments;
     private readonly SingleInstanceService _singleInstance;
     private readonly DispatcherQueue _dispatcher;
     private bool _quitting;
+    private bool _closeAllowed;
     private static bool _silent;
 
     public static Window? MainWindowInstance { get; private set; }
@@ -57,11 +59,14 @@ public partial class App : Application
             MainWindowInstance = _window;
             _window.AppWindow.Closing += (_, closing) =>
             {
-                if (!_quitting)
+                if (!_closeAllowed)
                 {
                     closing.Cancel = true;
-                    _window.AppWindow.Hide();
-                    WriteStartupStatus();
+                    if (!_quitting)
+                    {
+                        _window.AppWindow.Hide();
+                        WriteStartupStatus();
+                    }
                 }
             };
             try
@@ -73,6 +78,8 @@ public partial class App : Application
                 ServiceDiagnostics.Write("Tray", "Tray initialization failed; showing the workspace so it remains accessible.", trayError);
                 ShowWindow();
             }
+            _shortcuts = new ShortcutCommandService(WinRT.Interop.WindowNative.GetWindowHandle(_window),
+                _services.Settings, (message, error) => _dispatcher.TryEnqueue(() => _tray?.ShowNotification(message, error)));
             if (_arguments.Contains("--enable-core")) await EnableCoreAsync();
             if (!_silent) ShowWindow();
             WriteStartupStatus();
@@ -100,6 +107,8 @@ public partial class App : Application
             Program.ExitCode = 1;
             ReportStartupFailure(_arguments.Contains("--verify-ui") ? "UI verification failed" : "MainWindow startup failed", ex);
             _quitting = true;
+            if (_shortcuts is not null) await _shortcuts.DrainAsync();
+            _closeAllowed = true;
             _tray?.Dispose();
             _services?.Dispose();
             _window?.Close();
@@ -144,11 +153,13 @@ public partial class App : Application
         WriteStartupStatus();
     }
 
-    /// <summary>Exits the manager, retaining scripts and releasing native icons after their consumers close.</summary>
-    private void ExitManager()
+    /// <summary>Drains accepted extractions before exiting, retaining scripts and releasing their native consumers last.</summary>
+    private async void ExitManager()
     {
         if (_quitting) return;
         _quitting = true;
+        if (_shortcuts is not null) await _shortcuts.DrainAsync();
+        _closeAllowed = true;
         _tray?.Dispose();
         _services?.Dispose();
         _window?.Close();

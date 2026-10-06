@@ -1,14 +1,12 @@
 using AutoHotkeyUX.Modern.Models;
-using System.Reflection;
-using System.Text;
 using System.Text.Json;
 
 namespace AutoHotkeyUX.Modern.Services;
 
-/// <summary>Stores script startup choices and installs the editable built-in Explorer script without overwriting files.</summary>
+/// <summary>Stores script startup choices and safely updates the editable built-in through its dedicated installer.</summary>
 internal sealed class ScriptStartupService
 {
-    private const string Marker = "; AutoHotkeyUX Explorer shortcuts v1";
+    private readonly ExplorerShortcutInstaller _installer;
     private readonly AutoHotkeySettings _settings;
     private readonly ScriptExecutionService _execution;
     private readonly object _gate = new();
@@ -20,6 +18,7 @@ internal sealed class ScriptStartupService
     internal ScriptStartupService(string root, AutoHotkeySettings settings, ScriptExecutionService execution)
     {
         ExplorerScriptPath = Path.Combine(root, "Explorer Shortcuts.ahk");
+        _installer = new ExplorerShortcutInstaller(ExplorerScriptPath);
         _settings = settings;
         _execution = execution;
     }
@@ -51,7 +50,7 @@ internal sealed class ScriptStartupService
         LastWarning = null;
         if (ExplorerEnabled)
         {
-            try { EnsureExplorerScript(); StartChecked(ExplorerScriptPath); }
+            try { StartExplorer(); }
             catch (Exception ex) { RecordStartupFailure(ExplorerScriptPath, ex); }
         }
         foreach (var path in ReadSelected())
@@ -75,7 +74,7 @@ internal sealed class ScriptStartupService
         var previous = ExplorerEnabled;
         try
         {
-            if (enabled) { EnsureExplorerScript(); StartChecked(ExplorerScriptPath); }
+            if (enabled) StartExplorer();
             else _execution.Stop(ExplorerScriptPath);
             _settings.WriteBoolean("Modern", "ExplorerShortcuts", enabled);
         }
@@ -94,24 +93,13 @@ internal sealed class ScriptStartupService
         if (session.State == ScriptState.Failed) throw new InvalidOperationException(session.Error);
     }
 
-    /// <summary>Creates an editable .ahk file only once and refuses a conflicting user file at the reserved name.</summary>
-    private void EnsureExplorerScript()
+    /// <summary>Restarts only an owned built-in upgraded from untouched v1; custom scripts retain their existing process.</summary>
+    private void StartExplorer()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(ExplorerScriptPath)!);
-        if (File.Exists(ExplorerScriptPath))
-        {
-            using var existing = new StreamReader(ExplorerScriptPath);
-            if (existing.ReadLine() != Marker)
-                throw new IOException($"A user file already uses '{ExplorerScriptPath}'. Rename it before enabling Explorer shortcuts.");
-            return;
-        }
-        using var resource = Assembly.GetExecutingAssembly().GetManifestResourceStream(
-            "AutoHotkeyUX.Modern.ExplorerShortcuts.ahk")
-            ?? throw new InvalidOperationException("The embedded Explorer shortcuts script is missing.");
-        using var reader = new StreamReader(resource);
-        using var stream = new FileStream(ExplorerScriptPath, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
-        using var writer = new StreamWriter(stream, new UTF8Encoding(true));
-        writer.Write(reader.ReadToEnd());
+        var upgraded = _installer.Ensure();
+        LastWarning = _installer.Warning;
+        var session = upgraded ? _execution.Restart(ExplorerScriptPath) : _execution.Run(ExplorerScriptPath);
+        if (session.State == ScriptState.Failed) throw new InvalidOperationException(session.Error);
     }
 
     /// <summary>Reads bounded path metadata and retains corruption diagnostics without storing script contents.</summary>

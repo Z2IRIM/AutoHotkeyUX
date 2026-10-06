@@ -12,6 +12,12 @@ Directory.CreateDirectory(root);
 var passed = 0;
 var scriptRoot = Path.Combine(root, "Documents", "AutoHotkey");
 
+if (args.Contains("--shortcuts-only"))
+{
+    await ShortcutChecks.RunAsync(runtime, root, Path.GetFullPath(args[2]));
+    return;
+}
+
 // Records an assertion with enough context to identify the failed boundary.
 void Check(bool condition, string description)
 {

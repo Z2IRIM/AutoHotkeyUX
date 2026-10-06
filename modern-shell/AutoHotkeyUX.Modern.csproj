@@ -43,6 +43,10 @@
                       LogicalName="AutoHotkeyUX.Modern.AppIcon.ico" />
     <EmbeddedResource Include="Resources\ExplorerShortcuts.ahk"
                       LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.ahk" />
+    <EmbeddedResource Include="Resources\ExplorerShortcuts\v2\Shell.ahk"
+                      LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Shell.ahk" />
+    <EmbeddedResource Include="Resources\ExplorerShortcuts\v2\Actions.ahk"
+                      LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Actions.ahk" />
     <EmbeddedResource Include="RuntimePayload\AutoHotkey.runtime.zip"
                       LogicalName="AutoHotkeyUX.Modern.Runtime.AutoHotkey.zip" />
     <EmbeddedResource Include="RuntimePayload\AutoHotkeyUX.scripts.zip"

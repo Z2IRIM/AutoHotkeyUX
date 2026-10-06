@@ -11,6 +11,9 @@ internal sealed class ArchiveExtractionService
     private const int MaximumEntries = 100000;
     private static readonly string[] Extensions = [".tar.gz", ".tgz", ".zip", ".7z", ".rar", ".tar"];
 
+    /// <summary>Shares the supported archive suffixes with the lightweight shortcut request boundary.</summary>
+    internal static bool SupportsPath(string path) => Extensions.Any(extension => path.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>Stages a complete extraction before committing a unique final folder name.</summary>
     internal string Extract(string archivePath)
     {

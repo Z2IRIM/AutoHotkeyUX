@@ -16,5 +16,10 @@
     <Compile Include="..\..\modern-shell\Services\WindowsCommandLine.cs" Link="Services\WindowsCommandLine.cs" />
     <Compile Include="..\..\modern-shell\Services\AutoHotkeySettings.cs" Link="Services\AutoHotkeySettings.cs" />
     <Compile Include="..\..\modern-shell\Services\ScriptStartupService.cs" Link="Services\ScriptStartupService.cs" />
+    <Compile Include="..\..\modern-shell\Services\ExplorerShortcutInstaller.cs" Link="Services\ExplorerShortcutInstaller.cs" />
+    <Compile Include="..\..\modern-shell\Services\ShortcutCommandService.cs" Link="Services\ShortcutCommandService.cs" />
+    <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.ahk" />
+    <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts\v2\Shell.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Shell.ahk" />
+    <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts\v2\Actions.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Actions.ahk" />
   </ItemGroup>
 </Project>

@@ -80,6 +80,18 @@ internal sealed class TrayIconService : IDisposable
         Info = string.Empty, InfoTitle = string.Empty
     };
 
+    /// <summary>Reports background shortcut completion through the existing native notification entry.</summary>
+    internal void ShowNotification(string message, bool error)
+    {
+        if (_disposed) return;
+        var data = CreateData();
+        data.Flags = 0x10;
+        data.Info = message.Length < 256 ? message : message[..252] + "...";
+        data.InfoTitle = "AutoHotkey · 解压";
+        data.InfoFlags = error ? 3u : 1u;
+        if (!ShellNotifyIcon(1, ref data)) ServiceDiagnostics.Write("Tray", "Windows did not accept the extraction notification.");
+    }
+
     /// <summary>Removes only this application's tray entry and native subclass.</summary>
     public void Dispose()
     {
