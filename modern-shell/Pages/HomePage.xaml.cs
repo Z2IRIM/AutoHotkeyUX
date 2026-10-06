@@ -101,7 +101,7 @@ public sealed partial class HomePage : Page
         Process.Start(
             new ProcessStartInfo(
                 "explorer.exe",
-                $""{directory}"")
+                $"\"{directory}\"")
             {
                 UseShellExecute = true
             });
