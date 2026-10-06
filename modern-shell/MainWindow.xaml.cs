@@ -10,6 +10,9 @@ namespace AutoHotkeyUX.Modern;
 
 public sealed partial class MainWindow : Window
 {
+    private const int MinimumWindowWidth = 980;
+    private const int MinimumWindowHeight = 680;
+
     private readonly AutoHotkeyRuntimeLocator _runtimeLocator;
     private readonly AutoHotkeyIntegration _integration;
     private readonly AutoHotkeySettings _settings;
@@ -26,7 +29,8 @@ public sealed partial class MainWindow : Window
         InitializeComponent();
 
         Title = "AutoHotkey";
-        AppWindow.Resize(new SizeInt32(1180, 760));
+        AppWindow.Resize(new SizeInt32(1280, 820));
+        AppWindow.Changed += AppWindow_Changed;
         ConfigureWindowChrome();
 
         var embeddedRuntime = new EmbeddedAutoHotkeyRuntime();
@@ -35,6 +39,27 @@ public sealed partial class MainWindow : Window
         _settings = new AutoHotkeySettings();
 
         NavigateTo("home");
+    }
+
+    /// <summary>
+    /// Keeps the desktop workspace above its minimum usable size instead of compressing content into broken columns.
+    /// </summary>
+    private void AppWindow_Changed(
+        Microsoft.UI.Windowing.AppWindow sender,
+        Microsoft.UI.Windowing.AppWindowChangedEventArgs args)
+    {
+        if (!args.DidSizeChange)
+        {
+            return;
+        }
+
+        var width = Math.Max(sender.Size.Width, MinimumWindowWidth);
+        var height = Math.Max(sender.Size.Height, MinimumWindowHeight);
+
+        if (width != sender.Size.Width || height != sender.Size.Height)
+        {
+            sender.Resize(new SizeInt32(width, height));
+        }
     }
 
     /// <summary>
