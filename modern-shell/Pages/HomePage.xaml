@@ -69,17 +69,8 @@
                     CornerRadius="12"
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                     Padding="18">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop
-                                Color="{ThemeResource CardBackgroundFillColorDefault}"
-                                Offset="0" />
-                            <GradientStop
-                                Color="{ThemeResource AccentFillColorTertiary}"
-                                Offset="1" />
-                        </LinearGradientBrush>
-                    </Border.Background>
 
                     <Grid ColumnSpacing="14">
                         <Grid.ColumnDefinitions>
