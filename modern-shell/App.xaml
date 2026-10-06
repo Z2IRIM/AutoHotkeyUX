@@ -9,32 +9,32 @@
                 <muxc:XamlControlsResources />
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- Shared Windows 11 / WinUI 3 visual language. -->
+            <!-- 125% desktop visual scale for the approved WinUI shell. -->
             <Style x:Key="PageTitleTextStyle" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="28" />
+                <Setter Property="FontSize" Value="35" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
 
             <Style x:Key="PageSubtitleTextStyle" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="13" />
+                <Setter Property="FontSize" Value="16" />
                 <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
 
             <Style x:Key="SectionTitleTextStyle" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontSize" Value="18" />
                 <Setter Property="FontWeight" Value="SemiBold" />
             </Style>
 
             <Style x:Key="EyebrowTextStyle" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="11" />
+                <Setter Property="FontSize" Value="13" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
             </Style>
 
             <Style x:Key="SurfaceCardStyle" TargetType="Border">
-                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="CornerRadius" Value="12" />
                 <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
                 <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
@@ -43,23 +43,22 @@
             <Style x:Key="InteractiveCardButtonStyle" TargetType="Button">
                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                 <Setter Property="VerticalContentAlignment" Value="Stretch" />
-                <Setter Property="Padding" Value="16" />
-                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="Padding" Value="20" />
+                <Setter Property="CornerRadius" Value="12" />
                 <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}" />
                 <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
             </Style>
 
             <Style x:Key="IconBadgeStyle" TargetType="Border">
-                <Setter Property="Width" Value="36" />
-                <Setter Property="Height" Value="36" />
-                <Setter Property="CornerRadius" Value="9" />
+                <Setter Property="Width" Value="45" />
+                <Setter Property="Height" Value="45" />
+                <Setter Property="CornerRadius" Value="11" />
                 <Setter Property="Background" Value="{ThemeResource AccentFillColorTertiaryBrush}" />
             </Style>
 
-            <!-- Subtle Gallery-style navigation selection: soft fill + short rounded accent bar. -->
             <Style x:Key="SidebarNavButtonStyle" TargetType="RadioButton">
-                <Setter Property="Height" Value="40" />
+                <Setter Property="Height" Value="50" />
                 <Setter Property="HorizontalAlignment" Value="Stretch" />
                 <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                 <Setter Property="Background" Value="Transparent" />
@@ -73,19 +72,17 @@
                                 <Border
                                     x:Name="SelectionBackground"
                                     Margin="4,1"
-                                    CornerRadius="8"
+                                    CornerRadius="10"
                                     Background="Transparent" />
-
                                 <Border
                                     x:Name="PointerBackground"
                                     Margin="4,1"
-                                    CornerRadius="8"
+                                    CornerRadius="10"
                                     Background="Transparent" />
-
                                 <Border
                                     x:Name="SelectionIndicator"
                                     Width="3"
-                                    Height="16"
+                                    Height="20"
                                     Margin="2,0,0,0"
                                     HorizontalAlignment="Left"
                                     VerticalAlignment="Center"
@@ -94,17 +91,17 @@
                                     Visibility="Collapsed" />
 
                                 <Grid
-                                    Margin="14,0,10,0"
-                                    ColumnSpacing="12">
+                                    Margin="16,0,12,0"
+                                    ColumnSpacing="13">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="22" />
+                                        <ColumnDefinition Width="26" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
 
                                     <FontIcon
                                         x:Name="NavIcon"
                                         Glyph="{TemplateBinding Tag}"
-                                        FontSize="16"
+                                        FontSize="19"
                                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center" />
@@ -112,8 +109,9 @@
                                     <TextBlock
                                         Grid.Column="1"
                                         Text="{TemplateBinding Content}"
-                                        FontSize="13"
+                                        FontSize="16"
                                         VerticalAlignment="Center"
+                                        TextTrimming="CharacterEllipsis"
                                         Foreground="{ThemeResource TextFillColorPrimaryBrush}" />
                                 </Grid>
 
@@ -140,41 +138,23 @@
                                     <VisualStateGroup x:Name="CheckStates">
                                         <VisualState x:Name="Unchecked">
                                             <VisualState.Setters>
-                                                <Setter
-                                                    Target="SelectionBackground.Background"
-                                                    Value="Transparent" />
-                                                <Setter
-                                                    Target="SelectionIndicator.Visibility"
-                                                    Value="Collapsed" />
-                                                <Setter
-                                                    Target="NavIcon.Foreground"
-                                                    Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <Setter Target="SelectionBackground.Background" Value="Transparent" />
+                                                <Setter Target="SelectionIndicator.Visibility" Value="Collapsed" />
+                                                <Setter Target="NavIcon.Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
                                             </VisualState.Setters>
                                         </VisualState>
                                         <VisualState x:Name="Checked">
                                             <VisualState.Setters>
-                                                <Setter
-                                                    Target="SelectionBackground.Background"
-                                                    Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
-                                                <Setter
-                                                    Target="SelectionIndicator.Visibility"
-                                                    Value="Visible" />
-                                                <Setter
-                                                    Target="NavIcon.Foreground"
-                                                    Value="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                                <Setter Target="SelectionBackground.Background" Value="{ThemeResource SubtleFillColorSecondaryBrush}" />
+                                                <Setter Target="SelectionIndicator.Visibility" Value="Visible" />
+                                                <Setter Target="NavIcon.Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}" />
                                             </VisualState.Setters>
                                         </VisualState>
                                         <VisualState x:Name="Indeterminate">
                                             <VisualState.Setters>
-                                                <Setter
-                                                    Target="SelectionBackground.Background"
-                                                    Value="Transparent" />
-                                                <Setter
-                                                    Target="SelectionIndicator.Visibility"
-                                                    Value="Collapsed" />
-                                                <Setter
-                                                    Target="NavIcon.Foreground"
-                                                    Value="{ThemeResource TextFillColorSecondaryBrush}" />
+                                                <Setter Target="SelectionBackground.Background" Value="Transparent" />
+                                                <Setter Target="SelectionIndicator.Visibility" Value="Collapsed" />
+                                                <Setter Target="NavIcon.Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
                                             </VisualState.Setters>
                                         </VisualState>
                                     </VisualStateGroup>
