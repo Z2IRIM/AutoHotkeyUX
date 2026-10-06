@@ -14,3 +14,12 @@ This project bundles the unmodified AutoHotkey v2.0.29 portable runtime as a sep
 The runtime remains a separate native executable and is not linked into the C# application.
 
 Before distributing production binaries, verify that the release package and project distribution process continue to satisfy the upstream GPL-2.0 source-availability requirements.
+
+## SharpCompress 0.50.3
+
+The modern shell bundles SharpCompress for ZIP, 7z, RAR, TAR and compressed TAR extraction. No separate archive application is required.
+
+- Upstream project: https://github.com/adamhathcock/sharpcompress
+- Source tag: https://github.com/adamhathcock/sharpcompress/tree/0.50.3
+- License: MIT; upstream notice: https://github.com/adamhathcock/sharpcompress/blob/0.50.3/LICENSE.txt
+- Dependencies retain their own upstream licenses; the NuGet package metadata identifies them.

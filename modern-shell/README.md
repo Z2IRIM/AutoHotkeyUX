@@ -72,6 +72,33 @@ modern-shell\artifacts\win-x64\AutoHotkeyUX.Modern.exe
 
 The executable is an unpackaged, self-contained WinUI 3 single-file deployment. Windows App SDK, .NET, the AutoHotkey portable runtime, and the required AutoHotkeyUX scripts are bundled into the published EXE.
 
+## Script manager and background shortcuts
+
+- **Scripts** reads `.ahk` files from the Windows Documents known folder's `AutoHotkey` directory. Run/Stop/Restart operate only on interpreters owned by this manager. Edit uses the existing editor setting or Notepad without changing associations.
+- In **Settings → Background and shortcuts**, enable **Start with Windows** for silent startup at user sign-in and **Explorer shortcuts** for the built-in editable script.
+- **Alt + left click** in Explorer's file view opens a folder's terminal, extracts a supported archive into a new sibling folder, or opens the current directory's terminal when clicking empty space. Navigation panes and virtual directories are ignored. Windows Terminal is preferred; Windows PowerShell is the fallback.
+- Quick extraction supports ZIP, 7z, RAR, TAR, TAR.GZ and TGZ. Source archives and existing folders are preserved. Password prompts and multipart workflows are not implemented. Extraction rejects unsafe paths/links and is bounded to 100,000 entries and 20 GiB output.
+- Closing the window hides it to the system tray. Launching the EXE again restores the same manager. **Exit manager** preserves running scripts; sessions are checked by PID, exact process start time and runtime path on reopening.
+- User scripts can opt into **Run at sign-in** on Scripts. This takes effect when the manager starts; Windows startup must also be enabled for sign-in launching. A missing script is diagnosed and does not block other startup scripts or the workspace.
+- Diagnostics: `%LOCALAPPDATA%\AutoHotkeyUX.Modern\state\manager.log`, `manager-startup.json`, `managed-sessions.json`. No script contents are stored in session metadata.
+
+Commands supported by the modern EXE:
+
+~~~text
+AutoHotkeyUX.Modern.exe --background
+AutoHotkeyUX.Modern.exe --background --enable-core
+AutoHotkeyUX.Modern.exe --exit-manager
+AutoHotkeyUX.Modern.exe --extract "C:\Downloads\archive.zip"
+AutoHotkeyUX.Modern.exe --verify-runtime "C:\Temp\runtime-report.json"
+AutoHotkeyUX.Modern.exe --verify-ui "C:\Temp\ui-report.json"
+~~~
+
+`--enable-core` explicitly enables this user's login startup and Explorer shortcuts. The one-shot extraction helper does not open the manager UI. UI diagnostics must run when the manager is not already open; they load real pages, check search/navigation/minimum-width actions, write a report and exit.
+
+Source-only backup: run `powershell -NoProfile -ExecutionPolicy Bypass -File .\package-source.ps1` from the repository root. Generated builds, runtime downloads, test files, dependencies and earlier backups are excluded.
+
+Incremental source package: `powershell -NoProfile -ExecutionPolicy Bypass -File .\package-source.ps1 -Incremental -BaseRef <commit>`. This includes tracked changes against the specified baseline and a deletion manifest; its default output is `C:\DESKTOP\srcpack_Area\AutoHotkeyUX`.
+
 ## Existing AutoHotkey compatibility
 
 The shell continues to use the established settings and shell-association locations:

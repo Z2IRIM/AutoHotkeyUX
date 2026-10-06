@@ -9,18 +9,30 @@ public sealed partial class SettingsPage : Page
     private readonly AutoHotkeyIntegration _integration;
     private readonly AutoHotkeySettings _settings;
     private bool _loadedSettings;
+    private readonly WindowsStartupService _windowsStartup;
+    private readonly ScriptStartupService _scriptStartup;
+    private readonly ScriptExecutionService _execution;
+    private bool _subscribed;
+    private bool _changingBackground;
 
     /// <summary>
     /// Creates the Settings page over the existing AutoHotkey registry contract.
     /// </summary>
     internal SettingsPage(
         AutoHotkeyIntegration integration,
-        AutoHotkeySettings settings)
+        AutoHotkeySettings settings,
+        WindowsStartupService windowsStartup,
+        ScriptStartupService scriptStartup,
+        ScriptExecutionService execution)
     {
         InitializeComponent();
         _integration = integration;
         _settings = settings;
+        _windowsStartup = windowsStartup;
+        _scriptStartup = scriptStartup;
+        _execution = execution;
         Loaded += SettingsPage_Loaded;
+        Unloaded += SettingsPage_Unloaded;
     }
 
     /// <summary>
@@ -47,11 +59,70 @@ public sealed partial class SettingsPage : Page
 
         EditorCommandTextBox.Text = _settings.ReadEditorCommand();
         CheckUpdatesToggle.IsOn = _settings.ReadBoolean("Dash", "CheckForUpdates", false);
+        StartWithWindowsToggle.IsOn = _windowsStartup.IsEnabled;
+        ExplorerShortcutsToggle.IsOn = _scriptStartup.ExplorerEnabled;
+        UpdateBackgroundStatus();
+        if (_scriptStartup.LastWarning is not null) ShowStatus(_scriptStartup.LastWarning, InfoBarSeverity.Warning);
 
         _loadedSettings = true;
     }
 
-    private void SettingsPage_Loaded(object sender, RoutedEventArgs e) => Refresh();
+    /// <summary>Subscribes to live shortcut state only while the settings page is visible.</summary>
+    private void SettingsPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (!_subscribed) { _execution.Changed += Execution_Changed; _subscribed = true; }
+        Refresh();
+    }
+
+    /// <summary>Prevents duplicate notifications when navigating away and back.</summary>
+    private void SettingsPage_Unloaded(object sender, RoutedEventArgs e)
+    { _subscribed = false; _execution.Changed -= Execution_Changed; }
+
+    /// <summary>Dispatches script exit events to settings without accessing XAML from a process callback.</summary>
+    private void Execution_Changed(object? sender, EventArgs e)
+        => DispatcherQueue.TryEnqueue(() => { if (_subscribed) UpdateBackgroundStatus(); });
+
+    /// <summary>Shows the actual shortcut process state independently of the saved enable preference.</summary>
+    private void UpdateBackgroundStatus()
+    {
+        var session = _execution.Snapshot().FirstOrDefault(session => _scriptStartup.IsExplorerScript(session.ScriptPath));
+        ExplorerStatusText.Text = session is null ? "Shortcuts are stopped." : $"Shortcuts: {session.State}{(session.Error is null ? "" : $" · {session.Error}")}";
+    }
+
+    /// <summary>Writes or removes only the current user's silent login startup entry.</summary>
+    private void StartWithWindowsToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (!_loadedSettings || _changingBackground) return;
+        try
+        {
+            _windowsStartup.SetEnabled(StartWithWindowsToggle.IsOn);
+            ShowStatus(StartWithWindowsToggle.IsOn ? "The workspace will start silently at Windows sign-in." : "Windows sign-in startup disabled.", InfoBarSeverity.Success);
+        }
+        catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); Refresh(); }
+    }
+
+    /// <summary>Installs/starts or stops the editable built-in script through the same process manager as user scripts.</summary>
+    private async void ExplorerShortcutsToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (!_loadedSettings || _changingBackground) return;
+        _changingBackground = true;
+        ExplorerShortcutsToggle.IsEnabled = false;
+        StartWithWindowsToggle.IsEnabled = false;
+        try
+        {
+            var enabled = ExplorerShortcutsToggle.IsOn;
+            await Task.Run(() => _scriptStartup.SetExplorerEnabled(enabled));
+            ShowStatus(enabled ? "Explorer shortcuts enabled. Alt + left click a folder or archive." : "Explorer shortcuts stopped.", InfoBarSeverity.Success);
+        }
+        catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); }
+        finally
+        {
+            _changingBackground = false;
+            ExplorerShortcutsToggle.IsEnabled = true;
+            StartWithWindowsToggle.IsEnabled = true;
+            Refresh();
+        }
+    }
 
     /// <summary>
     /// Applies launcher mode using the currently selected runtime preference.

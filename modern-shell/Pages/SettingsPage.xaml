@@ -17,9 +17,50 @@
                     Text="Preferences"
                     Style="{StaticResource PageTitleTextStyle}" />
                 <TextBlock
-                    Text="Control the built-in runtime, script launcher behavior, editor integration and update preference."
+                    Text="Control background startup, Explorer shortcuts, the built-in runtime and your script tools."
                     Style="{StaticResource PageSubtitleTextStyle}"
                     MaxWidth="760" />
+            </StackPanel>
+
+            <StackPanel Spacing="16">
+                <TextBlock Text="Background and shortcuts" Style="{StaticResource SectionTitleTextStyle}" />
+                <Border Style="{StaticResource SurfaceCardStyle}">
+                    <StackPanel>
+                        <Grid Padding="22,21" ColumnSpacing="24">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Start with Windows" FontWeight="SemiBold" FontSize="16" />
+                                <TextBlock Text="Start silently at sign-in. Open the workspace from the system tray." FontSize="15" TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="StartWithWindowsToggle" Grid.Column="1" VerticalAlignment="Center"
+                                          AutomationProperties.Name="Start with Windows" Toggled="StartWithWindowsToggle_Toggled" />
+                        </Grid>
+                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                        <Grid Padding="22,21" ColumnSpacing="24">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="Explorer shortcuts" FontWeight="SemiBold" FontSize="16" />
+                                <TextBlock Text="Alt + left click a folder to open its terminal, an archive to extract beside it, or empty file space to open the current directory." FontSize="15" TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock Text="ZIP, 7z, RAR, TAR, TAR.GZ and TGZ. Existing folders and source archives are preserved." FontSize="13" TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <TextBlock x:Name="ExplorerStatusText" FontSize="13" TextWrapping="Wrap"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="ExplorerShortcutsToggle" Grid.Column="1" VerticalAlignment="Center"
+                                          AutomationProperties.Name="Explorer shortcuts" Toggled="ExplorerShortcutsToggle_Toggled" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="Closing the window keeps scripts running. Choose scripts to run at sign-in on the Scripts page."
+                           FontSize="13" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
 
             <StackPanel Spacing="16">

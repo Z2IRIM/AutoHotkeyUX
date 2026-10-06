@@ -7,7 +7,10 @@ namespace AutoHotkeyUX.Modern.Services;
 /// </summary>
 internal sealed class AutoHotkeySettings
 {
-    private const string BaseKey = @"Software\AutoHotkey";
+    private readonly string _baseKey;
+
+    /// <summary>Uses the existing registry contract, with an optional isolated key for service verification.</summary>
+    internal AutoHotkeySettings(string baseKey = @"Software\AutoHotkey") => _baseKey = baseKey;
 
     /// <summary>
     /// Reads a string value from the existing HKCU AutoHotkey settings hierarchy.
@@ -18,7 +21,7 @@ internal sealed class AutoHotkeySettings
         string defaultValue = "")
     {
         using var key = Registry.CurrentUser.OpenSubKey(
-            $@"{BaseKey}\{section}");
+            $@"{_baseKey}\{section}");
         return key?.GetValue(name)?.ToString() ?? defaultValue;
     }
 
@@ -31,7 +34,7 @@ internal sealed class AutoHotkeySettings
         string value)
     {
         using var key = Registry.CurrentUser.CreateSubKey(
-            $@"{BaseKey}\{section}");
+            $@"{_baseKey}\{section}");
         key.SetValue(name, value, RegistryValueKind.String);
     }
 
@@ -44,7 +47,7 @@ internal sealed class AutoHotkeySettings
         bool defaultValue)
     {
         using var key = Registry.CurrentUser.OpenSubKey(
-            $@"{BaseKey}\{section}");
+            $@"{_baseKey}\{section}");
         var value = key?.GetValue(name);
 
         return value switch
@@ -65,7 +68,7 @@ internal sealed class AutoHotkeySettings
         bool value)
     {
         using var key = Registry.CurrentUser.CreateSubKey(
-            $@"{BaseKey}\{section}");
+            $@"{_baseKey}\{section}");
         key.SetValue(
             name,
             value ? 1 : 0,

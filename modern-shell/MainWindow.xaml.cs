@@ -13,18 +13,19 @@ public sealed partial class MainWindow : Window
     private const int MinimumWindowWidth = 980;
     private const int MinimumWindowHeight = 680;
 
-    private readonly AutoHotkeyRuntimeLocator _runtimeLocator;
     private readonly AutoHotkeyIntegration _integration;
     private readonly AutoHotkeySettings _settings;
+    private readonly ApplicationServices _services;
 
     private HomePage? _homePage;
     private NewScriptPage? _newScriptPage;
     private SettingsPage? _settingsPage;
+    private ScriptsPage? _scriptsPage;
 
     /// <summary>
     /// Initializes the integrated Windows 11 shell and shared AutoHotkey services.
     /// </summary>
-    public MainWindow()
+    internal MainWindow(ApplicationServices services)
     {
         InitializeComponent();
 
@@ -33,10 +34,9 @@ public sealed partial class MainWindow : Window
         AppWindow.Changed += AppWindow_Changed;
         ConfigureWindowChrome();
 
-        var embeddedRuntime = new EmbeddedAutoHotkeyRuntime();
-        _runtimeLocator = new AutoHotkeyRuntimeLocator(embeddedRuntime);
-        _integration = new AutoHotkeyIntegration(_runtimeLocator);
-        _settings = new AutoHotkeySettings();
+        _services = services;
+        _integration = services.Integration;
+        _settings = services.Settings;
 
         NavigateTo("home");
     }
@@ -92,11 +92,13 @@ public sealed partial class MainWindow : Window
             PageHost.Content = tag switch
             {
                 "new" => _newScriptPage ??= new NewScriptPage(_integration),
-                "settings" => _settingsPage ??= new SettingsPage(_integration, _settings),
+                "settings" => _settingsPage ??= new SettingsPage(_integration, _settings, _services.WindowsStartup, _services.ScriptStartup, _services.Execution),
+                "scripts" => _scriptsPage ??= new ScriptsPage(_services.Catalog, _services.Execution, _services.ScriptStartup, _integration, _settings),
                 _ => _homePage ??= new HomePage(
                     _integration,
                     () => NavigateTo("new"),
-                    () => NavigateTo("settings"))
+                    () => NavigateTo("settings"),
+                    _services.Catalog)
             };
 
             SetSelectedNavigation(tag);
@@ -130,6 +132,7 @@ public sealed partial class MainWindow : Window
 
         SettingsNavButton.IsChecked =
             string.Equals(tag, "settings", StringComparison.Ordinal);
+        ScriptsNavButton.IsChecked = string.Equals(tag, "scripts", StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -142,12 +145,9 @@ public sealed partial class MainWindow : Window
             return;
         }
 
-        var tag =
-            ReferenceEquals(button, NewScriptNavButton)
-                ? "new"
-                : ReferenceEquals(button, SettingsNavButton)
-                    ? "settings"
-                    : "home";
+        var tag = ReferenceEquals(button, NewScriptNavButton) ? "new"
+            : ReferenceEquals(button, SettingsNavButton) ? "settings"
+            : ReferenceEquals(button, ScriptsNavButton) ? "scripts" : "home";
 
         NavigateTo(tag);
     }
@@ -177,6 +177,10 @@ public sealed partial class MainWindow : Window
                  || query.Contains("create", StringComparison.Ordinal))
         {
             NavigateTo("new");
+        }
+        else if (query.Contains("script", StringComparison.Ordinal))
+        {
+            NavigateTo("scripts");
         }
         else if (query.Contains("window", StringComparison.Ordinal)
                  && query.Contains("spy", StringComparison.Ordinal))

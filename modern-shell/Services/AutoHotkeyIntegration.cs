@@ -202,6 +202,41 @@ internal sealed class AutoHotkeyIntegration
             });
     }
 
+    /// <summary>Runs the configured Edit Script command without changing file associations or editor settings.</summary>
+    internal void EditScript(string path, AutoHotkeySettings settings)
+    {
+        if (!File.Exists(path)) throw new FileNotFoundException("The script no longer exists.", path);
+        var command = settings.ReadEditorCommand();
+        if (string.IsNullOrWhiteSpace(command))
+        {
+            var fallback = new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "System32", "notepad.exe"))
+            { UseShellExecute = false };
+            fallback.ArgumentList.Add(path);
+            Process.Start(fallback);
+            return;
+        }
+        var arguments = WindowsCommandLine.Split(Environment.ExpandEnvironmentVariables(command));
+        if (arguments.Length == 0) throw new InvalidOperationException("The configured editor command is invalid.");
+        var start = new ProcessStartInfo(arguments[0]) { UseShellExecute = false };
+        var substituted = false;
+        foreach (var argument in arguments.Skip(1))
+        {
+            substituted |= argument.Contains("%1", StringComparison.Ordinal) || argument.Contains("%L", StringComparison.OrdinalIgnoreCase);
+            start.ArgumentList.Add(argument.Replace("%1", path, StringComparison.Ordinal).Replace("%L", path, StringComparison.OrdinalIgnoreCase));
+        }
+        if (!substituted) start.ArgumentList.Add(path);
+        Process.Start(start);
+    }
+
+    /// <summary>Creates and opens the shared workspace using Explorer, independently of .ahk associations.</summary>
+    internal void OpenScriptsFolder(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        var start = new ProcessStartInfo("explorer.exe") { UseShellExecute = true };
+        start.ArgumentList.Add(directory);
+        Process.Start(start);
+    }
+
     /// <summary>
     /// Applies the launcher or a concrete v2 runtime to the per-user .ahk shell association.
     /// </summary>

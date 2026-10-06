@@ -5,16 +5,13 @@ using System.Diagnostics;
 
 namespace AutoHotkeyUX.Modern.Pages;
 
-internal sealed record RecentScriptItem(
-    string Name,
-    string Path,
-    string ModifiedText);
-
 public sealed partial class HomePage : Page
 {
     private readonly AutoHotkeyIntegration _integration;
     private readonly Action _openNewScript;
     private readonly Action _openSettings;
+    private readonly ScriptCatalogService _catalog;
+    private bool _subscribed;
 
     /// <summary>
     /// Creates the Home page around the shared AutoHotkey integration service.
@@ -22,13 +19,16 @@ public sealed partial class HomePage : Page
     internal HomePage(
         AutoHotkeyIntegration integration,
         Action openNewScript,
-        Action openSettings)
+        Action openSettings,
+        ScriptCatalogService catalog)
     {
         InitializeComponent();
         _integration = integration;
         _openNewScript = openNewScript;
         _openSettings = openSettings;
+        _catalog = catalog;
         Loaded += HomePage_Loaded;
+        Unloaded += HomePage_Unloaded;
     }
 
     /// <summary>
@@ -62,8 +62,21 @@ public sealed partial class HomePage : Page
     private void HomePage_Loaded(object sender, RoutedEventArgs e)
     {
         RefreshRuntime();
+        if (!_subscribed)
+        {
+            _catalog.Changed += Catalog_Changed;
+            _subscribed = true;
+        }
         RefreshRecentScripts();
     }
+
+    /// <summary>Detaches shared catalog updates while Home is not visible.</summary>
+    private void HomePage_Unloaded(object sender, RoutedEventArgs e)
+    { _subscribed = false; _catalog.Changed -= Catalog_Changed; }
+
+    /// <summary>Dispatches filesystem notifications to the Home UI only while it remains loaded.</summary>
+    private void Catalog_Changed(object? sender, EventArgs e)
+        => DispatcherQueue.TryEnqueue(() => { if (_subscribed) RefreshRecentScripts(); });
 
     private void NewScriptButton_Click(object sender, RoutedEventArgs e) => _openNewScript();
 
@@ -95,16 +108,7 @@ public sealed partial class HomePage : Page
     /// </summary>
     private void OpenScriptsFolderButton_Click(object sender, RoutedEventArgs e)
     {
-        var directory = GetScriptsDirectory();
-        Directory.CreateDirectory(directory);
-
-        Process.Start(
-            new ProcessStartInfo(
-                "explorer.exe",
-                $"\"{directory}\"")
-            {
-                UseShellExecute = true
-            });
+        RunAction("Open scripts folder", () => _integration.OpenScriptsFolder(_catalog.RootDirectory));
     }
 
     /// <summary>
@@ -132,55 +136,17 @@ public sealed partial class HomePage : Page
     }
 
     /// <summary>
-    /// Reads up to three recently modified .ahk files from the normal Documents\AutoHotkey workspace.
+    /// Displays the three newest entries from the same catalog used by Scripts.
     /// </summary>
     private void RefreshRecentScripts()
     {
-        var directory = GetScriptsDirectory();
-
-        if (!Directory.Exists(directory))
-        {
-            RecentScriptsList.ItemsSource = Array.Empty<RecentScriptItem>();
-            RecentScriptsEmptyText.Visibility = Visibility.Visible;
-            return;
-        }
-
-        try
-        {
-            var recent = Directory
-                .EnumerateFiles(
-                    directory,
-                    "*.ahk",
-                    SearchOption.TopDirectoryOnly)
-                .Select(path => new FileInfo(path))
-                .OrderByDescending(file => file.LastWriteTimeUtc)
-                .Take(3)
-                .Select(file => new RecentScriptItem(
-                    file.Name,
-                    file.FullName,
-                    FormatRelativeTime(file.LastWriteTimeUtc)))
-                .ToList();
-
-            RecentScriptsList.ItemsSource = recent;
-            RecentScriptsEmptyText.Visibility =
-                recent.Count == 0
-                    ? Visibility.Visible
-                    : Visibility.Collapsed;
-        }
-        catch
-        {
-            RecentScriptsList.ItemsSource = Array.Empty<RecentScriptItem>();
-            RecentScriptsEmptyText.Visibility = Visibility.Visible;
-        }
+        var recent = _catalog.Snapshot().Take(3).Select(entry => new
+        { entry.Name, entry.Path, ModifiedText = FormatRelativeTime(entry.LastModifiedUtc) }).ToArray();
+        RecentScriptsList.ItemsSource = recent;
+        RecentScriptsEmptyText.Visibility = recent.Length == 0 ? Visibility.Visible : Visibility.Collapsed;
+        if (_catalog.LastError is not null)
+        { ActionInfoBar.Message = _catalog.LastError; ActionInfoBar.Severity = InfoBarSeverity.Warning; ActionInfoBar.IsOpen = true; }
     }
-
-    /// <summary>
-    /// Resolves the conventional per-user script workspace used by the UX shell.
-    /// </summary>
-    private static string GetScriptsDirectory()
-        => Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "AutoHotkey");
 
     /// <summary>
     /// Produces a compact, stable relative timestamp for the recent-scripts surface.

@@ -84,6 +84,13 @@
                     Style="{StaticResource SidebarNavButtonStyle}"
                     Click="SidebarNavButton_Click" />
                 <RadioButton
+                    x:Name="ScriptsNavButton"
+                    GroupName="PrimaryNavigation"
+                    Content="Scripts"
+                    Tag="&#xE8A5;"
+                    Style="{StaticResource SidebarNavButtonStyle}"
+                    Click="SidebarNavButton_Click" />
+                <RadioButton
                     x:Name="NewScriptNavButton"
                     GroupName="PrimaryNavigation"
                     Content="New Script"
