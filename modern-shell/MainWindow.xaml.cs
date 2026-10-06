@@ -3,7 +3,6 @@ using AutoHotkeyUX.Modern.Services;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 
@@ -94,7 +93,7 @@ public sealed partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Keeps the custom sidebar mutually exclusive even though it uses lightweight ToggleButtons.
+    /// Keeps the custom sidebar mutually exclusive using the native RadioButton group state.
     /// </summary>
     private void SetSelectedNavigation(string tag)
     {
@@ -113,7 +112,7 @@ public sealed partial class MainWindow : Window
     /// </summary>
     private void SidebarNavButton_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not ToggleButton button)
+        if (sender is not RadioButton button)
         {
             return;
         }
