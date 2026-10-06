@@ -105,15 +105,23 @@ Unchanged:
 
 GitHub Actions Run #61 is the validation run for the final executable source.
 
-At record creation time:
+Final result:
 
 - Build: PASS
 - Publish single EXE: PASS
 - Verify executable: PASS
 - Launch smoke test: PASS
-- Artifact upload: running
+- Embedded runtime gate: PASS
+- No separate AutoHotkey app registration: PASS
+- Artifact upload: PASS
 
-The Windows smoke test therefore confirms the updated shell starts successfully and the embedded runtime path remains intact.
+Validated executable-source head:
+
+`4b50e45a24e1e9a499a511485c8c54f763f9bc36`
+
+The subsequent coding-record commit does not change executable source.
+
+The Windows smoke test confirms the updated shell starts successfully and the embedded runtime path remains intact.
 
 ## Real-machine verification
 
