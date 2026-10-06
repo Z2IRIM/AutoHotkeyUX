@@ -1,7 +1,10 @@
 using AutoHotkeyUX.Modern.Pages;
 using AutoHotkeyUX.Modern.Services;
+using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
 using Windows.Graphics;
 
 namespace AutoHotkeyUX.Modern;
@@ -17,22 +20,42 @@ public sealed partial class MainWindow : Window
     private SettingsPage? _settingsPage;
 
     /// <summary>
-    /// Initializes the WinUI 3 shell using the standard system title bar for maximum compatibility.
+    /// Initializes the integrated Windows 11 shell and shared AutoHotkey services.
     /// </summary>
     public MainWindow()
     {
         InitializeComponent();
 
         Title = "AutoHotkey";
-        AppWindow.Resize(new SizeInt32(1120, 720));
+        AppWindow.Resize(new SizeInt32(1180, 760));
+        ConfigureWindowChrome();
 
         var embeddedRuntime = new EmbeddedAutoHotkeyRuntime();
         _runtimeLocator = new AutoHotkeyRuntimeLocator(embeddedRuntime);
         _integration = new AutoHotkeyIntegration(_runtimeLocator);
         _settings = new AutoHotkeySettings();
 
-        RootNavigation.SelectedItem = RootNavigation.MenuItems[0];
         NavigateTo("home");
+    }
+
+    /// <summary>
+    /// Extends content into the title bar and enables a native Mica backdrop without replacing caption buttons.
+    /// </summary>
+    private void ConfigureWindowChrome()
+    {
+        try
+        {
+            ExtendsContentIntoTitleBar = true;
+            SetTitleBar(AppTitleBar);
+            SystemBackdrop = new MicaBackdrop();
+
+            AppWindow.TitleBar.ButtonBackgroundColor = Colors.Transparent;
+            AppWindow.TitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+        }
+        catch
+        {
+            // Older Windows builds fall back to the standard backdrop/title-bar behavior.
+        }
     }
 
     /// <summary>
@@ -52,14 +75,7 @@ public sealed partial class MainWindow : Window
                     () => NavigateTo("settings"))
             };
 
-            foreach (var item in RootNavigation.MenuItems.OfType<NavigationViewItem>())
-            {
-                if (string.Equals(item.Tag?.ToString(), tag, StringComparison.Ordinal))
-                {
-                    RootNavigation.SelectedItem = item;
-                    break;
-                }
-            }
+            SetSelectedNavigation(tag);
 
             if (tag == "home")
             {
@@ -75,6 +91,89 @@ public sealed partial class MainWindow : Window
             App.ReportStartupFailure($"Page '{tag}' failed to load", ex);
             PageHost.Content = CreateFallbackContent(tag, ex);
         }
+    }
+
+    /// <summary>
+    /// Keeps the custom sidebar mutually exclusive even though it uses lightweight ToggleButtons.
+    /// </summary>
+    private void SetSelectedNavigation(string tag)
+    {
+        HomeNavButton.IsChecked =
+            string.Equals(tag, "home", StringComparison.Ordinal);
+
+        NewScriptNavButton.IsChecked =
+            string.Equals(tag, "new", StringComparison.Ordinal);
+
+        SettingsNavButton.IsChecked =
+            string.Equals(tag, "settings", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Routes a sidebar button to its corresponding page and restores its checked state.
+    /// </summary>
+    private void SidebarNavButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not ToggleButton button)
+        {
+            return;
+        }
+
+        var tag =
+            ReferenceEquals(button, NewScriptNavButton)
+                ? "new"
+                : ReferenceEquals(button, SettingsNavButton)
+                    ? "settings"
+                    : "home";
+
+        NavigateTo(tag);
+    }
+
+    /// <summary>
+    /// Provides a compact command-palette-like search for the shell's primary pages and tools.
+    /// </summary>
+    private void GlobalSearchBox_QuerySubmitted(
+        AutoSuggestBox sender,
+        AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        var query = (args.QueryText ?? string.Empty)
+            .Trim()
+            .ToLowerInvariant();
+
+        if (query.Length == 0)
+        {
+            return;
+        }
+
+        if (query.Contains("setting", StringComparison.Ordinal)
+            || query.Contains("preference", StringComparison.Ordinal))
+        {
+            NavigateTo("settings");
+        }
+        else if (query.Contains("new", StringComparison.Ordinal)
+                 || query.Contains("create", StringComparison.Ordinal))
+        {
+            NavigateTo("new");
+        }
+        else if (query.Contains("window", StringComparison.Ordinal)
+                 && query.Contains("spy", StringComparison.Ordinal))
+        {
+            _integration.OpenWindowSpy();
+        }
+        else if (query.Contains("compile", StringComparison.Ordinal))
+        {
+            _integration.OpenCompiler();
+        }
+        else if (query.Contains("doc", StringComparison.Ordinal)
+                 || query.Contains("help", StringComparison.Ordinal))
+        {
+            _integration.OpenDocumentation();
+        }
+        else
+        {
+            NavigateTo("home");
+        }
+
+        sender.Text = string.Empty;
     }
 
     /// <summary>
@@ -110,18 +209,5 @@ public sealed partial class MainWindow : Window
         });
 
         return panel;
-    }
-
-    /// <summary>
-    /// Handles navigation selection using each item's stable tag.
-    /// </summary>
-    private void RootNavigation_SelectionChanged(
-        NavigationView sender,
-        NavigationViewSelectionChangedEventArgs args)
-    {
-        if (args.SelectedItemContainer?.Tag is string tag)
-        {
-            NavigateTo(tag);
-        }
     }
 }
