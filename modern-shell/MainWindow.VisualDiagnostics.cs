@@ -9,6 +9,10 @@ public sealed partial class MainWindow
     /// <summary>Verifies the native workflow UI with isolated files and captures rendered evidence at wide and narrow sizes.</summary>
     internal async Task<object> VerifyVisualCreationAsync(string reportPath)
     {
+        NavigateTo("new"); await Task.Delay(120);
+        var startup = _newScriptPage!.VerifyWorkflowLayout();
+        await CaptureVisualAsync(Path.ChangeExtension(reportPath, "startup.png"));
+        var startupAfterRender = _newScriptPage.VerifyWorkflowLayout();
         var shell = await VerifyPagesAsync();
         var scale = RootLayout.XamlRoot.RasterizationScale;
         AppWindow.Resize(new Windows.Graphics.SizeInt32((int)Math.Round(1600 * scale), (int)Math.Round(1000 * scale)));
@@ -28,7 +32,7 @@ public sealed partial class MainWindow
         await Task.Delay(120);
         var narrow = _newScriptPage.VerifyWorkflowLayout();
         await CaptureVisualAsync(Path.ChangeExtension(reportPath, "narrow.png"));
-        return new { Passed = true, Shell = shell, Form = form, Review = review, Wide = wide, Medium = medium, Narrow = narrow,
+        return new { Passed = true, Shell = shell, Form = form, Review = review, Startup = startup, StartupAfterRender = startupAfterRender, Wide = wide, Medium = medium, Narrow = narrow,
             Capture = "WinUI RenderTargetBitmap with opaque theme background; Mica and native caption are excluded",
             DragCompletionBoundary = true, PhysicalMouseDrag = "unvalidated", StateDirectory = _services.StateDirectory };
     }

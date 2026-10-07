@@ -7,7 +7,7 @@ namespace AutoHotkeyUX.Modern.Pages;
 
 public sealed partial class NewScriptPage
 {
-    /// <summary>Checks native library spacing and every editor panel's actual bounds after responsive layout.</summary>
+    /// <summary>Checks native spacing, panel bounds and the whole workflow's alignment inside the actual viewport.</summary>
     internal object VerifyWorkflowLayout()
     {
         UpdateLayout();
@@ -27,7 +27,16 @@ public sealed partial class NewScriptPage
             CheckVisibleBounds(container, container);
         if (Grid.GetRow(PropertiesPanel) != (_layoutMode == 0 ? 0 : _layoutMode == 1 ? 1 : 2))
             throw new InvalidOperationException("The property inspector has the wrong responsive position.");
-        return new { Passed = true, Mode = _layoutMode, Width = EditorGrid.ActualWidth, Panels = bounds, LibraryGap = 8 };
+        var bodyPosition = PageBody.TransformToVisual(PageScroll).TransformPoint(default);
+        var editorPosition = EditorGrid.TransformToVisual(PageScroll).TransformPoint(default);
+        var propertiesPosition = PropertiesPanel.TransformToVisual(PageScroll).TransformPoint(default);
+        if (Math.Abs(bodyPosition.X) > 1 || bodyPosition.X + PageBody.ActualWidth > PageScroll.ViewportWidth + 1
+            || editorPosition.X < PageBody.Padding.Left - 1 || editorPosition.X + EditorGrid.ActualWidth > PageScroll.ViewportWidth - PageBody.Padding.Right + 1)
+            throw new InvalidOperationException($"Workflow is shifted or clipped: body X={bodyPosition.X}, width={PageBody.ActualWidth}, viewport={PageScroll.ViewportWidth}.");
+        return new { Passed = true, Mode = _layoutMode, Width = EditorGrid.ActualWidth, Panels = bounds, LibraryGap = 8,
+            Viewport = new { PageWidth = ActualWidth, ScrollWidth = PageScroll.ActualWidth, Width = PageScroll.ViewportWidth,
+                BodyX = bodyPosition.X, BodyWidth = PageBody.ActualWidth, EditorX = editorPosition.X,
+                EditorRight = editorPosition.X + EditorGrid.ActualWidth, PropertiesRight = propertiesPosition.X + PropertiesPanel.ActualWidth } };
     }
 
     /// <summary>Checks actual native descendant control widths while ignoring collapsed property editors.</summary>
