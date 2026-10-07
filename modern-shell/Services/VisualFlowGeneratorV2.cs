@@ -37,6 +37,7 @@ internal static class VisualFlowGeneratorV2
         }
         else source.Append(scope.Length > 0 ? "if " + scope + "\r\n    " : "").Append("FlowRun()\r\n");
         source.Append("\r\n; Executes one workflow; results cannot escape their invocation or conditional branch.\r\nFlowRun() {\r\n    step := \"trigger\"\r\n    try {\r\n        context := FlowCapture(" + L(mouse ? flow.Trigger.Key : "") + ")\r\n        if !context\r\n            return\r\n");
+        if (flow.Trigger.Scope == FlowScopeKind.ActiveApplication) source.Append("        if !").Append(scope).Append("\r\n            return\r\n");
         WriteActions(source, flow.Actions, "        ");
         source.Append("    }\r\n    catch Error as failure\r\n        FlowFailure(step, failure)\r\n}\r\n\r\n");
         source.Append(Resource("VisualFlow.Runtime.ahk"));

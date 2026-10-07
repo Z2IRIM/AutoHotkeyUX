@@ -64,7 +64,7 @@ internal static class VisualCapabilityChecks
         var trigger = VisualFlowExamples.Explorer().Trigger;
         Require(VisualHotkeyConflicts.BuiltIn(trigger, ShortcutPreferences.Default) is not null, "builtin collision");
         Require(VisualHotkeyConflicts.BuiltIn(trigger, ShortcutPreferences.Default, false) is null, "disabled builtin");
-        Require(VisualHotkeyConflicts.BuiltIn(trigger with { Scope = FlowScopeKind.ActiveApplication, Application = "notepad.exe" }, ShortcutPreferences.Default) is null, "separate scope");
+        Require(VisualHotkeyConflicts.BuiltIn(trigger with { Scope = FlowScopeKind.ActiveApplication, Application = "notepad.exe" }, ShortcutPreferences.Default) is not null, "inactive Explorer mouse overlap");
         Require(VisualHotkeyConflicts.Collides(trigger, trigger with { Scope = FlowScopeKind.ActiveApplication, Application = "explorer.exe" }), "Explorer overlaps desktop scope");
         Require(!VisualHotkeyConflicts.Collides(trigger, trigger with { Modifiers = FlowModifiers.Alt | FlowModifiers.Shift }), "different modifier");
         Console.WriteLine("PASS: known shortcut collisions and distinct scopes");

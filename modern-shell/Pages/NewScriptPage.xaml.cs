@@ -126,7 +126,7 @@ public sealed partial class NewScriptPage : Page
         var index = Array.FindIndex(sequence, action => action.Id == _session.Selection);
         UpButton.IsEnabled = !_busy && _branchSelection is null && index > 0; DownButton.IsEnabled = !_busy && _branchSelection is null && index >= 0 && index < sequence.Length - 1;
         DeleteButton.IsEnabled = !_busy && _branchSelection is null && index >= 0;
-        foreach (var button in _libraryButtons) button.IsEnabled = !_busy && VisualFlowTree.Walk(_session.Document.Actions).Count() < VisualFlowCodec.MaximumActions;
+        foreach (var button in _libraryButtons) button.IsEnabled = !_busy && VisualFlowTree.CanInsert(_session.Document.Actions, _insertion, (FlowActionKind)button.Tag);
         var conflict = VisualHotkeyConflicts.BuiltIn(_session.Document.Trigger, _services.ShortcutPreferences.Saved, _services.ScriptStartup.ExplorerEnabled);
         ShortcutWarningText.Text = conflict ?? ""; ShortcutWarningText.Visibility = conflict is null ? Visibility.Collapsed : Visibility.Visible;
         CreateScriptStatusText.Text = _opened is null ? "Creates a script and its workflow file. Existing names receive a suffix. Actions run only after you start the script."

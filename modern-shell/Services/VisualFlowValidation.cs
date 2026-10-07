@@ -69,7 +69,8 @@ internal static class VisualFlowValidation
         {
             if (action.Kind != FlowActionKind.IfElse) continue;
             if (conditions >= 3) Fail("Use at most three nested If / Else conditions.");
-            ValidateTree(action.Parameters!.Then, conditions + 1); ValidateTree(action.Parameters.Else, conditions + 1);
+            var parameters = action.Parameters ?? throw new InvalidDataException("This condition is missing its parameters.");
+            ValidateTree(parameters.Then, conditions + 1); ValidateTree(parameters.Else, conditions + 1);
         }
     }
     /// <summary>Checks fixed absolute paths and limits reference fields to path-bearing outputs.</summary>

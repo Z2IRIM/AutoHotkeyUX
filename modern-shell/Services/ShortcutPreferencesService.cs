@@ -47,7 +47,9 @@ internal sealed class ShortcutPreferencesService
                     var normalized = preferences with { ArchiveFolder = preferences.ArchiveFolder.Trim() };
                     var errors = ShortcutPreferenceCodec.Validate(normalized, true);
                     if (errors.Count != 0) throw new InvalidDataException(string.Join(" ", errors.Values));
-                    var conflict = _workflowConflict?.Invoke(normalized);
+                    var bindingsChanged = normalized.TerminalEnabled != Saved.TerminalEnabled || normalized.TerminalShortcut != Saved.TerminalShortcut
+                        || normalized.ArchiveEnabled != Saved.ArchiveEnabled || normalized.ArchiveShortcut != Saved.ArchiveShortcut;
+                    var conflict = bindingsChanged ? _workflowConflict?.Invoke(normalized) : null;
                     if (conflict is not null) throw new InvalidOperationException(conflict);
                     ResolveUnconfirmed();
                     if (normalized == Saved && Warning is null) return;

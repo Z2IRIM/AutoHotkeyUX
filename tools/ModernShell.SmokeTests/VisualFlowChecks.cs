@@ -209,7 +209,7 @@ internal static class VisualFlowChecks
     }
 
     // Parses every action without executing it, then runs a safe generated wait with test-owned marker output.
-    private static async Task Runtime(string runtime, string root)
+    internal static async Task Runtime(string runtime, string root)
     {
         var flow = Flow(new FlowAction() { Kind = FlowActionKind.OpenProgram, Value = "notepad.exe" },
             new() { Kind = FlowActionKind.OpenFolder, Folder = FlowFolderKind.Documents },
@@ -239,7 +239,8 @@ internal static class VisualFlowChecks
             var first = execution.Run(runtimePath);
             await Until(() => File.Exists(marker) && MarkerLines(marker) == 1);
             var second = execution.Restart(runtimePath);
-            await Until(() => MarkerLines(marker) == 2);
+            try { await Until(() => MarkerLines(marker) == 2); }
+            catch { Console.WriteLine("Restart diagnostic: " + System.Text.Json.JsonSerializer.Serialize(execution.Snapshot())); throw; }
             Check(second.ProcessId != first.ProcessId && second.State == ScriptState.Running, "generated startup works with existing Run/Restart owner");
         }
         finally { execution.Stop(runtimePath); }

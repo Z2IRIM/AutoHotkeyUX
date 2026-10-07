@@ -9,6 +9,16 @@ using System.Text;
 var runtime = Path.GetFullPath(args[0]);
 var root = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(root);
+if (args.Contains("--visual-runtime-only"))
+{
+    await VisualFlowChecks.Runtime(runtime, root);
+    return;
+}
+if (args.Contains("--capability-review-only"))
+{
+    await VisualCapabilityReviewChecks.RunAsync(runtime, root);
+    return;
+}
 if (args.Contains("--capabilities-only"))
 {
     await VisualCapabilityChecks.RunAsync(runtime, root);

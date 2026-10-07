@@ -9,7 +9,12 @@ internal sealed record RunningScriptSession(
     DateTime? ProcessStartUtc,
     DateTime StartedUtc,
     ScriptState State,
-    string? Error = null);
+    string? Error = null,
+    FlowTrigger? RegisteredTrigger = null,
+    bool ShortcutSnapshotKnown = false,
+    string? SnapshotPath = null,
+    string? SnapshotSha256 = null);
 
 /// <summary>Persists the minimum identity needed to reject recycled Windows PIDs.</summary>
-internal sealed record PersistedScriptSession(string ScriptPath, int Pid, DateTime ProcessStartUtc);
+internal sealed record PersistedScriptSession(string ScriptPath, int Pid, DateTime ProcessStartUtc,
+    FlowTrigger? RegisteredTrigger = null, bool ShortcutSnapshotKnown = false, string? SnapshotPath = null, string? SnapshotSha256 = null);

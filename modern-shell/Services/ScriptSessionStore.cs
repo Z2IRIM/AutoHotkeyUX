@@ -14,6 +14,7 @@ internal sealed class ScriptSessionStore
     };
     private readonly string _path;
     internal string? LastError { get; private set; }
+    internal string SnapshotDirectory => Path.Combine(Path.GetDirectoryName(Path.GetFullPath(_path))!, "visual-runs");
 
     /// <summary>Allows a private test store while using the agreed per-user path by default.</summary>
     internal ScriptSessionStore(string? path = null)

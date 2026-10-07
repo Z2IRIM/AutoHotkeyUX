@@ -22,6 +22,8 @@
 
 每个示例仍需 Create script，然后在 Scripts 中 Run。Alt + 左键默认也属于内置 Explorer 快捷键；请先在 Settings 更换内置快捷键，或把示例改成 Alt + Shift + 左键。应用检测内置功能和受管完整可视化流程之间的冲突，并拒绝冲突运行/配置；无法保证识别外部或手改 AHK 的快捷键。
 
+保存改键后，正在运行的进程仍使用启动时快照，必须 Restart 才应用新键。运行源码副本与快照跟随 PID/启动时间持久化；旧运行流程若没有可靠快照，先 Restart/Stop 才能确认快捷键不会冲突。普通或手改代码仍按原路径运行。终端设置在可视化脚本启动时读取，修改后对该流程 Restart。
+
 无需写代码的例子：保留默认 **Ctrl + Alt + D** 触发器，添加 **Open folder → Documents**，再添加 **Wait → 500 ms**，保存后在 Scripts 点击 Run。按快捷键即可打开文档目录。
 
 仓库也保留普通代码示例 [`examples/OpenDocuments.ahk`](examples/OpenDocuments.ahk)。普通 `.ahk` 的 Edit 使用当前配置的外部编辑器，未配置时使用记事本。下面的手写示例独立于可视化创建；如果将其内容覆盖到生成的文件，应用会识别源代码已变动并保护它，不再静默重生成。

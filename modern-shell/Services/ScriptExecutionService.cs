@@ -13,13 +13,14 @@ internal sealed class ScriptExecutionService : IDisposable
     private readonly Dictionary<string, Process> _processes = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, RunningScriptSession> _sessions = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, StringBuilder> _errors = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, VisualExecutionSource> _sources = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
-    private readonly Func<string, string?>? _workflowConflict;
+    private readonly Func<string, FlowTrigger?, string?>? _workflowConflict;
     internal string? LastWarning { get; private set; }
     internal event EventHandler? Changed;
 
     /// <summary>Reuses the shell runtime locator through a provider without coupling process handling to XAML.</summary>
-    internal ScriptExecutionService(Func<string?> runtimePath, ScriptSessionStore store, Func<string, string?>? workflowConflict = null)
+    internal ScriptExecutionService(Func<string?> runtimePath, ScriptSessionStore store, Func<string, FlowTrigger?, string?>? workflowConflict = null)
     {
         _runtimePath = runtimePath;
         _store = store;
@@ -53,7 +54,16 @@ internal sealed class ScriptExecutionService : IDisposable
                     if (process.HasExited || process.StartTime.ToUniversalTime() != entry.ProcessStartUtc
                         || !string.Equals(process.MainModule?.FileName, runtime, StringComparison.OrdinalIgnoreCase))
                         continue;
-                    _sessions[path] = new(path, entry.Pid, entry.ProcessStartUtc, entry.ProcessStartUtc, ScriptState.Running);
+                    var known = entry.ShortcutSnapshotKnown && VisualExecutionSource.IsValidTrigger(entry.RegisteredTrigger);
+                    if (known && entry.SnapshotPath is not null && entry.SnapshotSha256 is not null && entry.RegisteredTrigger is not null)
+                    {
+                        try { _sources[path] = VisualExecutionSource.Restore(entry.SnapshotPath, entry.SnapshotSha256, entry.RegisteredTrigger, _store.SnapshotDirectory); }
+                        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+                        { known = false; ServiceDiagnostics.Write("Execution", "Recovered visual snapshot unavailable; restart is needed for shortcut certainty.", ex); }
+                    }
+                    else if (entry.RegisteredTrigger is not null) known = false;
+                    _sessions[path] = new(path, entry.Pid, entry.ProcessStartUtc, entry.ProcessStartUtc, ScriptState.Running,
+                        RegisteredTrigger: entry.RegisteredTrigger, ShortcutSnapshotKnown: known, SnapshotPath: entry.SnapshotPath, SnapshotSha256: entry.SnapshotSha256);
                     Attach(path, process);
                     process = null; // The service now owns the handle.
                 }
@@ -62,6 +72,7 @@ internal sealed class ScriptExecutionService : IDisposable
                 {
                     if (process is not null)
                     {
+                        if (_sources.Remove(entry.ScriptPath, out var rejectedSource)) rejectedSource.Release(delete: false);
                         _processes.Remove(entry.ScriptPath);
                         _sessions.Remove(entry.ScriptPath);
                         _errors.Remove(entry.ScriptPath);
@@ -77,7 +88,7 @@ internal sealed class ScriptExecutionService : IDisposable
     }
 
     /// <summary>Launches one owned interpreter per canonical path, refusing unfinished workflows through the shared save claim.</summary>
-    internal RunningScriptSession Run(string scriptPath, bool workflowClaimHeld = false)
+    internal RunningScriptSession Run(string scriptPath, bool workflowClaimHeld = false, VisualExecutionSource? executionSource = null)
     {
         var path = Path.GetFullPath(scriptPath);
         lock (VisualHotkeyConflicts.MutationGate)
@@ -86,16 +97,18 @@ internal sealed class ScriptExecutionService : IDisposable
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_processes.TryGetValue(path, out var existing))
             {
-                if (!existing.HasExited) return _sessions[path];
+                if (!existing.HasExited) { executionSource?.Release(delete: true); return _sessions[path]; }
                 CompleteExit(path, existing);
             }
             _sessions[path] = new(path, null, null, DateTime.UtcNow, ScriptState.Starting);
             Changed?.Invoke(this, EventArgs.Empty);
             Process? process = null;
+            VisualExecutionSource? captured = executionSource;
             try
             {
                 using var workflowClaim = workflowClaimHeld ? null : VisualFlowStore.ClaimForExecution(path);
-                var conflict = _workflowConflict?.Invoke(path);
+                captured ??= VisualExecutionSource.Capture(path, _store.SnapshotDirectory);
+                var conflict = _workflowConflict?.Invoke(path, captured?.Trigger);
                 if (conflict is not null) throw new InvalidOperationException(conflict);
                 if (!File.Exists(path)) throw new FileNotFoundException("The script no longer exists.", path);
                 if (!Path.GetExtension(path).Equals(".ahk", StringComparison.OrdinalIgnoreCase))
@@ -112,12 +125,14 @@ internal sealed class ScriptExecutionService : IDisposable
                     CreateNoWindow = true
                 };
                 start.ArgumentList.Add("/ErrorStdOut=UTF-8");
-                start.ArgumentList.Add(path);
+                start.ArgumentList.Add(captured?.Path ?? path);
                 process = new Process { StartInfo = start };
                 if (!process.Start()) throw new InvalidOperationException("AutoHotkey did not start.");
                 _ = process.SafeHandle;
                 var started = process.StartTime.ToUniversalTime();
-                _sessions[path] = new(path, process.Id, started, DateTime.UtcNow, ScriptState.Running);
+                _sessions[path] = new(path, process.Id, started, DateTime.UtcNow, ScriptState.Running, RegisteredTrigger: captured?.Trigger,
+                    ShortcutSnapshotKnown: true, SnapshotPath: captured?.Path, SnapshotSha256: captured?.Hash);
+                if (captured is not null) { _sources[path] = captured; captured = null; }
                 Attach(path, process, readErrors: true);
                 process = null;
                 Persist();
@@ -125,6 +140,8 @@ internal sealed class ScriptExecutionService : IDisposable
             }
             catch (Exception ex)
             {
+                captured?.Release(delete: true);
+                if (_sources.Remove(path, out var failedSource)) failedSource.Release(delete: true);
                 // A failure after Start must not leak an untracked interpreter.
                 if (process is not null)
                 {
@@ -183,7 +200,20 @@ internal sealed class ScriptExecutionService : IDisposable
     {
         var path = Path.GetFullPath(scriptPath);
         lock (VisualHotkeyConflicts.MutationGate)
-        lock (_gate) { using var workflowClaim = VisualFlowStore.ClaimForExecution(path); var conflict = _workflowConflict?.Invoke(path); if (conflict is not null) throw new InvalidOperationException(conflict); Stop(path); return Run(path, workflowClaimHeld: true); }
+        lock (_gate)
+        {
+            using var workflowClaim = VisualFlowStore.ClaimForExecution(path);
+            var captured = VisualExecutionSource.Capture(path, _store.SnapshotDirectory);
+            try
+            {
+                var conflict = _workflowConflict?.Invoke(path, captured?.Trigger);
+                if (conflict is not null) throw new InvalidOperationException(conflict);
+                Stop(path);
+                var transferred = captured; captured = null;
+                return Run(path, workflowClaimHeld: true, executionSource: transferred);
+            }
+            finally { captured?.Release(delete: true); }
+        }
     }
 
     /// <summary>Registers callbacks after ownership metadata, then checks the already-exited race explicitly.</summary>
@@ -245,6 +275,7 @@ internal sealed class ScriptExecutionService : IDisposable
             Error = failed ? (string.IsNullOrEmpty(details) ? $"AutoHotkey exited with code {process.ExitCode}." : details) : null
         };
         _processes.Remove(path);
+        if (_sources.Remove(path, out var source)) source.Release(delete: true);
         _errors.Remove(path);
         process.Exited -= Process_Exited;
         process.ErrorDataReceived -= Process_ErrorDataReceived;
@@ -259,7 +290,8 @@ internal sealed class ScriptExecutionService : IDisposable
     {
         _store.Save(_sessions.Values.Where(session => _processes.ContainsKey(session.ScriptPath)
             && session.ProcessId.HasValue && session.ProcessStartUtc.HasValue)
-            .Select(session => new PersistedScriptSession(session.ScriptPath, session.ProcessId!.Value, session.ProcessStartUtc!.Value)));
+            .Select(session => new PersistedScriptSession(session.ScriptPath, session.ProcessId!.Value, session.ProcessStartUtc!.Value,
+                session.RegisteredTrigger, session.ShortcutSnapshotKnown, session.SnapshotPath, session.SnapshotSha256)));
         if (_store.LastError is not null) LastWarning = _store.LastError;
     }
 
@@ -278,6 +310,8 @@ internal sealed class ScriptExecutionService : IDisposable
                 process.Dispose();
             }
             _processes.Clear();
+            foreach (var source in _sources.Values) source.Release(delete: false);
+            _sources.Clear();
         }
     }
 }

@@ -50,7 +50,20 @@ public sealed partial class NewScriptPage
         if (VisualFlowTree.Find(_session.Document.Actions, condition.Id)?.Parameters?.Comparison != "tar.gz")
             throw new InvalidOperationException("Native condition editing did not reach the draft.");
         await SaveDraftAsync(); _session.Selection = condition.Id; RenderDocument();
+        var savedDocument = _session.Document;
+        _session.Load(savedDocument with { Actions = [NestedCondition(3)] }); _insertion = default; _branchSelection = null; RenderDocument();
+        var deepest = _cards.Last(card => card.IsBranch && !card.Branch.IsElse); ActionList.SelectedItem = deepest;
+        var ifButton = _libraryButtons.Single(button => (FlowActionKind)button.Tag == FlowActionKind.IfElse);
+        if (ifButton.IsEnabled) throw new InvalidOperationException("Native editor allows a fourth nested condition.");
+        var beforeDepth = VisualFlowTree.Walk(_session.Document.Actions).Count(); AddAction(FlowActionKind.IfElse);
+        if (VisualFlowTree.Walk(_session.Document.Actions).Count() != beforeDepth) throw new InvalidOperationException("Over-depth insertion changed the native draft.");
+        AddAction(FlowActionKind.ReadClipboard); Up_Click(this, new RoutedEventArgs()); Undo_Click(this, new RoutedEventArgs()); Redo_Click(this, new RoutedEventArgs());
+        VisualFlowCodec.Validate(_session.Document);
+        _session.Load(savedDocument); _session.Selection = condition.Id; _insertion = default; _branchSelection = null; RenderDocument();
         return new { Passed = true, Actions = 16, Categories = 4, BranchInsertion = true, ResultPicker = true, NestedUndo = true,
-            ConditionEditor = true, ArgumentResult = true, WorkingDirectoryResult = true, SavedSchema = 2, ScriptPath = _opened!.ScriptPath, ExecutionCount = _services.Execution.Snapshot().Count };
+            ConditionEditor = true, ArgumentResult = true, WorkingDirectoryResult = true, DepthGuard = true, SavedSchema = 2, ScriptPath = _opened!.ScriptPath, ExecutionCount = _services.Execution.Snapshot().Count };
     }
+    /// <summary>Provides a three-layer native fixture for the insertion boundary without executing it.</summary>
+    private static FlowAction NestedCondition(int depth) => new() { Kind = FlowActionKind.IfElse, Parameters = new() { Input = new() { Literal = "x" }, Condition = FlowConditionKind.IsNotEmpty,
+        Then = [depth == 1 ? new() { Kind = FlowActionKind.Wait, DelayMs = 1 } : NestedCondition(depth - 1)] } };
 }

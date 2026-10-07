@@ -20,6 +20,15 @@ internal static class VisualFlowTree
     }
     /// <summary>Finds a stable identity without confusing its location with its visible row index.</summary>
     internal static FlowAction? Find(FlowAction[] actions, Guid? id) => Walk(actions).FirstOrDefault(item => item.Action.Id == id).Action;
+    /// <summary>Bounds insertion before a draft or native card projection can enter unsupported branch depth.</summary>
+    internal static bool CanInsert(FlowAction[] actions, FlowBranch branch, FlowActionKind kind)
+    {
+        var rows = Walk(actions).ToArray();
+        if (rows.Length >= VisualFlowCodec.MaximumActions) return false;
+        if (branch.ParentId is null) return true;
+        var parent = rows.FirstOrDefault(item => item.Action.Id == branch.ParentId);
+        return parent.Action?.Kind == FlowActionKind.IfElse && (kind != FlowActionKind.IfElse || parent.Depth + 1 < 3);
+    }
     /// <summary>Retrieves a branch sequence, returning empty for a removed branch.</summary>
     internal static FlowAction[] Sequence(FlowAction[] actions, FlowBranch branch) => branch.ParentId is null ? actions
         : Find(actions, branch.ParentId)?.Parameters is { } p ? branch.IsElse ? p.Else : p.Then : [];

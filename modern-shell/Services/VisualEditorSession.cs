@@ -18,13 +18,15 @@ internal sealed class VisualEditorSession
 
     /// <summary>Loads a new editing identity and clears history so undo cannot cross into another file.</summary>
     internal void Load(VisualFlowDocument value)
-    { Document = Copy(value); _undo.Clear(); _redo.Clear(); Selection = null; }
+    { VisualFlowValidation.ValidateTree(value.Actions); Document = Copy(value); _undo.Clear(); _redo.Clear(); Selection = null; }
 
     /// <summary>Records one semantic edit, including temporarily invalid form input, for later validation.</summary>
     internal void Replace(VisualFlowDocument value)
     {
+        VisualFlowValidation.ValidateTree(value.Actions);
         if (VisualFlowTree.Walk(value.Actions).Any(item => item.Action.Kind > FlowActionKind.Wait || item.Action.Parameters is not null)
             || value.Trigger.Scope == FlowScopeKind.ExplorerDesktop || value.Trigger.Key.EndsWith("Button", StringComparison.Ordinal)) value = value with { SchemaVersion = 2 };
+        if (VisualFlowTree.Walk(value.Actions).Count() > VisualFlowCodec.MaximumActions) throw new InvalidDataException("The draft exceeds the supported action count.");
         if (Same(value, Document)) return;
         _undo.Add(Copy(Document));
         if (_undo.Count > 50) _undo.RemoveAt(0);

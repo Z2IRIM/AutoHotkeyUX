@@ -32,7 +32,7 @@ internal sealed class ApplicationServices : IDisposable
         Documentation = new DocumentationService(Integration);
         Execution = new ScriptExecutionService(() => Integration.FindRuntime(Settings.Read(@"Launcher\v2", "Build"))?.Path,
             new ScriptSessionStore(diagnosticRoot is null ? null : Path.Combine(StateDirectory, "managed-sessions.json")),
-            path => VisualHotkeyConflicts.Check(path, Execution!.Snapshot(), Settings, Path.Combine(Catalog.RootDirectory, "Explorer Shortcuts.ahk")));
+            (path, trigger) => VisualHotkeyConflicts.Check(path, Execution!.Snapshot(), Settings, Path.Combine(Catalog.RootDirectory, "Explorer Shortcuts.ahk"), trigger));
         ScriptStartup = new ScriptStartupService(Catalog.RootDirectory, Settings, Execution);
         ShortcutPreferences = new(Settings, ScriptStartup, Execution,
             preferences => ScriptStartup.ExplorerEnabled ? VisualHotkeyConflicts.CheckBuiltInAgainstRunning(preferences, Execution.Snapshot(), ScriptStartup.ExplorerScriptPath) : null);

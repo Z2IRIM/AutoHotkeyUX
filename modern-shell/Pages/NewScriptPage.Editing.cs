@@ -14,6 +14,7 @@ public sealed partial class NewScriptPage
     /// <summary>Appends one action through the shared history boundary without executing it.</summary>
     private void AddAction(FlowActionKind kind)
     {
+        if (!VisualFlowTree.CanInsert(_session.Document.Actions, _insertion, kind)) return;
         var action = VisualFlowExamples.Action(kind);
         var actions = VisualFlowTree.SetSequence(_session.Document.Actions, _insertion, [.. VisualFlowTree.Sequence(_session.Document.Actions, _insertion), action]);
         if (action.Parameters?.Input is not null)
