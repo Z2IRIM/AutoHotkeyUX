@@ -36,4 +36,8 @@
 
 源码可针对本次文件恢复到基线 `407c630`；应用回滚使用上述备份EXE。部署必须先优雅退出管理器，若私有运行时载荷需刷新，仅停止身份已核对的内置解释器，再启动恢复原配置。增量包使用已有 `package-source.ps1 -Incremental -BaseRef 407c630`，输出到 `C:\DESKTOP\srcpack_Area\AutoHotkeyUX`。
 
-部署和最终包审计结果随交付完成追加。
+## 部署与交付
+
+修复提交 `3450d7e`。已部署并重新打开 `modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe`，SHA256 `5C8FD7AAFF2B37ED65A8B402635C02FAEE0A4462CB9A0F4515E2C1E78FB269DC`，与通过原生验证的EXE完全一致。当前管理器PID27332、内置核心PID43984，核心Running且Error为空，窗口实际可见。四份核心脚本哈希、原始快捷键配置、开机脚本选择和登录命令与部署前一致，图标/托盘正常，无StartupWarning。
+
+增量包仅含本次四份源码/记录文件和基线清单，位于用户指定目录；逐项字节比对及排除项检查保存在 `.verification/workflow-layout/package-audit.json`。没有修改数据库、配置或已有工作流数据。
