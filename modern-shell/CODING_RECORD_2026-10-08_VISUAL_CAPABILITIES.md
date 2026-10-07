@@ -69,3 +69,11 @@ headless 解压每次创建一个短命进程，存在冷启动开销；既有�
 无数据库迁移和外部 API 变化；新增进程参数 `--flow-extract <source> <destination-or-empty> <new-report-path>`。v1 不批量迁移；用户编辑新能力并保存时才生成 v2，仍保留旧字节的失败恢复保护。
 
 最终源码和正式 EXE 本地交付后，使用施工前 `.verification/visual-workflow-capabilities/source-before.zip` / `app-before.exe` 可恢复基线；恢复操作前备份当前文档和新生成 v2 脚本，旧应用无法编辑 v2 文档。不得删除用户创建的脚本、自动改回设置或批量停止 AHK。增量源码 ZIP 不含测试、依赖、构建产物及用户临时文件。
+
+## 本机交付结果
+
+实现提交 `ec66e35`、修复提交 `868061e`、针对偏好保护验证提交 `4ba4b8e` 已快进合入 `codex/script-manager-core`。正式文件 `C:\DESKTOP\AutoHotkeyUX\modern-shell\artifacts\win-x64\AutoHotkeyUX.Modern.exe` 已更新并打开，SHA256 `C68311770AECEE08DB9A7BF18CB98B07D13D1B06D4D068C4E70CEF6810951025`。新管理器 PID33832，核心 PID13036，Running、无错误；开机静默命令、偏好和四个用户目录核心文件哈希保持原值。
+
+最终发布零新增编译警告；真实原生 `native-release.json` 通过（含 DepthGuard）；专项9/9、审阅复现3/3、旧流程11/11、服务42项通过。主目录快进到同一已验证提交，未对相同实现重复全量测试。增量包基线为0eb68d2，输出到 `C:\DESKTOP\srcpack_Area\AutoHotkeyUX`，与最终主目录源文件逐字节核对；具体包名和校验记录保存在本机证明目录。
+
+托管工作区归档前将审阅、施工 ledger、发布日志、原生像素/报告及运行证据保存到主目录 `.verification/visual-workflow-capabilities`；仍可从 Codex 工作区归档恢复源码历史。
