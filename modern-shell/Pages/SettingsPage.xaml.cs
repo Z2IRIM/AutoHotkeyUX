@@ -14,6 +14,7 @@ public sealed partial class SettingsPage : Page
     private readonly ScriptExecutionService _execution;
     private bool _subscribed;
     private bool _changingBackground;
+    private readonly Action _goShortcuts;
 
     /// <summary>
     /// Creates the Settings page over the existing AutoHotkey registry contract.
@@ -23,7 +24,8 @@ public sealed partial class SettingsPage : Page
         AutoHotkeySettings settings,
         WindowsStartupService windowsStartup,
         ScriptStartupService scriptStartup,
-        ScriptExecutionService execution)
+        ScriptExecutionService execution,
+        Action goShortcuts)
     {
         InitializeComponent();
         _integration = integration;
@@ -31,6 +33,7 @@ public sealed partial class SettingsPage : Page
         _windowsStartup = windowsStartup;
         _scriptStartup = scriptStartup;
         _execution = execution;
+        _goShortcuts = goShortcuts;
         Loaded += SettingsPage_Loaded;
         Unloaded += SettingsPage_Unloaded;
     }
@@ -112,7 +115,7 @@ public sealed partial class SettingsPage : Page
         {
             var enabled = ExplorerShortcutsToggle.IsOn;
             await Task.Run(() => _scriptStartup.SetExplorerEnabled(enabled));
-            ShowStatus(enabled ? "Explorer shortcuts enabled. Alt + left click a folder or archive." : "Explorer shortcuts stopped.", InfoBarSeverity.Success);
+            ShowStatus(enabled ? "Explorer shortcuts enabled with your saved action preferences." : "Explorer shortcuts stopped.", InfoBarSeverity.Success);
         }
         catch (Exception ex) { ShowStatus(ex.Message, InfoBarSeverity.Error); }
         finally
@@ -123,6 +126,9 @@ public sealed partial class SettingsPage : Page
             Refresh();
         }
     }
+
+    /// <summary>Opens the configuration subpage in the existing Settings content host.</summary>
+    private void ConfigureShortcuts_Click(object sender, RoutedEventArgs e) => _goShortcuts();
 
     /// <summary>
     /// Applies launcher mode using the currently selected runtime preference.

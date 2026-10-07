@@ -17,7 +17,9 @@ internal static class Program
         {
             if (args.Length == 2 && args[0] == "--extract")
             {
-                var destination = new ArchiveExtractionService().Extract(args[1]);
+                var preferences = ShortcutPreferenceCodec.Decode(new AutoHotkeySettings().Read("Modern", ShortcutPreferenceCodec.SettingName)).Preferences;
+                if (!preferences.ArchiveEnabled) throw new InvalidOperationException("Quick archive extraction is disabled in Settings.");
+                var destination = new ArchiveExtractionService().Extract(args[1], preferences.ArchiveDestination == "custom" ? preferences.ArchiveFolder : null);
                 Console.WriteLine(destination);
                 return 0;
             }
@@ -30,7 +32,9 @@ internal static class Program
                     { runtime.RuntimePath, runtime.Version, ExplorerScriptEmbedded = resource is not null }));
                 return 0;
             }
-            using var singleInstance = new SingleInstanceService();
+            var verifyPreferences = Array.IndexOf(args, "--verify-preferences");
+            if (verifyPreferences >= 0 && verifyPreferences + 1 >= args.Length) throw new ArgumentException("Specify an absolute preference verification report path.");
+            using var singleInstance = new SingleInstanceService(verifyPreferences >= 0 ? Guid.NewGuid().ToString("N") : null);
             if (!singleInstance.IsPrimary) { singleInstance.Redirect(args); return 0; }
             if (args.Contains("--exit-manager")) return 0;
             WinRT.ComWrappersSupport.InitializeComWrappers();

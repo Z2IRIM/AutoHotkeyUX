@@ -12,6 +12,11 @@
     <Compile Include="..\..\modern-shell\Services\ScriptExecutionService.cs" Link="Services\ScriptExecutionService.cs" />
     <Compile Include="..\..\modern-shell\Services\ScriptSessionStore.cs" Link="Services\ScriptSessionStore.cs" />
     <Compile Include="..\..\modern-shell\Services\ArchiveExtractionService.cs" Link="Services\ArchiveExtractionService.cs" />
+    <Compile Include="..\..\modern-shell\Services\ShortcutPreferenceCodec.cs" Link="Services\ShortcutPreferenceCodec.cs" />
+    <Compile Include="..\..\modern-shell\Services\ShortcutActivityService.cs" Link="Services\ShortcutActivityService.cs" />
+    <Compile Include="..\..\modern-shell\Services\ShortcutPreferencesService.cs" Link="Services\ShortcutPreferencesService.cs" />
+    <Compile Include="..\..\modern-shell\Services\ShortcutPreferencesRuntime.cs" Link="Services\ShortcutPreferencesRuntime.cs" />
+    <Compile Include="..\..\modern-shell\Services\WindowInspectionNative.cs" Link="Services\WindowInspectionNative.cs" />
     <Compile Include="..\..\modern-shell\Services\ServiceDiagnostics.cs" Link="Services\ServiceDiagnostics.cs" />
     <Compile Include="..\..\modern-shell\Services\WindowsCommandLine.cs" Link="Services\WindowsCommandLine.cs" />
     <Compile Include="..\..\modern-shell\Services\AutoHotkeySettings.cs" Link="Services\AutoHotkeySettings.cs" />
@@ -19,7 +24,8 @@
     <Compile Include="..\..\modern-shell\Services\ExplorerShortcutInstaller.cs" Link="Services\ExplorerShortcutInstaller.cs" />
     <Compile Include="..\..\modern-shell\Services\ShortcutCommandService.cs" Link="Services\ShortcutCommandService.cs" />
     <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.ahk" />
-    <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts\v2\Shell.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Shell.ahk" />
-    <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts\v2\Actions.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Actions.ahk" />
+    <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts\v3\Shell.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Shell.ahk" />
+    <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts\v3\Actions.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Actions.ahk" />
+    <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts\v3\Preferences.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Preferences.ahk" />
   </ItemGroup>
 </Project>

@@ -93,6 +93,22 @@ internal static class WindowInspectionNative
         return result;
     }
 
+    /// <summary>Returns a proven class ordinal only when the target belongs to the bounded child snapshot.</summary>
+    internal static string ClassNN(nint control, string className, IReadOnlyList<nint> children, Stopwatch budget)
+    {
+        if (string.IsNullOrEmpty(className)) return string.Empty;
+        if (!children.Contains(control)) return "Unavailable";
+        var ordinal = 0;
+        foreach (var child in children)
+        {
+            if (budget.ElapsedMilliseconds >= 100) return "Unavailable";
+            var actual = Metadata(child);
+            if (actual == className) ordinal++;
+            if (child == control) return actual == className ? className + ordinal : "Unavailable";
+        }
+        return "Unavailable";
+    }
+
     /// <summary>Reads at most 4095 characters, yielding unavailable rather than hanging.</summary>
     internal static string Text(nint window, int milliseconds, out bool readable)
     {

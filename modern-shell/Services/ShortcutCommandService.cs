@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Channels;
+using AutoHotkeyUX.Modern.Models;
 
 namespace AutoHotkeyUX.Modern.Services;
 
@@ -12,12 +13,14 @@ internal sealed class ShortcutCommandService
     private const int MaximumPayloadBytes = 32768;
     private readonly IntPtr _window;
     private readonly AutoHotkeySettings _settings;
-    private readonly Func<string, string> _extract;
+    private readonly Func<string, string?, string> _extract;
+    private readonly ShortcutPreferencesService? _preferences;
+    private readonly ShortcutActivityService _activity;
     private readonly Action<string, bool> _notify;
     private readonly SubclassProcedure _procedure;
     private readonly object _gate = new();
     private readonly HashSet<string> _pending = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Channel<(string Path, long Queued)> _queue = Channel.CreateBounded<(string, long)>(
+    private readonly Channel<(string Path, string? Destination, long Queued)> _queue = Channel.CreateBounded<(string, string?, long)>(
         new BoundedChannelOptions(4) { SingleReader = true, AllowSynchronousContinuations = false });
     private readonly Task _worker;
     private bool _accepting = true;
@@ -25,10 +28,12 @@ internal sealed class ShortcutCommandService
 
     /// <summary>Publishes only this process's native endpoint; an absent window supports isolated queue verification.</summary>
     internal ShortcutCommandService(IntPtr window, AutoHotkeySettings settings,
-        Action<string, bool> notify, Func<string, string>? extract = null)
+        Action<string, bool> notify, Func<string, string?, string>? extract = null,
+        ShortcutPreferencesService? preferences = null, ShortcutActivityService? activity = null)
     {
         _window = window; _settings = settings; _notify = notify;
         _extract = extract ?? new ArchiveExtractionService().Extract;
+        _preferences = preferences; _activity = activity ?? new();
         _procedure = WindowProcedure;
         if (window != IntPtr.Zero)
         {
@@ -69,7 +74,11 @@ internal sealed class ShortcutCommandService
     {
         if (body.Length > MaximumPayloadBytes || body.Contains('\0')) return 0;
         var parts = body.Split('\n', 3);
-        if (parts.Length != 3 || parts[0] != "extract" || parts[1] != Token) return 0;
+        if (parts.Length != 3 || parts[1] != Token) return 0;
+        if (parts[0] == "terminal") return RecordTerminal(body);
+        if (parts[0] != "extract") return 0;
+        var preferences = _preferences?.Saved ?? ShortcutPreferences.Default;
+        if (!preferences.ArchiveEnabled) return 0;
         var path = parts[2];
         if (!Path.IsPathFullyQualified(path) || path.IndexOfAny(Path.GetInvalidPathChars()) >= 0
             || !ArchiveExtractionService.SupportsPath(path)) return 0;
@@ -80,10 +89,27 @@ internal sealed class ShortcutCommandService
             if (!_accepting) return 0;
             if (_pending.Contains(path)) return 2;
             _pending.Add(path);
-            if (_queue.Writer.TryWrite((path, Stopwatch.GetTimestamp()))) return 1;
+            if (_queue.Writer.TryWrite((path, preferences.ArchiveDestination == "custom" ? preferences.ArchiveFolder : null,
+                Stopwatch.GetTimestamp()))) return 1;
             _pending.Remove(path);
             return 3;
         }
+    }
+
+    /// <summary>Accepts bounded terminal completion reports; no remote filesystem work happens on the window thread.</summary>
+    private int RecordTerminal(string body)
+    {
+        var fields = body.Split('\n', 6);
+        if (fields.Length != 6 || fields[2] is not ("0" or "1")
+            || !long.TryParse(fields[3], out var elapsed) || elapsed is < 0 or > 60000
+            || !Path.IsPathFullyQualified(fields[4]) || fields[4].IndexOfAny(Path.GetInvalidPathChars()) >= 0
+            || fields[5].Length > 2048 || fields[5].Contains('\r') || fields[5].Contains('\n')) return 0;
+        lock (_gate)
+        {
+            if (!_accepting) return 0;
+            _activity.Record(new(DateTimeOffset.Now, "Terminal", fields[2] == "1", fields[4], elapsed, fields[5]));
+        }
+        return 1;
     }
 
     /// <summary>Isolates failed jobs, releases deduplication and records queue/extraction timings outside the UI thread.</summary>
@@ -95,14 +121,19 @@ internal sealed class ShortcutCommandService
             try
             {
                 ServiceDiagnostics.Write("Shortcut", $"Extracting {job.Path}; queueMs={Stopwatch.GetElapsedTime(job.Queued).TotalMilliseconds:F0}");
-                var destination = _extract(job.Path);
+                var destination = _extract(job.Path, job.Destination);
                 ServiceDiagnostics.Write("Shortcut", $"Completed in {Stopwatch.GetElapsedTime(started).TotalMilliseconds:F0} ms: {destination}");
                 Notify($"已解压到 {destination}", false);
+                _activity.Record(new(DateTimeOffset.Now, "Extract", true, job.Path,
+                    (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds,
+                    "The source archive and existing output were kept.", destination));
             }
             catch (Exception ex)
             {
                 ServiceDiagnostics.Write("Shortcut", $"Extraction failed: {job.Path}", ex);
                 Notify($"解压失败：{ex.Message}", true);
+                _activity.Record(new(DateTimeOffset.Now, "Extract", false, job.Path,
+                    (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds, ex.Message));
             }
             finally { lock (_gate) _pending.Remove(job.Path); }
         }

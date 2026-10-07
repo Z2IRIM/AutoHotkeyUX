@@ -14,14 +14,16 @@ internal sealed class ArchiveExtractionService
     /// <summary>Shares the supported archive suffixes with the lightweight shortcut request boundary.</summary>
     internal static bool SupportsPath(string path) => Extensions.Any(extension => path.EndsWith(extension, StringComparison.OrdinalIgnoreCase));
 
-    /// <summary>Stages a complete extraction before committing a unique final folder name.</summary>
-    internal string Extract(string archivePath)
+    /// <summary>Stages complete extraction beside the source or under a chosen root, keeping unique per-archive output.</summary>
+    internal string Extract(string archivePath, string? destinationRoot = null)
     {
         var source = Path.GetFullPath(archivePath);
         if (!File.Exists(source)) throw new FileNotFoundException("The archive no longer exists.", source);
         var extension = Extensions.FirstOrDefault(extension => source.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
             ?? throw new NotSupportedException("Supported archives: ZIP, 7z, RAR, TAR, TAR.GZ and TGZ.");
-        var parent = Path.GetDirectoryName(source)!;
+        var parent = destinationRoot is null ? Path.GetDirectoryName(source)! : Path.GetFullPath(destinationRoot);
+        if (destinationRoot is not null && (!ShortcutPreferenceCodec.IsAbsoluteFolder(destinationRoot) || !Directory.Exists(parent)))
+            throw new DirectoryNotFoundException("The chosen extraction folder does not exist or is unavailable.");
         var name = Path.GetFileName(source)[..^extension.Length];
         if (string.IsNullOrWhiteSpace(name)) name = "Extracted archive";
         var staging = Path.Combine(parent, ".autohotkeyux-extract-" + Guid.NewGuid().ToString("N"));

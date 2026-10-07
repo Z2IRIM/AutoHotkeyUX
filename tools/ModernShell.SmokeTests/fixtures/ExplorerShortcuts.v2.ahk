@@ -1,10 +1,9 @@
-; AutoHotkeyUX Explorer shortcuts v3
+; AutoHotkeyUX Explorer shortcuts v2
 #Requires AutoHotkey v2.0
 #SingleInstance Ignore
 #NoTrayIcon
-#Include %A_ScriptDir%\ExplorerShortcuts\v3\Shell.ahk
-#Include %A_ScriptDir%\ExplorerShortcuts\v3\Actions.ahk
-#Include %A_ScriptDir%\ExplorerShortcuts\v3\Preferences.ahk
+#Include %A_ScriptDir%\ExplorerShortcuts\v2\Shell.ahk
+#Include %A_ScriptDir%\ExplorerShortcuts\v2\Actions.ahk
 
 CoordMode "Mouse", "Screen"
 SetWinDelay 0
@@ -18,14 +17,7 @@ if A_Args.Length {
             FileAppend RequestExtraction(A_Args[2]), A_Args[3], "UTF-8"
             ExitApp 0
         case "--verify-terminal":
-            GetShortcutRuntime().Snapshot := ParseShortcutPreferences(A_Args.Length >= 6 ? FileRead(A_Args[6], "UTF-8") : "")
             OpenTerminal(A_Args[2], Integer(A_Args[3]), Integer(A_Args[4]), A_Args[5])
-            return
-        case "--preferences-host":
-            if !RegExMatch(A_Args[2], "^HKCU\\Software\\AutoHotkeyUX\.Verify\\[0-9a-f]{32}\\Modern$")
-                throw Error("Preference verification requires an isolated HKCU test key.")
-            InitializeShortcutPreferences(A_Args[2])
-            FileAppend "ready=1", A_Args[3], "UTF-8"
             return
         case "--diagnose":
             WriteShellDiagnostics(A_Args[2])
@@ -33,7 +25,9 @@ if A_Args.Length {
     }
 }
 
-InitializeShortcutPreferences()
+#HotIf GetShellGestureContext()
+~!LButton::HandleShellClick()
+#HotIf
 
 ; Keeps verification failures observable and prevents unattended shortcut errors from opening a blocking dialog.
 ReportShortcutFailure(exception, mode) {
@@ -46,17 +40,16 @@ ReportShortcutFailure(exception, mode) {
 }
 
 ; Keeps native selection intact and rejects drags before scheduling the action outside the mouse hook.
-HandleShellClick(key, button, *) {
+HandleShellClick() {
     try {
         context := GetShellGestureContext()
         MouseGetPos &x, &y
-        preferences := GetShortcutRuntime().Snapshot
-        if !context || !KeyWait(button, "T0.5")
+        if !context || !KeyWait("LButton", "T0.5")
             return
         MouseGetPos &releasedX, &releasedY
         if Abs(releasedX - x) > 6 || Abs(releasedY - y) > 6
             return
-        SetTimer ResolveShellClick.Bind(context, x, y, key, preferences), -15
+        SetTimer ResolveShellClick.Bind(context, x, y), -15
     }
     catch Error as exception {
         LogShortcut("error", exception.Message)
@@ -64,9 +57,8 @@ HandleShellClick(key, button, *) {
 }
 
 ; Resolves the clicked item or file-area background, including the real merged desktop namespace.
-ResolveShellClick(context, x, y, key, preferences) {
+ResolveShellClick(context, x, y) {
     started := A_TickCount
-    path := ""
     try {
         hit := GetFileViewHit(x, y, context.Desktop)
         view := GetShellView(context)
@@ -76,22 +68,16 @@ ResolveShellClick(context, x, y, key, preferences) {
         }
         path := hit.Kind = "blank" ? view.Directory : ResolveHitPath(view, hit)
         if DirExist(path) {
-            if !preferences.TerminalEnabled || preferences.TerminalKey != key
-                return
-            OpenTerminal(path, x, y,, preferences)
+            OpenTerminal(path, x, y)
             LogShortcut("terminal", path " | resolveMs=" (A_TickCount - started))
         }
         else if FileExist(path) && RegExMatch(path, "i)\.(zip|7z|rar|tar|tar\.gz|tgz)$") {
-            if !preferences.ArchiveEnabled || preferences.ArchiveKey != key
-                return
             result := RequestExtraction(path)
             LogShortcut("extract", path " | ack=" result " | dispatchMs=" (A_TickCount - started))
         }
         else LogShortcut("skip", "no unique supported filesystem target: " hit.Name)
     }
     catch Error as exception {
-        if path != "" && DirExist(path)
-            ReportTerminalResult(path, false, A_TickCount - started, exception.Message)
         LogShortcut("error", exception.Message)
     }
 }

@@ -31,7 +31,7 @@ public partial class App : Application
         _arguments = arguments;
         _singleInstance = singleInstance;
         _dispatcher = DispatcherQueue.GetForCurrentThread();
-        _silent = arguments.Contains("--background") || arguments.Contains("--verify-ui") || arguments.Contains("--verify-tools");
+        _silent = arguments.Contains("--background") || arguments.Contains("--verify-ui") || arguments.Contains("--verify-tools") || arguments.Contains("--verify-preferences");
         try
         {
             InitializeComponent();
@@ -51,7 +51,10 @@ public partial class App : Application
     {
         try
         {
-            _services = new ApplicationServices();
+            var verifyPreferencesIndex = Array.IndexOf(_arguments, "--verify-preferences");
+            var diagnosticRoot = verifyPreferencesIndex < 0 ? null : Path.Combine(
+                Path.GetDirectoryName(Path.GetFullPath(_arguments[verifyPreferencesIndex + 1]))!, "native-preferences-" + Guid.NewGuid().ToString("N"));
+            _services = new ApplicationServices(diagnosticRoot);
             await Task.Run(_services.Initialize);
             try { _icon = new ApplicationIconService(); }
             catch (Exception iconError) { ServiceDiagnostics.Write("Icon", "Using the default application icon after loading failed.", iconError); }
@@ -79,7 +82,8 @@ public partial class App : Application
                 ShowWindow();
             }
             _shortcuts = new ShortcutCommandService(WinRT.Interop.WindowNative.GetWindowHandle(_window),
-                _services.Settings, (message, error) => _dispatcher.TryEnqueue(() => _tray?.ShowNotification(message, error)));
+                _services.Settings, (message, error) => _dispatcher.TryEnqueue(() => _tray?.ShowNotification(message, error)),
+                preferences: _services.ShortcutPreferences, activity: _services.ShortcutActivity);
             if (_arguments.Contains("--enable-core")) await EnableCoreAsync();
             if (!_silent) ShowWindow();
             WriteStartupStatus();
@@ -96,10 +100,12 @@ public partial class App : Application
             var verifyIndex = Array.IndexOf(_arguments, "--verify-ui");
             var verifyToolsIndex = Array.IndexOf(_arguments, "--verify-tools");
             if (verifyToolsIndex >= 0) verifyIndex = verifyToolsIndex;
+            if (verifyPreferencesIndex >= 0) verifyIndex = verifyPreferencesIndex;
             if (verifyIndex >= 0 && verifyIndex + 1 < _arguments.Length)
             {
                 ShowWindow();
-                var report = _arguments.Contains("--verify-docs-only") ? await _window.VerifyDocumentationAsync()
+                var report = verifyPreferencesIndex >= 0 ? await _window.VerifyShortcutPreferencesAsync()
+                    : _arguments.Contains("--verify-docs-only") ? await _window.VerifyDocumentationAsync()
                     : verifyToolsIndex >= 0 ? await _window.VerifyToolsAsync() : await _window.VerifyPagesAsync();
                 File.WriteAllText(_arguments[verifyIndex + 1], JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
                 ExitManager();
@@ -112,7 +118,7 @@ public partial class App : Application
                 : _arguments.Contains("--verify-ui") ? "UI verification failed" : "MainWindow startup failed", ex);
             _quitting = true;
             if (_shortcuts is not null) await _shortcuts.DrainAsync();
-            if (_services is not null) await Task.WhenAll(_services.Compiler.CancelAndDrainAsync(), _services.Documentation.CancelAndDrainAsync());
+            if (_services is not null) await Task.WhenAll(_services.Compiler.CancelAndDrainAsync(), _services.Documentation.CancelAndDrainAsync(), _services.ShortcutPreferences.DrainAsync());
             _closeAllowed = true;
             _tray?.Dispose();
             _services?.Dispose();
@@ -126,7 +132,7 @@ public partial class App : Application
     private void ShowWindow()
     {
         if (_quitting || _window is null) return;
-        if (!_arguments.Contains("--verify-ui") && !_arguments.Contains("--verify-tools")) _silent = false;
+        if (!_arguments.Contains("--verify-ui") && !_arguments.Contains("--verify-tools") && !_arguments.Contains("--verify-preferences")) _silent = false;
         _window.AppWindow.Show();
         if (_window.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter
             && presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized)
@@ -164,7 +170,7 @@ public partial class App : Application
         if (_quitting) return;
         _quitting = true;
         if (_shortcuts is not null) await _shortcuts.DrainAsync();
-        if (_services is not null) await Task.WhenAll(_services.Compiler.CancelAndDrainAsync(), _services.Documentation.CancelAndDrainAsync());
+        if (_services is not null) await Task.WhenAll(_services.Compiler.CancelAndDrainAsync(), _services.Documentation.CancelAndDrainAsync(), _services.ShortcutPreferences.DrainAsync());
         _closeAllowed = true;
         _tray?.Dispose();
         _services?.Dispose();
@@ -178,8 +184,9 @@ public partial class App : Application
     {
         try
         {
-            Directory.CreateDirectory(ServiceDiagnostics.StateDirectory);
-            File.WriteAllText(Path.Combine(ServiceDiagnostics.StateDirectory, "manager-startup.json"), JsonSerializer.Serialize(new
+            var stateDirectory = _services?.StateDirectory ?? ServiceDiagnostics.StateDirectory;
+            Directory.CreateDirectory(stateDirectory);
+            File.WriteAllText(Path.Combine(stateDirectory, "manager-startup.json"), JsonSerializer.Serialize(new
             {
                 ProcessId = Environment.ProcessId,
                 ExecutablePath = Environment.ProcessPath,

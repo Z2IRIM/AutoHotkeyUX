@@ -8,6 +8,7 @@ namespace AutoHotkeyUX.Modern.Services;
 internal sealed class AutoHotkeySettings
 {
     private readonly string _baseKey;
+    internal string BaseKey => _baseKey;
 
     /// <summary>Uses the existing registry contract, with an optional isolated key for service verification.</summary>
     internal AutoHotkeySettings(string baseKey = @"Software\AutoHotkey") => _baseKey = baseKey;

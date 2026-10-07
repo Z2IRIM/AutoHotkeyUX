@@ -16,9 +16,14 @@ internal sealed class SingleInstanceService : IDisposable
     internal bool IsPrimary { get; }
 
     /// <summary>Claims manager ownership in this Windows session and retains signals until WinUI is ready.</summary>
-    internal SingleInstanceService()
+    internal SingleInstanceService(string? diagnosticScope = null)
     {
         var key = @"Local\AutoHotkeyUX.Modern." + WindowsIdentity.GetCurrent().User!.Value;
+        if (diagnosticScope is not null)
+        {
+            if (!Guid.TryParseExact(diagnosticScope, "N", out _)) throw new ArgumentException("Invalid diagnostic instance scope.");
+            key += ".Verify." + diagnosticScope;
+        }
         _mutex = new Mutex(true, key, out var created);
         if (created) IsPrimary = true;
         else

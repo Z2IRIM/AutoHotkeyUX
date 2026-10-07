@@ -25,12 +25,11 @@ internal sealed class WindowSpyService
         var children = WindowInspectionNative.Children(target, budget, cancellationToken);
         var underTarget = control != target && WindowInspectionNative.GetAncestor(control, 2) == target;
         var className = underTarget ? WindowInspectionNative.Metadata(control) : string.Empty;
-        var classNN = string.IsNullOrEmpty(className) ? string.Empty : className +
-            (children.TakeWhile(child => child != control).Count(child => WindowInspectionNative.Metadata(child) == className) + 1);
+        var classNN = WindowInspectionNative.ClassNN(control, className, children, budget);
         var controlText = underTarget ? WindowInspectionNative.Text(control, Remaining(budget), out _) : string.Empty;
         var visible = new List<string>();
         var all = new List<string>();
-        var warning = controlText == "Unavailable";
+        var warning = controlText == "Unavailable" || classNN == "Unavailable";
         var status = string.Empty;
         var characterCount = 0;
         if (options.IncludeWindowText)

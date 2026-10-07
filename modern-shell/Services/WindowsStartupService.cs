@@ -7,11 +7,15 @@ internal sealed class WindowsStartupService
 {
     private const string RunKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
     private const string ValueName = "AutoHotkeyUX.Modern";
+    private readonly string _runKey;
+
+    /// <summary>Uses the real login key, or an explicitly isolated key for native service diagnostics.</summary>
+    internal WindowsStartupService(string? runKey = null) => _runKey = runKey ?? RunKey;
     internal bool IsEnabled
     {
         get
         {
-            using var key = Registry.CurrentUser.OpenSubKey(RunKey);
+            using var key = Registry.CurrentUser.OpenSubKey(_runKey);
             return !string.IsNullOrWhiteSpace(key?.GetValue(ValueName) as string);
         }
     }
@@ -19,7 +23,7 @@ internal sealed class WindowsStartupService
     /// <summary>Registers the current executable with --background, or removes only this app's entry.</summary>
     internal void SetEnabled(bool enabled)
     {
-        using var key = Registry.CurrentUser.CreateSubKey(RunKey);
+        using var key = Registry.CurrentUser.CreateSubKey(_runKey);
         if (enabled)
         {
             var executable = Environment.ProcessPath ?? throw new InvalidOperationException("The executable path is unavailable.");

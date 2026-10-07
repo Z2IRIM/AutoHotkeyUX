@@ -9,6 +9,11 @@ using System.Text;
 var runtime = Path.GetFullPath(args[0]);
 var root = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(root);
+if (args.Contains("--preferences-only"))
+{
+    await PreferenceChecks.RunAsync(runtime, root, Path.GetFullPath(args[2]));
+    return;
+}
 var passed = 0;
 var scriptRoot = Path.Combine(root, "Documents", "AutoHotkey");
 

@@ -32,13 +32,13 @@ internal static class ShortcutChecks
             startup.SetExplorerEnabled(true);
             var upgraded = execution.Snapshot().Single(session => session.ScriptPath == path);
             Check(upgraded.State == ScriptState.Running && upgraded.ProcessId != first.ProcessId, "v1 upgrade restarts only its owned interpreter");
-            Check(File.ReadAllText(path).StartsWith("; AutoHotkeyUX Explorer shortcuts v2")
-                && File.Exists(Path.Combine(scriptRoot, "ExplorerShortcuts", "v2", "Shell.ahk")), "v2 and include modules install together");
+            Check(File.ReadAllText(path).StartsWith("; AutoHotkeyUX Explorer shortcuts v3")
+                && File.Exists(Path.Combine(scriptRoot, "ExplorerShortcuts", "v3", "Shell.ahk")), "v3 and include modules install together");
             Check(Directory.GetFiles(Path.Combine(scriptRoot, "backups")).Single() is var backup
                 && File.ReadAllBytes(backup).SequenceEqual(original), "v1 backup retains the exact original bytes");
             startup.SetExplorerEnabled(true);
             Check(execution.Snapshot().Single(session => session.ScriptPath == path).ProcessId == upgraded.ProcessId,
-                "repeated enable does not restart v2 or create another backup");
+                "repeated enable does not restart v3 or create another backup");
             execution.Stop(path);
             var custom = Encoding.UTF8.GetBytes(File.ReadAllText(previousScript) + "\n; user customization\n");
             File.WriteAllBytes(path, custom);
@@ -54,7 +54,7 @@ internal static class ShortcutChecks
             using var entered = new ManualResetEventSlim(false);
             var completed = 0;
             var failures = 0;
-            var queue = new ShortcutCommandService(IntPtr.Zero, settings, (_, error) => { if (error) Interlocked.Increment(ref failures); }, archive =>
+            var queue = new ShortcutCommandService(IntPtr.Zero, settings, (_, error) => { if (error) Interlocked.Increment(ref failures); }, (archive, _) =>
             {
                 if (archive.EndsWith("first.zip")) { entered.Set(); release.Wait(TimeSpan.FromSeconds(5)); }
                 if (archive.EndsWith("bad.zip")) throw new InvalidDataException("fixture failure");

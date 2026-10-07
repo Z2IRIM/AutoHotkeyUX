@@ -21,6 +21,7 @@ public sealed partial class MainWindow : Window
     private WindowSpyPage? _windowSpyPage;
     private CompilePage? _compilePage;
     private DocumentationPage? _documentationPage;
+    private ShortcutSettingsPage? _shortcutSettingsPage;
     internal bool HasCustomIcon { get; private set; }
 
     /// <summary>
@@ -88,7 +89,8 @@ public sealed partial class MainWindow : Window
                 "compile" => _compilePage ??= new CompilePage(_services.Compiler, _integration, () => NavigateTo("home")),
                 "docs" => _documentationPage ??= new DocumentationPage(_services.Documentation, this, () => NavigateTo("home")),
                 "new" => _newScriptPage ??= new NewScriptPage(_integration),
-                "settings" => _settingsPage ??= new SettingsPage(_integration, _settings, _services.WindowsStartup, _services.ScriptStartup, _services.Execution),
+                "settings" => _settingsPage ??= new SettingsPage(_integration, _settings, _services.WindowsStartup, _services.ScriptStartup, _services.Execution, () => NavigateTo("shortcuts")),
+                "shortcuts" => _shortcutSettingsPage ??= new ShortcutSettingsPage(_services, () => NavigateTo("settings")),
                 "scripts" => _scriptsPage ??= new ScriptsPage(_services.Catalog, _services.Execution, _services.ScriptStartup, _integration, _settings),
                 _ => _homePage ??= new HomePage(
                     _integration,
@@ -98,7 +100,7 @@ public sealed partial class MainWindow : Window
                     OpenTool)
             };
 
-            SetSelectedNavigation(tag is "spy" or "compile" or "docs" ? "home" : tag);
+            SetSelectedNavigation(tag is "spy" or "compile" or "docs" ? "home" : tag == "shortcuts" ? "settings" : tag);
 
             if (tag == "home")
             {

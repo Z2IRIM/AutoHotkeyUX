@@ -10,6 +10,7 @@ internal sealed class ScriptStartupService
     private readonly AutoHotkeySettings _settings;
     private readonly ScriptExecutionService _execution;
     private readonly object _gate = new();
+    internal object ExplorerMutationLock => _gate;
     internal string ExplorerScriptPath { get; }
     internal event EventHandler? Changed;
     internal string? LastWarning { get; private set; }
@@ -68,22 +69,25 @@ internal sealed class ScriptStartupService
         ServiceDiagnostics.Write("Startup", LastWarning, exception);
     }
 
-    /// <summary>Enables or stops Explorer shortcuts and rolls the preference back when the live action fails.</summary>
+    /// <summary>Serializes built-in enable/stop with preference transactions and keeps the previous enable choice on failure.</summary>
     internal void SetExplorerEnabled(bool enabled)
     {
-        var previous = ExplorerEnabled;
-        try
+        lock (_gate)
         {
-            if (enabled) StartExplorer();
-            else _execution.Stop(ExplorerScriptPath);
-            _settings.WriteBoolean("Modern", "ExplorerShortcuts", enabled);
+            var previous = ExplorerEnabled;
+            try
+            {
+                if (enabled) StartExplorer();
+                else _execution.Stop(ExplorerScriptPath);
+                _settings.WriteBoolean("Modern", "ExplorerShortcuts", enabled);
+            }
+            catch
+            {
+                _settings.WriteBoolean("Modern", "ExplorerShortcuts", previous);
+                throw;
+            }
+            Changed?.Invoke(this, EventArgs.Empty);
         }
-        catch
-        {
-            _settings.WriteBoolean("Modern", "ExplorerShortcuts", previous);
-            throw;
-        }
-        Changed?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>Surfaces a failed interpreter start rather than treating an enabled preference as running proof.</summary>
@@ -93,7 +97,7 @@ internal sealed class ScriptStartupService
         if (session.State == ScriptState.Failed) throw new InvalidOperationException(session.Error);
     }
 
-    /// <summary>Restarts only an owned built-in upgraded from untouched v1; custom scripts retain their existing process.</summary>
+    /// <summary>Restarts only an owned upgraded predecessor; custom scripts retain their existing process.</summary>
     private void StartExplorer()
     {
         var upgraded = _installer.Ensure();

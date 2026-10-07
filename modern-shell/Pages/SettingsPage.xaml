@@ -47,7 +47,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Spacing="5">
                                 <TextBlock Text="Explorer shortcuts" FontWeight="SemiBold" FontSize="16" />
-                                <TextBlock Text="Alt + left click a folder to open its terminal, an archive to extract beside it, or empty file space to open the current directory." FontSize="15" TextWrapping="Wrap"
+                                <TextBlock Text="Open terminals and extract archives with context-aware shortcuts. Configure each action below." FontSize="15" TextWrapping="Wrap"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                 <TextBlock Text="ZIP, 7z, RAR, TAR, TAR.GZ and TGZ. Existing folders and source archives are preserved." FontSize="13" TextWrapping="Wrap"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -57,6 +57,10 @@
                             <ToggleSwitch x:Name="ExplorerShortcutsToggle" Grid.Column="1" VerticalAlignment="Center"
                                           AutomationProperties.Name="Explorer shortcuts" Toggled="ExplorerShortcutsToggle_Toggled" />
                         </Grid>
+                        <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                        <Button x:Name="ConfigureShortcutsButton" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="22,16" Click="ConfigureShortcuts_Click">
+                            <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions><TextBlock Text="Configure Explorer shortcuts" /><FontIcon Grid.Column="1" Glyph="&#xE76C;" FontSize="14" /></Grid>
+                        </Button>
                     </StackPanel>
                 </Border>
                 <TextBlock Text="Closing the window keeps scripts running. Choose scripts to run at sign-in on the Scripts page."
