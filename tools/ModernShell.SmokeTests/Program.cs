@@ -9,6 +9,15 @@ using System.Text;
 var runtime = Path.GetFullPath(args[0]);
 var root = Path.GetFullPath(args[1]);
 Directory.CreateDirectory(root);
+if (args.Contains("--preference-failures-only"))
+{
+    await PreferenceFailureChecks.RunAsync(runtime, root, (passed, message) =>
+    {
+        if (!passed) throw new Exception("FAIL: " + message);
+        Console.WriteLine("PASS: " + message);
+    }, args[2]);
+    return;
+}
 if (args.Contains("--preferences-only"))
 {
     await PreferenceChecks.RunAsync(runtime, root, Path.GetFullPath(args[2]));

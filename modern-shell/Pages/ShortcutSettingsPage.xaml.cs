@@ -81,6 +81,7 @@ public sealed partial class ShortcutSettingsPage : Page
             Selected(ArchiveKeyCombo), Selected(DestinationCombo), FolderTextBox.Text.Trim());
         PreferencesInfoBar.IsOpen = false;
         RefreshDraftState();
+        if (_preferences.Warning is { } warning) ShowFeedback(warning, InfoBarSeverity.Warning);
     }
 
     /// <summary>Recomputes validation, dirty state, actual runtime status and placement from the draft.</summary>
@@ -91,7 +92,8 @@ public sealed partial class ShortcutSettingsPage : Page
         var dirty = _draft != _preferences.Saved || _preferences.Warning is not null;
         FieldErrorsText.Text = string.Join("\n", errors.Values);
         FieldErrorsText.Visibility = errors.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-        SaveStateText.Text = _saving ? "Applying preferences…" : errors.Count > 0 ? "Check the highlighted fields"
+        SaveStateText.Text = _saving ? "Applying preferences…" : _preferences.AwaitingRuntimeConfirmation ? "Runtime confirmation pending"
+            : errors.Count > 0 ? "Check the highlighted fields"
             : dirty ? "Unsaved changes" : "All changes saved";
         SaveButton.IsEnabled = !_saving && dirty && errors.Count == 0;
         DiscardButton.IsEnabled = !_saving && dirty;
@@ -153,7 +155,8 @@ public sealed partial class ShortcutSettingsPage : Page
         catch (Exception ex)
         {
             ServiceDiagnostics.Write("Shortcut", "Saving preferences failed or was not confirmed.", ex);
-            if (IsLoaded) ShowFeedback(ex.Message, ex is UnconfirmedShortcutPreferencesException ? InfoBarSeverity.Warning : InfoBarSeverity.Error);
+            if (IsLoaded) ShowFeedback(ex is UnconfirmedShortcutPreferencesException ? _preferences.Warning ?? ex.Message : ex.Message,
+                ex is UnconfirmedShortcutPreferencesException ? InfoBarSeverity.Warning : InfoBarSeverity.Error);
         }
         finally { _saving = false; if (IsLoaded) RefreshDraftState(); }
     }
@@ -162,7 +165,10 @@ public sealed partial class ShortcutSettingsPage : Page
     private async void Save_Click(object sender, RoutedEventArgs e) => await SaveDraftAsync();
     /// <summary>Restores saved preferences without restarting the script or modifying storage.</summary>
     private void Discard_Click(object sender, RoutedEventArgs e)
-    { _draft = _lastSaved = _preferences.Saved; PreferencesInfoBar.IsOpen = false; RenderForm(); }
+    {
+        _draft = _lastSaved = _preferences.Saved; PreferencesInfoBar.IsOpen = false; RenderForm();
+        if (_preferences.Warning is { } warning) ShowFeedback(warning, InfoBarSeverity.Warning);
+    }
 
     /// <summary>Chooses an existing folder through the window-owned native picker.</summary>
     private async void Browse_Click(object sender, RoutedEventArgs e)

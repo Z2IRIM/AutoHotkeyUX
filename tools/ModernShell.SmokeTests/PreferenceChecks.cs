@@ -44,6 +44,7 @@ internal static class PreferenceChecks
         VerifyMigration(root, repository);
         await VerifyQueueAsync(runtime, root, snapshot.Preferences);
         await PreferenceRuntimeChecks.RunAsync(runtime, root, snapshot.Preferences, Check);
+        await PreferenceFailureChecks.RunAsync(runtime, Path.Combine(root, "final-review"), Check);
         Console.WriteLine($"Preferences: {_passed} distinct checks passed.");
     }
 

@@ -13,6 +13,29 @@ internal sealed class ShortcutPreferencesRuntime(AutoHotkeySettings settings, Fu
     /// <summary>Confirms both persistent values and runtime cache; a missing reply never implies rollback.</summary>
     internal void Apply(ShortcutPreferenceSnapshot snapshot)
     {
+        var (window, token) = GetOwnedEndpoint();
+        var encoded = ShortcutPreferenceCodec.Encode(snapshot);
+        var delivered = Send(window, "configure\n" + token + "\n" + encoded, 800, out var result);
+        if (delivered && result != 1)
+        {
+            var reason = settings.Read("Modern", "ShortcutConfigError");
+            throw new InvalidOperationException(string.IsNullOrEmpty(reason) ? "The shortcut script rejected the update; saved preferences were kept." : reason);
+        }
+        // A timeout can occur after dispatch. Query the immutable revision instead of replaying a mutation.
+        if (ConfirmRevision(window, token, snapshot, encoded)) return;
+        throw new UnconfirmedShortcutPreferencesException("The script did not confirm the saved revision. Current saved values were reloaded; check the shortcut process before retrying.");
+    }
+
+    /// <summary>Resolves a previous uncertain update through a read-only query, preserving its original revision.</summary>
+    internal bool Confirm(ShortcutPreferenceSnapshot snapshot)
+    {
+        var (window, token) = GetOwnedEndpoint();
+        return ConfirmRevision(window, token, snapshot, ShortcutPreferenceCodec.Encode(snapshot));
+    }
+
+    /// <summary>Validates the exact managed process and its ephemeral native endpoint before sending any request.</summary>
+    private (nint Window, string Token) GetOwnedEndpoint()
+    {
         var owned = session() ?? throw new InvalidOperationException("Shortcuts are stopped. Enable Explorer shortcuts before applying live preferences.");
         var window = new IntPtr(long.TryParse(settings.Read("Modern", "ShortcutScriptWindow"), out var handle) ? handle : 0);
         var token = settings.Read("Modern", "ShortcutScriptToken");
@@ -23,17 +46,15 @@ internal sealed class ShortcutPreferencesRuntime(AutoHotkeySettings settings, Fu
             || endpointPid != owned.ProcessId) throw Incompatible();
         using var process = Process.GetProcessById(owned.ProcessId.Value);
         if (process.HasExited || process.StartTime.ToUniversalTime() != owned.ProcessStartUtc) throw Incompatible();
-        var encoded = ShortcutPreferenceCodec.Encode(snapshot);
-        var delivered = Send(window, "configure\n" + token + "\n" + encoded, 800, out var result);
-        if (delivered && result != 1)
-        {
-            var reason = settings.Read("Modern", "ShortcutConfigError");
-            throw new InvalidOperationException(string.IsNullOrEmpty(reason) ? "The shortcut script rejected the update; saved preferences were kept." : reason);
-        }
-        // A timeout can occur after dispatch. Query the immutable revision instead of replaying a mutation.
-        if (Send(window, "query\n" + token + "\n" + snapshot.Revision, 800, out var cached) && cached == 1
-            && settings.Read("Modern", ShortcutPreferenceCodec.SettingName) == encoded) return;
-        throw new UnconfirmedShortcutPreferencesException("The script did not confirm the saved revision. Current saved values were reloaded; check the shortcut process before retrying.");
+        return (window, token);
+    }
+
+    /// <summary>Confirms both the cached revision and its whole stored value, including an unset default snapshot.</summary>
+    private bool ConfirmRevision(nint window, string token, ShortcutPreferenceSnapshot snapshot, string encoded)
+    {
+        if (!Send(window, "query\n" + token + "\n" + snapshot.Revision, 800, out var cached) || cached != 1) return false;
+        var stored = settings.Read("Modern", ShortcutPreferenceCodec.SettingName);
+        return stored == encoded || stored.Length == 0 && snapshot == ShortcutPreferenceSnapshot.Default;
     }
 
     /// <summary>Copies a bounded UTF-8 request into synchronous native IPC without invoking a shell.</summary>

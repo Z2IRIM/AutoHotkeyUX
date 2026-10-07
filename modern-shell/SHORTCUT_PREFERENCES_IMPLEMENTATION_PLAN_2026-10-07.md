@@ -49,12 +49,12 @@
 - `ArchiveExtractionService.Extract(string, string? destinationRoot)` retains current sibling behavior with null and adds unique per-archive output under a chosen root.
 - `ShortcutActivityService.Record(ShortcutActivity)` / `Snapshot()` / Changed are thread-safe and limited to 50.
 
-- [ ] Back up baseline source, approved preview and deployed EXE; record SHA and live session identities before code edits.
-- [ ] Add minimal failing service checks for invalid settings, snapshot round-trip/unknown data, fixed-destination extraction, bounded history, custom v2 preservation and transaction failure. Run and record RED.
-- [ ] Implement typed preferences, codec, native runtime channel and v3 migration. Verify with isolated registry/process fixtures, including rejected configurations preserving old settings.
-- [ ] Connect frozen extraction options and real terminal/extraction history, preserving bounded queue and shutdown drain. Cover a queued destination change and failure isolation.
-- [ ] Implement approved WinUI page and Settings secondary route; fields edit a draft, save/discard preserve it correctly, recent details expand inline, placement preview reacts to dimensions and click point, narrow layout reflows.
-- [ ] Correct ClassNN unverified ordinal and verify beyond-enumeration behavior with a focused native fixture.
-- [ ] Run covering service checks, AHK syntax/runtime configuration and terminal placement, native WinUI page verification; build/publish once code is final. Read actual outputs and stop testing once risk-matched evidence is sufficient.
-- [ ] Commit feature, generate full change review package, dispatch one fresh reviewer under requesting-code-review; address material findings with targeted regression checks.
+- [x] Back up baseline source, approved preview and deployed EXE; record SHA and live session identities before code edits.
+- [x] Add minimal failing service checks for invalid settings, snapshot round-trip/unknown data, fixed-destination extraction, bounded history, custom v2 preservation and transaction failure. Run and record RED.
+- [x] Implement typed preferences, codec, native runtime channel and v3 migration. Verify with isolated registry/process fixtures, including rejected configurations preserving old settings.
+- [x] Connect frozen extraction options and real terminal/extraction history, preserving bounded queue and shutdown drain. Cover a queued destination change and failure isolation.
+- [x] Implement approved WinUI page and Settings secondary route; fields edit a draft, save/discard preserve it correctly, recent details expand inline, placement preview reacts to dimensions and click point, narrow layout reflows.
+- [x] Correct ClassNN unverified ordinal and verify beyond-enumeration behavior with a focused native fixture.
+- [x] Run covering service checks, AHK syntax/runtime configuration and terminal placement, native WinUI page verification; build/publish once code is final. Read actual outputs and stop testing once risk-matched evidence is sufficient.
+- [x] Commit feature, generate full change review package, dispatch one fresh reviewer under requesting-code-review; address material findings with targeted regression checks.
 - [ ] Deliver source guide/example, Markdown coding record, incremental ZIP, merge into original branch and deploy approved app. Verify new manager and owned built-in runtime, preserving other scripts.
