@@ -31,9 +31,11 @@ internal sealed class ApplicationServices : IDisposable
         Compiler = new CompilerService(Integration, new EmbeddedCompiler());
         Documentation = new DocumentationService(Integration);
         Execution = new ScriptExecutionService(() => Integration.FindRuntime(Settings.Read(@"Launcher\v2", "Build"))?.Path,
-            new ScriptSessionStore(diagnosticRoot is null ? null : Path.Combine(StateDirectory, "managed-sessions.json")));
+            new ScriptSessionStore(diagnosticRoot is null ? null : Path.Combine(StateDirectory, "managed-sessions.json")),
+            path => VisualHotkeyConflicts.Check(path, Execution!.Snapshot(), Settings, Path.Combine(Catalog.RootDirectory, "Explorer Shortcuts.ahk")));
         ScriptStartup = new ScriptStartupService(Catalog.RootDirectory, Settings, Execution);
-        ShortcutPreferences = new(Settings, ScriptStartup, Execution);
+        ShortcutPreferences = new(Settings, ScriptStartup, Execution,
+            preferences => ScriptStartup.ExplorerEnabled ? VisualHotkeyConflicts.CheckBuiltInAgainstRunning(preferences, Execution.Snapshot(), ScriptStartup.ExplorerScriptPath) : null);
     }
 
     /// <summary>Recovers live identities before launching selected scripts and updates helper/startup executable paths.</summary>

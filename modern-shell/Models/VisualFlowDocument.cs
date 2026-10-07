@@ -3,9 +3,10 @@ using System.Text.Json.Serialization;
 namespace AutoHotkeyUX.Modern.Models;
 
 internal enum FlowTriggerKind { Hotkey, Startup }
-internal enum FlowScopeKind { AnyApplication, ActiveApplication }
+internal enum FlowScopeKind { AnyApplication, ActiveApplication, ExplorerDesktop }
 [Flags] internal enum FlowModifiers { None = 0, Ctrl = 1, Alt = 2, Shift = 4, Win = 8 }
-internal enum FlowActionKind { OpenProgram, OpenFolder, OpenWebsite, SendText, SendKeys, Wait }
+internal enum FlowActionKind { OpenProgram, OpenFolder, OpenWebsite, SendText, SendKeys, Wait,
+    GetClickedObject, GetSelectedObject, GetCurrentDirectory, ReadClipboard, OpenTerminal, ExtractArchive, SetClipboard, WaitForWindow, ActivateWindow, IfElse }
 internal enum FlowFolderKind { Documents, Desktop, Custom }
 
 /// <summary>Stores a versioned visual workflow independently of the WinUI editor and generated source.</summary>
@@ -37,6 +38,7 @@ internal sealed record FlowAction
     [JsonRequired] public string Value { get; init; } = "";
     [JsonRequired] public FlowFolderKind Folder { get; init; }
     [JsonRequired] public int DelayMs { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public FlowParameters? Parameters { get; init; }
 }
 
 /// <summary>Retains the exact opened bytes needed to detect changes before updating either file.</summary>

@@ -19,7 +19,7 @@ public sealed partial class NewScriptPage
             if (_opened?.ScriptPath.Equals(opened.ScriptPath, StringComparison.OrdinalIgnoreCase) == true
                 && _opened.SourceHash == opened.SourceHash && _opened.SidecarHash == opened.SidecarHash) return;
             if (!await CanReplaceDraftAsync(root)) return;
-            _opened = opened; _session.Load(opened.Document);
+            _opened = opened; _session.Load(opened.Document); _insertion = default; _branchSelection = null;
             _rendering = true; ScriptNameTextBox.Text = Path.GetFileNameWithoutExtension(opened.ScriptPath); ScriptLocationTextBox.Text = Path.GetDirectoryName(opened.ScriptPath)!; _rendering = false;
             RememberSaved(); ShowCreateMessage("Opened the visual workflow. Saving does not start or restart it.", InfoBarSeverity.Informational);
         }
@@ -75,7 +75,7 @@ public sealed partial class NewScriptPage
     private async void NewWorkflow_Click(object sender, RoutedEventArgs e)
     {
         if (_busy || !await CanReplaceDraftAsync(XamlRoot)) return;
-        _opened = null; _session.Load(VisualEditorSession.DefaultDocument());
+        _opened = null; _session.Load(VisualEditorSession.DefaultDocument()); _insertion = default; _branchSelection = null;
         _rendering = true; ScriptNameTextBox.Text = "QuickActions"; ScriptLocationTextBox.Text = _services.Catalog.RootDirectory; _rendering = false;
         _baseline = _session.Document; _baselineName = ScriptNameTextBox.Text; _baselineDirectory = ScriptLocationTextBox.Text;
         PageTitle.Text = "Build a workflow"; SavedActions.Visibility = Visibility.Collapsed; CreateInfoBar.IsOpen = false; SetEditingEnabled(true); RenderDocument();

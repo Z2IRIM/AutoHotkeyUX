@@ -20,6 +20,11 @@
                     </Grid>
                 </Grid>
             </Border>
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Button Content="Examples" Click="Examples_Click" />
+                <TextBlock Grid.Column="1" Text="Terminal / extract · Copy selected path · Launch and type" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </Grid>
             <Grid x:Name="EditorGrid" ColumnSpacing="16" RowSpacing="16" SizeChanged="EditorGrid_SizeChanged">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="280" /></Grid.ColumnDefinitions>
                 <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
@@ -58,7 +63,7 @@
                             </ListView.ItemContainerStyle>
                             <ListView.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Style="{StaticResource SurfaceCardStyle}" CornerRadius="8">
+                                    <Border Style="{StaticResource SurfaceCardStyle}" CornerRadius="8" Margin="{Binding Indent}">
                                     <Grid Padding="12" ColumnSpacing="10" MinHeight="76">
                                         <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                                         <FontIcon Glyph="{Binding Glyph}" FontSize="18" VerticalAlignment="Center" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
@@ -77,7 +82,9 @@
                             <Button x:Name="DownButton" Padding="10" ToolTipService.ToolTip="Move selected action down" AutomationProperties.Name="Move selected action down" Click="Down_Click"><FontIcon Glyph="&#xE74B;" FontSize="16" /></Button>
                             <Button x:Name="DeleteButton" Padding="10" ToolTipService.ToolTip="Delete selected action" AutomationProperties.Name="Delete selected action" Click="Delete_Click"><FontIcon Glyph="&#xE74D;" FontSize="16" /></Button>
                         </StackPanel>
-                        <TextBlock Text="Actions run from top to bottom. Drag to reorder, or use the arrow buttons." FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <Button x:Name="RootInsertionButton" Content="Append after workflow" Click="RootInsertion_Click" />
+                        <TextBlock x:Name="InsertionHintText" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="OrderHintText" Text="Actions run from top to bottom. Drag to reorder, or use the arrow buttons." FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
                 </Border>
                 <Border x:Name="PropertiesPanel" Grid.Column="2" Style="{StaticResource SurfaceCardStyle}" Padding="16">
@@ -99,7 +106,7 @@
                                 <ComboBox x:Name="TriggerKeyCombo" Header="Key" HorizontalAlignment="Stretch" SelectionChanged="TriggerInput_Changed" />
                             </StackPanel>
                             <ComboBox x:Name="ScopeCombo" Header="Active window" HorizontalAlignment="Stretch" SelectionChanged="Scope_Changed">
-                                <ComboBoxItem Content="Any application" /><ComboBoxItem Content="Only this application" />
+                                <ComboBoxItem Content="Any application" /><ComboBoxItem Content="Only this application" /><ComboBoxItem Content="File Explorer and desktop" />
                             </ComboBox>
                             <TextBox x:Name="ApplicationBox" Header="Application file name" PlaceholderText="explorer.exe" MaxLength="128" TextChanged="Application_Changed" />
                             <TextBlock Text="The application condition applies to the whole workflow. Creating a script does not start it." FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
@@ -112,11 +119,13 @@
                             <ComboBox x:Name="SendKeysCombo" Header="Key combination" HorizontalAlignment="Stretch" SelectionChanged="SendKeys_Changed" />
                             <NumberBox x:Name="WaitBox" Header="Milliseconds" Minimum="0" Maximum="60000" SpinButtonPlacementMode="Compact" ValueChanged="Wait_Changed" />
                             <TextBlock x:Name="ParameterHintText" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <StackPanel x:Name="ExtendedFields" Spacing="12" />
                         </StackPanel>
                     </StackPanel>
                 </Border>
             </Grid>
             <TextBlock x:Name="FieldErrorsText" TextWrapping="Wrap" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Visibility="Collapsed" />
+            <TextBlock x:Name="ShortcutWarningText" TextWrapping="Wrap" Foreground="{ThemeResource SystemFillColorCautionBrush}" Visibility="Collapsed" />
             <Expander x:Name="CodeExpander" Header="Generated AutoHotkey code" HorizontalAlignment="Stretch" IsExpanded="False">
                 <TextBox x:Name="ScriptPreviewTextBox" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" FontSize="13" MinHeight="160" MaxHeight="280"
                     TextWrapping="NoWrap" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Generated AutoHotkey source" />

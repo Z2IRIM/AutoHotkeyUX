@@ -13,6 +13,7 @@ internal static class VisualFlowGenerator
     internal static string Generate(VisualFlowDocument value)
     {
         VisualFlowCodec.Validate(value);
+        if (value.SchemaVersion == 2) return VisualFlowGeneratorV2.Generate(value);
         var code = new StringBuilder(OwnershipMarker + "\r\n")
             .Append("; Workflow: ").Append(value.Id.ToString("D")).Append("\r\n")
             .Append("#Requires AutoHotkey v2.0\r\n#SingleInstance Ignore\r\n\r\n");
@@ -43,7 +44,7 @@ internal static class VisualFlowGenerator
         .Replace("\n", "`n", StringComparison.Ordinal).Replace("\t", "`t", StringComparison.Ordinal) + "\"";
 
     /// <summary>Maps each validated action to one fixed statement with literal parameters.</summary>
-    private static string ActionSource(FlowAction action) => action.Kind switch
+    internal static string ActionSource(FlowAction action) => action.Kind switch
     {
         FlowActionKind.OpenProgram => "Run Chr(34) . " + Literal(action.Value) + " . Chr(34)",
         FlowActionKind.OpenFolder => "Run \"explorer.exe \" . Chr(34) . " + (action.Folder switch

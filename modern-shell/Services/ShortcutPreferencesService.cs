@@ -15,15 +15,18 @@ internal sealed class ShortcutPreferencesService
     private readonly object _lifecycle = new();
     private Task _pending = Task.CompletedTask;
     private bool _accepting = true;
+    private readonly Func<ShortcutPreferences, string?>? _workflowConflict;
     internal string? Warning { get; private set; }
     internal ShortcutPreferences Saved => Volatile.Read(ref _snapshot).Preferences;
     internal bool AwaitingRuntimeConfirmation => Volatile.Read(ref _unconfirmed) is not null;
     internal event EventHandler? Changed;
 
     /// <summary>Loads preferences once and keeps the native sender tied to the managed built-in identity.</summary>
-    internal ShortcutPreferencesService(AutoHotkeySettings settings, ScriptStartupService startup, ScriptExecutionService execution)
+    internal ShortcutPreferencesService(AutoHotkeySettings settings, ScriptStartupService startup, ScriptExecutionService execution,
+        Func<ShortcutPreferences, string?>? workflowConflict = null)
     {
         _settings = settings; _startup = startup; _execution = execution;
+        _workflowConflict = workflowConflict;
         _runtime = new(settings, FindLiveSession);
         _snapshot = LoadSaved(out var warning);
         Warning = warning;
@@ -39,10 +42,13 @@ internal sealed class ShortcutPreferencesService
             return _pending = Task.Run(() =>
             {
                 lock (_startup.ExplorerMutationLock)
+                lock (VisualHotkeyConflicts.MutationGate)
                 {
                     var normalized = preferences with { ArchiveFolder = preferences.ArchiveFolder.Trim() };
                     var errors = ShortcutPreferenceCodec.Validate(normalized, true);
                     if (errors.Count != 0) throw new InvalidDataException(string.Join(" ", errors.Values));
+                    var conflict = _workflowConflict?.Invoke(normalized);
+                    if (conflict is not null) throw new InvalidOperationException(conflict);
                     ResolveUnconfirmed();
                     if (normalized == Saved && Warning is null) return;
                     var snapshot = new ShortcutPreferenceSnapshot(Guid.NewGuid().ToString("N"), normalized);

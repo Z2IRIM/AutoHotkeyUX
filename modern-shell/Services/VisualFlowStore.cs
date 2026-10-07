@@ -92,10 +92,10 @@ internal sealed class VisualFlowStore
     }
 
     /// <summary>Reopens only an intact supported pair whose source still matches its document and generator.</summary>
-    internal VisualFlowOpened Open(string path)
+    internal VisualFlowOpened Open(string path, bool claimHeld = false)
     {
         path = ScriptPath(path);
-        using var claim = TryClaim(path) ?? throw new IOException("This workflow is being saved by another process.");
+        using var claim = claimHeld ? null : TryClaim(path) ?? throw new IOException("This workflow is being saved by another process.");
         CheckRecovery(path);
         CheckOrdinaryFile(path); CheckOrdinaryFile(path + ".flow.json");
         using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
@@ -115,7 +115,7 @@ internal sealed class VisualFlowStore
         if (Path.Exists(path + ".flow.json") || Path.Exists(path + ".flow.pending")) return true;
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         var prefix = new byte[128]; var length = stream.Read(prefix);
-        return System.Text.Encoding.UTF8.GetString(prefix, 0, length).StartsWith(VisualFlowGenerator.OwnershipMarker, StringComparison.Ordinal);
+        return System.Text.Encoding.UTF8.GetString(prefix, 0, length).StartsWith("; AutoHotkey UX visual workflow v", StringComparison.Ordinal);
     }
 
     /// <summary>Serializes interpreter launch with visual saves and refuses interrupted bytes before stopping a live script.</summary>

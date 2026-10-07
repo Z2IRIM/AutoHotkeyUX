@@ -23,6 +23,8 @@ internal sealed class VisualEditorSession
     /// <summary>Records one semantic edit, including temporarily invalid form input, for later validation.</summary>
     internal void Replace(VisualFlowDocument value)
     {
+        if (VisualFlowTree.Walk(value.Actions).Any(item => item.Action.Kind > FlowActionKind.Wait || item.Action.Parameters is not null)
+            || value.Trigger.Scope == FlowScopeKind.ExplorerDesktop || value.Trigger.Key.EndsWith("Button", StringComparison.Ordinal)) value = value with { SchemaVersion = 2 };
         if (Same(value, Document)) return;
         _undo.Add(Copy(Document));
         if (_undo.Count > 50) _undo.RemoveAt(0);
@@ -33,11 +35,12 @@ internal sealed class VisualEditorSession
     /// <summary>Moves a stable action identity to a final zero-based index, leaving the trigger outside this list.</summary>
     internal void Move(Guid id, int target)
     {
-        var actions = Document.Actions.ToList();
+        var found = VisualFlowTree.Walk(Document.Actions).FirstOrDefault(item => item.Action.Id == id);
+        var actions = VisualFlowTree.Sequence(Document.Actions, found.Branch).ToList();
         var from = actions.FindIndex(action => action.Id == id);
         if (from < 0 || target < 0 || target >= actions.Count || from == target) return;
         var action = actions[from]; actions.RemoveAt(from); actions.Insert(target, action);
-        Replace(Document with { Actions = actions.ToArray() }); Selection = id;
+        Replace(Document with { Actions = VisualFlowTree.SetSequence(Document.Actions, found.Branch, actions.ToArray()) }); Selection = id;
     }
 
     /// <summary>Restores the most recent draft without writing either file.</summary>
@@ -49,10 +52,10 @@ internal sealed class VisualEditorSession
     { if (!CanRedo) return; _undo.Add(Copy(Document)); Document = _redo[^1]; _redo.RemoveAt(_redo.Count - 1); RestoreSelection(); }
 
     /// <summary>Falls back to the trigger if a selected action was removed or undone.</summary>
-    private void RestoreSelection() { if (Selection.HasValue && !Document.Actions.Any(action => action.Id == Selection)) Selection = null; }
+    private void RestoreSelection() { if (Selection.HasValue && VisualFlowTree.Find(Document.Actions, Selection) is null) Selection = null; }
     /// <summary>Copies mutable array storage at the history boundary; individual records are immutable.</summary>
-    private static VisualFlowDocument Copy(VisualFlowDocument value) => value with { Actions = [.. value.Actions] };
+    private static VisualFlowDocument Copy(VisualFlowDocument value) => value with { Actions = VisualFlowTree.Copy(value.Actions) };
     /// <summary>Compares semantic records instead of treating a replacement array as a new edit.</summary>
     private static bool Same(VisualFlowDocument a, VisualFlowDocument b) => a.Id == b.Id && a.SchemaVersion == b.SchemaVersion
-        && a.Revision == b.Revision && a.SourceSha256 == b.SourceSha256 && a.Trigger == b.Trigger && a.Actions.SequenceEqual(b.Actions);
+        && a.Revision == b.Revision && a.SourceSha256 == b.SourceSha256 && a.Trigger == b.Trigger && VisualFlowTree.Same(a.Actions, b.Actions);
 }

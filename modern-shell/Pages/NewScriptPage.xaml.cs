@@ -22,6 +22,9 @@ public sealed partial class NewScriptPage : Page
     private bool _busy;
     private bool _dragging;
     private int _layoutMode = -1;
+    private FlowBranch _insertion;
+    private FlowBranch? _branchSelection;
+    private readonly List<Button> _libraryButtons = [];
 
     /// <summary>Initializes the approved starter and retains its draft when the content host navigates away.</summary>
     internal NewScriptPage(ApplicationServices services, Action openScripts)
@@ -29,7 +32,7 @@ public sealed partial class NewScriptPage : Page
         _rendering = true; InitializeComponent();
         _services = services; _openScripts = openScripts;
         ScriptLocationTextBox.Text = services.Catalog.RootDirectory;
-        TriggerKeyCombo.ItemsSource = VisualFlowCodec.Keys; SendKeysCombo.ItemsSource = VisualFlowCodec.SendKeys;
+        TriggerKeyCombo.ItemsSource = VisualFlowCodec.Keys.Select(KeyLabel).ToArray(); SendKeysCombo.ItemsSource = VisualFlowCodec.SendKeys;
         ActionList.ItemsSource = _cards; BuildLibrary();
         _baseline = _session.Document; _baselineDirectory = ScriptLocationTextBox.Text;
         _rendering = false; RenderDocument();
@@ -38,8 +41,14 @@ public sealed partial class NewScriptPage : Page
     /// <summary>Creates uniform native buttons from the same metadata used by cards and the inspector.</summary>
     private void BuildLibrary()
     {
-        foreach (var kind in Enum.GetValues<FlowActionKind>())
+        foreach (var (category, kinds) in FlowActionCard.Categories)
         {
+            var group = new StackPanel { Spacing = 8 };
+            var expander = new Expander { Header = category, Content = group, IsExpanded = category == "Context", HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch, Padding = new Thickness(0), MinWidth = 0 };
+            ActionLibrary.Children.Add(expander);
+            foreach (var kind in kinds)
+            {
             var content = new Grid { ColumnSpacing = 8 };
             content.ColumnDefinitions.Add(new() { Width = new GridLength(20) });
             content.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
@@ -48,7 +57,8 @@ public sealed partial class NewScriptPage : Page
             Grid.SetColumn(label, 1); content.Children.Add(label);
             var button = new Button { Tag = kind, Content = content, HorizontalAlignment = HorizontalAlignment.Stretch,
                 HorizontalContentAlignment = HorizontalAlignment.Stretch, MinHeight = 56, Padding = new Thickness(10) };
-            button.Click += Library_Click; ActionLibrary.Children.Add(button);
+            button.Click += Library_Click; group.Children.Add(button); _libraryButtons.Add(button);
+            }
         }
     }
 
@@ -58,25 +68,33 @@ public sealed partial class NewScriptPage : Page
         _rendering = true;
         try
         {
-            var actions = _session.Document.Actions;
-            if (_cards.Count == actions.Length && _cards.Select(card => card.Action.Id).SequenceEqual(actions.Select(action => action.Id)))
+            var rows = FlowActionCard.Project(_session.Document).ToArray();
+            if (_cards.Count == rows.Length && _cards.Zip(rows).All(pair => pair.First.Key == pair.Second.Key))
             {
-                for (var index = 0; index < actions.Length; index++)
-                    if (_cards[index].Action != actions[index] || _cards[index].Number != index + 1) _cards[index] = new(actions[index], index + 1);
+                for (var index = 0; index < rows.Length; index++) if (_cards[index] != rows[index]) _cards[index] = rows[index];
             }
             else
             {
                 _cards.Clear();
-                for (var index = 0; index < actions.Length; index++) _cards.Add(new(actions[index], index + 1));
+                foreach (var row in rows) _cards.Add(row);
             }
-            ActionList.SelectedItem = _cards.FirstOrDefault(card => card.Action.Id == _session.Selection);
+            if (_insertion.ParentId.HasValue && VisualFlowTree.Find(_session.Document.Actions, _insertion.ParentId)?.Kind != FlowActionKind.IfElse)
+            { _insertion = default; _branchSelection = null; }
+            ActionList.SelectedItem = _branchSelection is { } selectedBranch ? _cards.FirstOrDefault(card => card.IsBranch && card.Branch == selectedBranch)
+                : _cards.FirstOrDefault(card => !card.IsBranch && card.Action.Id == _session.Selection);
             var trigger = _session.Document.Trigger;
             TriggerSummaryText.Text = trigger.Kind == FlowTriggerKind.Startup ? "When script starts" : HotkeyLabel(trigger);
-            ScopeSummaryText.Text = trigger.Scope == FlowScopeKind.AnyApplication ? "Any active application"
+            ScopeSummaryText.Text = trigger.Scope == FlowScopeKind.ExplorerDesktop ? "File Explorer and desktop" : trigger.Scope == FlowScopeKind.AnyApplication ? "Any active application"
                 : trigger.Application.Length == 0 ? "Choose an application" : "Only " + trigger.Application;
             TriggerButton.BorderThickness = new Thickness(_session.Selection is null ? 2 : 1);
             TriggerButton.BorderBrush = (Brush)Application.Current.Resources[_session.Selection is null ? "AccentFillColorDefaultBrush" : "CardStrokeColorDefaultBrush"];
-            ActionCountText.Text = _cards.Count + " / " + VisualFlowCodec.MaximumActions + " actions";
+            ActionCountText.Text = VisualFlowTree.Walk(_session.Document.Actions).Count() + " / " + VisualFlowCodec.MaximumActions + " actions";
+            var nested = _cards.Any(card => card.IsBranch);
+            ActionList.CanDragItems = !nested; ActionList.CanReorderItems = !nested;
+            OrderHintText.Text = nested ? "Select IF TRUE or ELSE to add there. Arrow buttons reorder within the selected sequence."
+                : "Actions run from top to bottom. Drag to reorder, or use the arrow buttons.";
+            InsertionHintText.Text = _insertion.ParentId is null ? "New actions append to the main sequence."
+                : "New actions append to " + (_insertion.IsElse ? "ELSE" : "IF TRUE") + " of " + FlowActionCard.StepLabel(_session.Document, _insertion.ParentId.Value) + ".";
             EmptyFlowText.Visibility = _cards.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             if (properties) RenderProperties();
         }
@@ -103,21 +121,27 @@ public sealed partial class NewScriptPage : Page
         SaveButton.IsEnabled = !_busy && error is null && (_opened is null || HasChanges());
         SaveButton.Content = _opened is null ? "Create script" : "Save changes";
         UndoButton.IsEnabled = !_busy && _session.CanUndo; RedoButton.IsEnabled = !_busy && _session.CanRedo;
-        var index = Array.FindIndex(_session.Document.Actions, action => action.Id == _session.Selection);
-        UpButton.IsEnabled = !_busy && index > 0; DownButton.IsEnabled = !_busy && index >= 0 && index < _cards.Count - 1;
-        DeleteButton.IsEnabled = !_busy && index >= 0;
-        foreach (var button in ActionLibrary.Children.OfType<Button>()) button.IsEnabled = !_busy && _cards.Count < VisualFlowCodec.MaximumActions;
+        var selected = VisualFlowTree.Walk(_session.Document.Actions).FirstOrDefault(item => item.Action.Id == _session.Selection);
+        var sequence = VisualFlowTree.Sequence(_session.Document.Actions, selected.Branch);
+        var index = Array.FindIndex(sequence, action => action.Id == _session.Selection);
+        UpButton.IsEnabled = !_busy && _branchSelection is null && index > 0; DownButton.IsEnabled = !_busy && _branchSelection is null && index >= 0 && index < sequence.Length - 1;
+        DeleteButton.IsEnabled = !_busy && _branchSelection is null && index >= 0;
+        foreach (var button in _libraryButtons) button.IsEnabled = !_busy && VisualFlowTree.Walk(_session.Document.Actions).Count() < VisualFlowCodec.MaximumActions;
+        var conflict = VisualHotkeyConflicts.BuiltIn(_session.Document.Trigger, _services.ShortcutPreferences.Saved, _services.ScriptStartup.ExplorerEnabled);
+        ShortcutWarningText.Text = conflict ?? ""; ShortcutWarningText.Visibility = conflict is null ? Visibility.Collapsed : Visibility.Visible;
         CreateScriptStatusText.Text = _opened is null ? "Creates a script and its workflow file. Existing names receive a suffix. Actions run only after you start the script."
             : "Editing " + _opened.ScriptPath + ". Save does not restart a running script; use Restart in Scripts to apply changes.";
     }
 
     /// <summary>Tracks semantic draft differences rather than selection or replacement array instances.</summary>
-    private bool HasChanges() => _session.Document.Trigger != _baseline.Trigger || !_session.Document.Actions.SequenceEqual(_baseline.Actions)
+    private bool HasChanges() => _session.Document.SchemaVersion != _baseline.SchemaVersion || _session.Document.Trigger != _baseline.Trigger || !VisualFlowTree.Same(_session.Document.Actions, _baseline.Actions)
         || ScriptNameTextBox.Text != _baselineName || ScriptLocationTextBox.Text != _baselineDirectory;
 
     /// <summary>Shows a readable shortcut without exposing AHK prefix syntax.</summary>
     private static string HotkeyLabel(FlowTrigger trigger) => string.Join(" + ", Enum.GetValues<FlowModifiers>()
-        .Where(flag => flag != FlowModifiers.None && trigger.Modifiers.HasFlag(flag)).Select(flag => flag.ToString()).Append(trigger.Key));
+        .Where(flag => flag != FlowModifiers.None && trigger.Modifiers.HasFlag(flag)).Select(flag => flag.ToString()).Append(KeyLabel(trigger.Key)));
+    /// <summary>Names mouse buttons plainly while retaining persisted AHK key tokens.</summary>
+    private static string KeyLabel(string key) => key == "LButton" ? "Left mouse button" : key == "MButton" ? "Middle mouse button" : key;
 
     /// <summary>Moves the inspector below the flow at medium widths and stacks all panels at small widths.</summary>
     private void EditorGrid_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -140,22 +164,4 @@ public sealed partial class NewScriptPage : Page
         var stacked = e.NewSize.Width < 640; Grid.SetColumnSpan(ScriptNameTextBox, stacked ? 2 : 1);
         Grid.SetColumn(LocationPanel, stacked ? 0 : 1); Grid.SetRow(LocationPanel, stacked ? 1 : 0); Grid.SetColumnSpan(LocationPanel, stacked ? 2 : 1);
     }
-}
-
-/// <summary>Projects immutable actions into readable cards without owning editing or filesystem behavior.</summary>
-internal sealed record FlowActionCard(FlowAction Action, int Number)
-{
-    public string Title => Number + ". " + Label(Action.Kind);
-    public string Glyph => Icon(Action.Kind);
-    public string Summary => Action.Kind switch
-    { FlowActionKind.Wait => Action.DelayMs + " ms", FlowActionKind.OpenFolder when Action.Folder != FlowFolderKind.Custom => Action.Folder.ToString(),
-        _ => Action.Value.Length == 0 ? "Set this action's properties" : Action.Value.Replace('\r', ' ').Replace('\n', ' ') };
-    /// <summary>Shares product labels between the library, cards and inspector.</summary>
-    internal static string Label(FlowActionKind kind) => kind switch
-    { FlowActionKind.OpenProgram => "Open program / file", FlowActionKind.OpenFolder => "Open folder", FlowActionKind.OpenWebsite => "Open website",
-        FlowActionKind.SendText => "Send text", FlowActionKind.SendKeys => "Send keys", _ => "Wait" };
-    /// <summary>Uses the existing Windows symbol font instead of adding icon assets.</summary>
-    internal static string Icon(FlowActionKind kind) => kind switch
-    { FlowActionKind.OpenProgram => "\uE8A5", FlowActionKind.OpenFolder => "\uE838", FlowActionKind.OpenWebsite => "\uE774",
-        FlowActionKind.SendText => "\uE8D2", FlowActionKind.SendKeys => "\uE765", _ => "\uE916" };
 }

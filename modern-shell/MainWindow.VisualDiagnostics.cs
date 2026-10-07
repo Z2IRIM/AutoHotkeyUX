@@ -25,6 +25,9 @@ public sealed partial class MainWindow
         await OpenVisualScriptAsync(saved); await Task.Delay(80);
         var form = await _newScriptPage.VerifyRetainedWorkflowAsync();
         var review = await _newScriptPage.VerifyReviewBoundariesAsync(() => { NavigateTo("scripts"); NavigateTo("new"); });
+        var capabilities = await _newScriptPage.VerifyCapabilitiesAsync();
+        await Task.Delay(100); var practicalWide = _newScriptPage.VerifyWorkflowLayout();
+        await CaptureVisualAsync(Path.ChangeExtension(reportPath, "practical-wide.png"));
         AppWindow.Resize(new Windows.Graphics.SizeInt32((int)Math.Round(1100 * scale), (int)Math.Round(900 * scale)));
         await Task.Delay(120);
         var medium = _newScriptPage.VerifyWorkflowLayout();
@@ -32,7 +35,7 @@ public sealed partial class MainWindow
         await Task.Delay(120);
         var narrow = _newScriptPage.VerifyWorkflowLayout();
         await CaptureVisualAsync(Path.ChangeExtension(reportPath, "narrow.png"));
-        return new { Passed = true, Shell = shell, Form = form, Review = review, Startup = startup, StartupAfterRender = startupAfterRender, Wide = wide, Medium = medium, Narrow = narrow,
+        return new { Passed = true, Shell = shell, Form = form, Review = review, Capabilities = capabilities, PracticalWide = practicalWide, Startup = startup, StartupAfterRender = startupAfterRender, Wide = wide, Medium = medium, Narrow = narrow,
             Capture = "WinUI RenderTargetBitmap with opaque theme background; Mica and native caption are excluded",
             DragCompletionBoundary = true, PhysicalMouseDrag = "unvalidated", StateDirectory = _services.StateDirectory };
     }

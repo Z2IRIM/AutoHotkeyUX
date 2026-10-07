@@ -14,14 +14,16 @@ internal sealed class ScriptExecutionService : IDisposable
     private readonly Dictionary<string, RunningScriptSession> _sessions = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, StringBuilder> _errors = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
+    private readonly Func<string, string?>? _workflowConflict;
     internal string? LastWarning { get; private set; }
     internal event EventHandler? Changed;
 
     /// <summary>Reuses the shell runtime locator through a provider without coupling process handling to XAML.</summary>
-    internal ScriptExecutionService(Func<string?> runtimePath, ScriptSessionStore store)
+    internal ScriptExecutionService(Func<string?> runtimePath, ScriptSessionStore store, Func<string, string?>? workflowConflict = null)
     {
         _runtimePath = runtimePath;
         _store = store;
+        _workflowConflict = workflowConflict;
     }
 
     /// <summary>Returns a stable snapshot while process-exit events can arrive on a worker thread.</summary>
@@ -78,6 +80,7 @@ internal sealed class ScriptExecutionService : IDisposable
     internal RunningScriptSession Run(string scriptPath, bool workflowClaimHeld = false)
     {
         var path = Path.GetFullPath(scriptPath);
+        lock (VisualHotkeyConflicts.MutationGate)
         lock (_gate)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
@@ -92,6 +95,8 @@ internal sealed class ScriptExecutionService : IDisposable
             try
             {
                 using var workflowClaim = workflowClaimHeld ? null : VisualFlowStore.ClaimForExecution(path);
+                var conflict = _workflowConflict?.Invoke(path);
+                if (conflict is not null) throw new InvalidOperationException(conflict);
                 if (!File.Exists(path)) throw new FileNotFoundException("The script no longer exists.", path);
                 if (!Path.GetExtension(path).Equals(".ahk", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("Select an AutoHotkey .ahk script.");
@@ -177,7 +182,8 @@ internal sealed class ScriptExecutionService : IDisposable
     internal RunningScriptSession Restart(string scriptPath)
     {
         var path = Path.GetFullPath(scriptPath);
-        lock (_gate) { using var workflowClaim = VisualFlowStore.ClaimForExecution(path); Stop(path); return Run(path, workflowClaimHeld: true); }
+        lock (VisualHotkeyConflicts.MutationGate)
+        lock (_gate) { using var workflowClaim = VisualFlowStore.ClaimForExecution(path); var conflict = _workflowConflict?.Invoke(path); if (conflict is not null) throw new InvalidOperationException(conflict); Stop(path); return Run(path, workflowClaimHeld: true); }
     }
 
     /// <summary>Registers callbacks after ownership metadata, then checks the already-exited race explicitly.</summary>
