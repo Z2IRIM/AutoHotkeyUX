@@ -9,15 +9,63 @@ namespace AutoHotkeyUX.Modern.Services;
 internal sealed class DocumentationService
 {
     private readonly AutoHotkeyIntegration _integration;
+    private readonly Func<ProcessStartInfo, Process> _startExtractor;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly object _lifetime = new();
+    private readonly CancellationTokenSource _shutdown = new();
+    private readonly HashSet<Task<DocumentationLocation>> _active = [];
+    private bool _shuttingDown;
+    private Task? _draining;
     private static readonly string[] RequiredFiles = ["docs/index.htm", "docs/static/content.js", "docs/static/source/data_toc.js", "docs/static/theme.css"];
     private sealed record CacheManifest(string SourceHash, Dictionary<string, string> Files);
 
-    /// <summary>Reuses the existing runtime discovery without modifying its materialization pipeline.</summary>
-    internal DocumentationService(AutoHotkeyIntegration integration) => _integration = integration;
+    /// <summary>Reuses runtime discovery and permits a controlled extractor in explicit lifecycle diagnostics.</summary>
+    internal DocumentationService(AutoHotkeyIntegration integration, Func<ProcessStartInfo, Process>? startExtractor = null)
+    {
+        _integration = integration;
+        _startExtractor = startExtractor ?? (start => Process.Start(start) ?? throw new InvalidOperationException("The offline help extractor could not start."));
+    }
+
+    /// <summary>Owns each accepted preparation so application shutdown can cancel and await its cleanup.</summary>
+    internal Task<DocumentationLocation> EnsureReadyAsync(CancellationToken cancellationToken)
+    {
+        lock (_lifetime)
+        {
+            if (_shuttingDown) throw new InvalidOperationException("The application is shutting down.");
+            var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _shutdown.Token);
+            var operation = RunPreparationAsync(linked.Token);
+            _active.Add(operation);
+            _ = operation.ContinueWith(completed =>
+            {
+                lock (_lifetime) _active.Remove(completed);
+                linked.Dispose();
+            }, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            return operation;
+        }
+    }
+
+    /// <summary>Stops accepting work and waits for every owned extractor and staging cleanup before exit.</summary>
+    internal Task CancelAndDrainAsync()
+    {
+        lock (_lifetime)
+        {
+            if (_draining is not null) return _draining;
+            _shuttingDown = true; _shutdown.Cancel();
+            return _draining = DrainAsync(_active.ToArray());
+        }
+    }
+
+    /// <summary>Completes all accepted preparations, logging failures without abandoning exit cleanup.</summary>
+    private async Task DrainAsync(Task[] operations)
+    {
+        try { await Task.WhenAll(operations); }
+        catch (OperationCanceledException) { }
+        catch (Exception ex) { ServiceDiagnostics.Write("Documentation", "Preparation failed while shutting down.", ex); }
+        finally { _shutdown.Dispose(); }
+    }
 
     /// <summary>Serializes extraction and validates actual files rather than trusting hh.exe's exit code.</summary>
-    internal async Task<DocumentationLocation> EnsureReadyAsync(CancellationToken cancellationToken)
+    private async Task<DocumentationLocation> RunPreparationAsync(CancellationToken cancellationToken)
     {
         await _gate.WaitAsync(cancellationToken);
         try { return await Task.Run(() => PrepareAsync(cancellationToken), cancellationToken); }
@@ -33,6 +81,7 @@ internal sealed class DocumentationService
         var sourceHash = Hash(chm);
         var version = runtime.Version.TrimEnd('.');
         var parent = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AutoHotkeyUX.Modern", "documentation");
+        RejectPathLinks(parent);
         Directory.CreateDirectory(parent);
         RejectLink(parent);
         var root = Path.Combine(parent, $"{version}-{sourceHash[..12]}");
@@ -47,7 +96,7 @@ internal sealed class DocumentationService
             start.ArgumentList.Add("-decompile"); start.ArgumentList.Add(staging); start.ArgumentList.Add(chm);
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(TimeSpan.FromSeconds(30));
-            using var process = Process.Start(start) ?? throw new InvalidOperationException("The offline help extractor could not start.");
+            using var process = _startExtractor(start);
             try { await process.WaitForExitAsync(timeout.Token); }
             catch (OperationCanceledException)
             {
@@ -59,7 +108,7 @@ internal sealed class DocumentationService
             if (RequiredFiles.Any(file => !File.Exists(Path.Combine(staging, file))))
                 throw new InvalidDataException("Offline extraction did not produce the required manual files. Retry from Documentation.");
             var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var file in Directory.EnumerateFiles(staging, "*", SearchOption.AllDirectories))
+            foreach (var file in EnumerateRegularFiles(staging, cancellationToken))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 RejectLink(file);
@@ -81,25 +130,27 @@ internal sealed class DocumentationService
         }
     }
 
-    /// <summary>Detects missing, truncated, linked or altered files in a completed offline cache.</summary>
+    /// <summary>Checks the complete regular file tree against its manifest, excluding linked or unlisted content.</summary>
     internal static bool ValidateCache(string root, string sourceHash, CancellationToken cancellationToken)
     {
         try
         {
             if (!Directory.Exists(root)) return false;
-            RejectLink(root);
+            RejectPathLinks(root);
             var manifestPath = Path.Combine(root, ".cache.json");
             if (!File.Exists(manifestPath) || new FileInfo(manifestPath).Length > 256 * 1024) return false;
+            RejectLink(manifestPath);
             var manifest = JsonSerializer.Deserialize<CacheManifest>(File.ReadAllText(manifestPath));
             if (manifest is null || manifest.SourceHash != sourceHash || manifest.Files is null || manifest.Files.Count is < 4 or > 4096) return false;
             if (RequiredFiles.Any(file => !manifest.Files.ContainsKey(file))) return false;
-            var prefix = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            var actual = EnumerateRegularFiles(root, cancellationToken)
+                .Where(file => !string.Equals(Path.GetRelativePath(root, file), ".cache.json", StringComparison.OrdinalIgnoreCase))
+                .ToDictionary(file => Path.GetRelativePath(root, file).Replace('\\', '/'), StringComparer.OrdinalIgnoreCase);
+            if (actual.Count != manifest.Files.Count) return false;
             foreach (var (relative, expectedHash) in manifest.Files)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                var path = Path.GetFullPath(Path.Combine(root, relative));
-                if (!path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) || !File.Exists(path)) return false;
-                RejectLink(path);
+                if (!actual.TryGetValue(relative, out var path)) return false;
                 if (Hash(path) != expectedHash) return false;
             }
             return true;
@@ -113,6 +164,36 @@ internal sealed class DocumentationService
     /// <summary>Rejects filesystem links at extraction/cache boundaries.</summary>
     private static void RejectLink(string path)
     { if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) throw new IOException("The manual cache must contain regular files and directories."); }
+
+    /// <summary>Rejects links anywhere in an existing cache path's ancestor chain before mapping or writing.</summary>
+    private static void RejectPathLinks(string path)
+    {
+        for (var current = Path.GetFullPath(path); !string.IsNullOrEmpty(current); current = Path.GetDirectoryName(current))
+        {
+            try { RejectLink(current); }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) { }
+        }
+    }
+
+    /// <summary>Enumerates a bounded actual tree without following reparse points in intermediate directories.</summary>
+    private static IEnumerable<string> EnumerateRegularFiles(string root, CancellationToken cancellationToken)
+    {
+        RejectPathLinks(root);
+        var pending = new Stack<string>(); pending.Push(root);
+        var entries = 0;
+        while (pending.TryPop(out var directory))
+        {
+            cancellationToken.ThrowIfCancellationRequested(); RejectLink(directory);
+            foreach (var path in Directory.EnumerateFileSystemEntries(directory))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (++entries > 8192) throw new InvalidDataException("The manual cache contains too many entries.");
+                var attributes = File.GetAttributes(path);
+                if ((attributes & FileAttributes.ReparsePoint) != 0) throw new IOException("The manual cache contains a filesystem link.");
+                if ((attributes & FileAttributes.Directory) != 0) pending.Push(path); else yield return path;
+            }
+        }
+    }
 
     /// <summary>Removes only a checked child staging directory owned by this materializer.</summary>
     private static void DeleteOwnedDirectory(string path, string parent)

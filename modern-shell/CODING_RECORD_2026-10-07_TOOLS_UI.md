@@ -31,6 +31,8 @@
 
 显式原生诊断：`MainWindow.ToolDiagnostics.cs`、`MainWindow.SpyDiagnostics.cs`、`MainWindow.CompilerDiagnostics.cs`、`MainWindow.DocumentationDiagnostics.cs`、`Pages/HomePage.Diagnostics.cs`、`Pages/WindowSpyPage.Diagnostics.cs`、`Pages/DocumentationPage.Diagnostics.cs`。诊断只在用户显式传入 `--verify-tools <报告路径>` 时执行，不属于普通启动流程。
 
+必要边界回归：`tools/tests/DocumentationRegression/DocumentationRegression.csproj`、`Program.cs`、`Stubs.cs`。直接链接生产文档服务代码，受控延迟 extractor 和隔离 junction 测试用于复现审阅发现；测试目录不进入源代码增量包。
+
 文档：本记录、`TOOLS_UI_DESIGN_2026-10-07.md`、`TOOLS_UI_IMPLEMENTATION_PLAN_2026-10-07.md`。冻结的 RuntimeLocator / EmbeddedAutoHotkeyRuntime 及快捷键脚本未修改。用户未跟踪的 `RelayPrompt.md` 保留。
 
 ## 验证命令与已取得证据
@@ -48,6 +50,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File modern-shell/prepare-embedde
 - 文档：483 个解包文件通过缓存校验；受控损坏缓存可重建；原 CHM 的 SHA/大小保持不变。真实 WebView2 首页和 Run 正文/iframe 已应用主题，内部链接、返回、切页释放、隐藏释放和重新进入均通过。危险协议/路径被导航策略拒绝。
 - 源码准备：Windows PowerShell 5 在干净验证目录下载固定官方工具包成功，SHA-256 与固定值一致。构建不会依赖开发机事先存在该包；最终用户打开 Compile 时不会下载它。
 - 当前验证只覆盖本 Gate 影响边界，未重复无关快捷键全面回归或物理终端操作。
+- 单 EXE 首轮：`.verification/tools-published-tools.json` 与 `tools-published-ui.json` 均 Passed=true。内嵌编译器 ZIP 哈希正确；原窗口为屏幕的 80%、宽高比一致，模板两侧间距 16 DIP，搜索移除、图标及原有页面导航通过。
+- 审阅修复回归：`dotnet run --project tools/tests/DocumentationRegression/DocumentationRegression.csproj -c Release`，8/8 通过。修复前中间目录 junction、清单外 junction/文件、祖先 junction 及退出进程/暂存清理/停止接收全部失败，正常缓存通过；修复后全部通过。RED / GREEN / 归档位置日志为 `.verification/tools-review-regression-{red,green,final}.log`。
 
 固定 Ahk2Exe 版本 `1.1.37.02a2`，ZIP SHA-256 `C29B8C3A5124850D79FC9E66E2CA79677C377D7F31631AD3022BA159C5D9E3BE`，EXE SHA-256 `E54A599B19BAA5C1688849BBAE7A9CF049EEFCCD4F704C67941B40DA13A625B2`。来源：[官方固定发布](https://github.com/AutoHotkey/Ahk2Exe/releases/tag/Ahk2Exe1.1.37.02a2)。许可证随源码提供。
 
@@ -63,10 +67,23 @@ powershell -NoProfile -ExecutionPolicy Bypass -File modern-shell/prepare-embedde
 1. 继续使用现有专用 `codex/script-manager-core` 分支：用户授权当前工作区，源码与可用 EXE 已备份且没有既有生产代码修改。判断错误的代价：仅回滚此 Gate，并保留 `RelayPrompt.md`。
 2. 使用原生文件工具维护技能规定位置的施工 ledger：Git Bash 在普通和提升权限执行时都挂起。判断错误的代价：手工维护施工记录，不影响产品功能。
 3. 使用真实 WinUI 导航 RED 及按风险选取的工具集成诊断：遵循用户不要非必要逐函数或全量回归的指令。判断错误的代价：无关模块回归不被穷举覆盖。
+4. 审阅暂不判断的 UIA/自绘深层控件能力保持在 Win32 范围内：与已批准 Gate 一致。判断错误的代价：高级控件可能只有部分文本，需要后续扩展。
+5. 脚本构建指令与第三方组合保持官方语义：用户显式开始编译且已有页内说明；不承诺通用沙箱。判断错误的代价：脚本自己的外部副作用或依赖需单独处理。
+6. 不物理卸载 WebView2 或执行完整 Windows/DPI 矩阵：已核查缺失运行时的错误映射，真实证据覆盖当前机器。判断错误的代价：其它机器可能仍需兼容性修复。
+7. 此 Gate 之前的窗口、模板、图标沿用其发布诊断证据：实现没有改动，不重复独立审阅。判断错误的代价：既有实现问题可能仍在本范围之外。
 
 ## 审阅、发布与源码包
 
-待补充独立审阅结果、最终发布验收、Git 提交和增量包信息。
+独立只读审阅范围：`3780bf20..8da23e0`，fresh reviewer 使用最有能力模型；没有第二轮 reviewer。发现 0 Critical、2 Important、1 Minor。
+
+已在同一次 fix pass 修复两个 Important：
+
+1. 文档服务跟踪已接受的准备任务，退出时停止接收、取消并等待自身 extractor 和暂存目录清理；正常及启动异常退出均在 UI 释放前等待。受控延迟进程及目录清理 RED→GREEN。
+2. 文档缓存校验整个实际文件树与 manifest 一致，拒绝祖先链、所有中间目录、文件及 manifest 上的 reparse point；清单外文件或链接均失败，避免 WebView2 映射未经验证的本机目录。隔离目录 RED→GREEN。
+
+暂缓的 Minor：鼠标控件处于超过 512 项的子控件枚举截断位置之后时，ClassNN 仍可能显示错误编号。该罕见情况应后续改为“无法确定”，不影响本 Gate 的窗口选择器复制或常规窗口信息；本次按技能要求记录而未扩展修复。
+
+最终发布验收、Git 修复提交和增量包信息待补充。
 
 ## 回滚
 

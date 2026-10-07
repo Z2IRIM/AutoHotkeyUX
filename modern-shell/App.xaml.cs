@@ -112,7 +112,7 @@ public partial class App : Application
                 : _arguments.Contains("--verify-ui") ? "UI verification failed" : "MainWindow startup failed", ex);
             _quitting = true;
             if (_shortcuts is not null) await _shortcuts.DrainAsync();
-            if (_services is not null) await _services.Compiler.CancelAndDrainAsync();
+            if (_services is not null) await Task.WhenAll(_services.Compiler.CancelAndDrainAsync(), _services.Documentation.CancelAndDrainAsync());
             _closeAllowed = true;
             _tray?.Dispose();
             _services?.Dispose();
@@ -158,13 +158,13 @@ public partial class App : Application
         WriteStartupStatus();
     }
 
-    /// <summary>Drains accepted extractions before exiting, retaining scripts and releasing their native consumers last.</summary>
+    /// <summary>Drains accepted extractions and owned tools before exit, retaining user scripts and releasing UI last.</summary>
     private async void ExitManager()
     {
         if (_quitting) return;
         _quitting = true;
         if (_shortcuts is not null) await _shortcuts.DrainAsync();
-        if (_services is not null) await _services.Compiler.CancelAndDrainAsync();
+        if (_services is not null) await Task.WhenAll(_services.Compiler.CancelAndDrainAsync(), _services.Documentation.CancelAndDrainAsync());
         _closeAllowed = true;
         _tray?.Dispose();
         _services?.Dispose();
