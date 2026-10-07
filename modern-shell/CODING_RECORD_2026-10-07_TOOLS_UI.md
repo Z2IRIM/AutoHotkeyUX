@@ -4,7 +4,7 @@
 
 ## 目标与当前状态
 
-用户批准交互预览后，将 Home 的 Window Spy、Compile、Documentation 改为应用内的 WinUI 二级页面。三个页面已完成真实功能接入并通过原生集成诊断；正在进行独立审阅和最终单 EXE 发布验收。
+用户批准交互预览后，将 Home 的 Window Spy、Compile、Documentation 改为应用内的 WinUI 二级页面。三个页面已完成真实功能接入、独立审阅修复、发布包原生验收及本机更新。
 
 此前已完成的窗口放大、屏幕比例、模板等距和移除顶部搜索栏继续沿用。绿色 H 图标沿用用户已选择的版本。本任务没有数据库或公开 API 迁移。
 
@@ -83,7 +83,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File modern-shell/prepare-embedde
 
 暂缓的 Minor：鼠标控件处于超过 512 项的子控件枚举截断位置之后时，ClassNN 仍可能显示错误编号。该罕见情况应后续改为“无法确定”，不影响本 Gate 的窗口选择器复制或常规窗口信息；本次按技能要求记录而未扩展修复。
 
-最终发布验收、Git 修复提交和增量包信息待补充。
+最终代码提交：`8da23e0561d6c2ab9d9c10f68d3a48bfc75bac46`（完整工具页），`1ccf1274869687ba780df94433a665c5d4192182`（审阅修复及必要回归工具）。施工记录收尾提交和最终包对应 HEAD 见包内 `SOURCE_PACKAGE_MANIFEST.json`。
+
+修复后的单 EXE 原生验收：`.verification/tools-reviewed-tools.json`，退出码 0、Passed=true；真实文档可用、损坏缓存重建、浏览器离页/隐藏释放、编译成功/错误/取消/文件保护继续通过。工具资源 ZIP SHA 正确。未重复未改动的布局诊断，布局证据沿用同 Gate 第一版发布包检查。
+
+已更新并打开本机 `modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe`，236,413,335 bytes，SHA-256 `91A242D933935B726182DFFDB4189B92F0771F005DFE0A210FA4590D6A7678FA`。部署报告 `.verification/tools-deployed.json` 为 Passed=true：主窗口可见，启动及 Explorer 快捷键仍启用，自定义图标已应用。快捷键脚本部署前后均为 PID 38124，创建时间相同，没有重复启动。正常退出旧管理器后替换，同路径启动；保留原可用 EXE 作为回滚。
+
+增量源码包：`C:\DESKTOP\srcpack_Area\AutoHotkeyUX\AutoHotkeyUX-delta-20261007-194234.zip`，基线为上述 `3780bf20…`。仅包含本 Gate 源码/文档/许可证；排除 ToolPayload、RuntimePayload、tests、bin/obj、artifacts、验证临时目录和二进制包。最终补齐收尾文档及 manifest 后核对包内容与本工作树一致。
+
+```powershell
+./package-source.ps1 -Incremental -BaseRef 3780bf20d5a7ccf50e5e952048d6f164a0da1ce3
+```
+
+本任务延续现有施工分支，所有产品修改和任务记录均进入 Git；未跟踪的 `RelayPrompt.md` 保留。源码包准备脚本在实际构建时按固定官方 URL 和哈希恢复工具资源；增量包应覆盖在其基线源码之上，不是完整仓库。
 
 ## 回滚
 

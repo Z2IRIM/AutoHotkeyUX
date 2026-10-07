@@ -10,7 +10,7 @@
 
 **Spec:** [TOOLS_UI_DESIGN_2026-10-07.md](./TOOLS_UI_DESIGN_2026-10-07.md)，用户已确认。
 
-**进度：** A–D 已实现，原生工具集成诊断 Passed=true；E 正在独立审阅与单 EXE 发布验收。执行记录见 `CODING_RECORD_2026-10-07_TOOLS_UI.md`。
+**进度：** 完整 Gate 已完成：真实工具页、独立审阅与修复、单 EXE 原生验收、本机部署、Git 及增量源码包。执行证据、取舍与遗留项见 `CODING_RECORD_2026-10-07_TOOLS_UI.md`。
 
 ## Global Constraints
 
@@ -111,10 +111,10 @@
 
 - [x] 删除 Home 已不再调用的 `OpenWindowSpy/OpenCompiler/OpenDocumentation` 旧 GUI 函数，核查没有剩余引用；不动 RuntimeLocator、EmbeddedAutoHotkeyRuntime 或关联安装器的其它功能。
 - [x] 在 ApplicationServices 组合工具服务；App 正常退出先排空已接受的解压，再取消/排空自己的编译，再释放窗口/服务，仍保留用户脚本。异常退出路径也取消本 APP 工具子进程。
-- [ ] `dotnet build modern-shell/AutoHotkeyUX.Modern.csproj -c Release -p:Platform=x64 --no-restore`：0 错误。显式 `--verify-tools <reportPath>` 使用自身页面和服务完成 B/C/D 验收并返回 Passed=true；原 UI 诊断继续覆盖标题栏/模板/导航。
-- [ ] 代码审查重点为 Review Focus 五项、异步生命周期和文件所有权。修复阻断问题后停止无信息增益的重复验证，不为样式小改新增全量测试。
-- [ ] 发布到独立 staging 目录，核对单 EXE 体积/哈希与工具资源；使用新发布包做必要加载检查，再正常退出当前管理器、替换 artifacts/win-x64 EXE 并恢复主窗口。
-- [ ] 回传 CODING_RECORD 与 Git 提交。用现有 `package-source.ps1 -Incremental -BaseRef <施工前基线>` 输出 `C:\DESKTOP\srcpack_Area\AutoHotkeyUX`，确认 manifest 不包含工具 ZIP、测试或构建产物。原有开机/快捷键设置与脚本 PID 不被重复启动。
+- [x] `dotnet build modern-shell/AutoHotkeyUX.Modern.csproj -c Release -p:Platform=x64 --no-restore`：0 错误。显式 `--verify-tools <reportPath>` 使用自身页面和服务完成 B/C/D 验收并返回 Passed=true；原 UI 诊断继续覆盖标题栏/模板/导航。
+- [x] 代码审查重点为 Review Focus 五项、异步生命周期和文件所有权。修复阻断问题后停止无信息增益的重复验证，不为样式小改新增全量测试。
+- [x] 发布到独立 staging 目录，核对单 EXE 体积/哈希与工具资源；使用新发布包做必要加载检查，再正常退出当前管理器、替换 artifacts/win-x64 EXE 并恢复主窗口。
+- [x] 回传 CODING_RECORD 与 Git 提交。用现有 `package-source.ps1 -Incremental -BaseRef <施工前基线>` 输出 `C:\DESKTOP\srcpack_Area\AutoHotkeyUX`，确认 manifest 不包含工具 ZIP、测试或构建产物。原有开机/快捷键设置与脚本 PID 不被重复启动。
 
 ## 执行方式与回滚
 
