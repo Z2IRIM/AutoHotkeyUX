@@ -39,7 +39,7 @@
 5. EXE `--verify-visual-creation <report>`：真实WinUI六种参数编辑、非法URL/小数等待禁存、上下移/撤销重做/重排完成、保存回编、目录集成、导航保草稿及修订2保存通过。编辑区域宽度1288/788/341.33 DIP分别验证三种布局，无可见控件横向越界。主窗口80%屏幕比例、图标、无顶栏搜索和侧栏路由通过。
 6. 布局检查曾发现 ListView 回收容器停放于X≈-15000；已限定测量当前数据项的容器，仍检查实际显示的控件。PNG采用不透明主题底色，Mica/原生标题按钮不在XAML捕获范围内。
 
-证据保存在主目录 `.verification/visual-creation`（交付时同步）；最终部署/增量包结果在交付完成后追加。
+证据已同步到主目录 `.verification/visual-creation`，包含隔离原生报告、PNG、最终生成文件对、审阅RED/GREEN日志和源码/EXE哈希。
 
 ## 独立审阅与修复
 
@@ -62,6 +62,16 @@
 5. 任意AHK回译、自定义目录纳入列表、分支/循环：保持批准范围和现有目录 owner；代价是这些需求需代码编辑器或下一 Gate。
 6. 手工源修改、pending、新建残留、退出草稿：保留拒绝覆盖、人工恢复和显式保存规则；代价是需要手工处理，未保存退出草稿会丢失。
 7. 图标、窗口、搜索、核心快捷键和后台兼容：复用原owner，部署核对启动/设置/脚本内容，不宣称全设备回归；代价是未测试的系统/物理行为仍可能不同。
+
+## 合并、部署与交付
+
+- 功能提交 `b6aaea0`，审阅修复 `ecc4770`；从基线 `6015bf0` 快进并入原分支 `codex/script-manager-core`，合并后跟踪文件与验证分支一致。已有 `RelayPrompt.md` 及运行产生的未跟踪 `modern-shell/debug.log` 保留，不进入源码增量包。
+- 发布并部署 `modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe`，SHA256 `56F1069FA11703B5AADF7BC51ED79F69E72AABA22E69C93FA8BCFFA7A89DA945`，与实际原生验证版本一致。通过原管理器命令优雅退出、复制验证EXE、显式 `--verify-runtime` 刷新私有缓存，再按原设置后台启动。
+- UX载荷缓存哈希变化，需要短暂重启内置核心。仅停止已核对路径、命令、PID及精确启动时间的原解释器 `33436`；没有按名称批量终止进程。新管理器PID `24512`，内置核心PID `33212`，状态Running、Error为空；继续使用内置2.0.29运行时。
+- 更新前后四个核心源文件SHA256一致；快捷键原始配置、选定开机脚本及登录启动命令一致。Windows登录启动仍启用，图标/托盘正常，无StartupWarning。最后激活应用，实际 `WindowShown=true`。
+- 部署前置核对曾因PowerShell已将JSON时间转为DateTime，而再次字符串解析丢失精度而拒绝动作；改为UTC ticks核对，确认真实身份一致后才执行。辅助脚本换行解析问题在任何执行前修正并经Parser检查。前两次拒绝没有替换EXE或停止进程。
+- 增量源码包使用现有命令 `powershell -NoProfile -ExecutionPolicy Bypass -File .\package-source.ps1 -Incremental -BaseRef 6015bf06623a1b1fee39af6e9abadd8941f4ae65`，同步到 `C:\DESKTOP\srcpack_Area\AutoHotkeyUX`。清单记录基线和最终提交；逐项核对包内源码字节和排除项，证据为 `.verification/visual-creation/package-audit.json`。
+- 收尾仅核对未变化源码/EXE与已通过证据，不再执行无信息增益的完整旧功能回归；归档本任务的受管理工作树前保留必要证据和部署EXE。
 
 ## 未验证、限制和风险
 
