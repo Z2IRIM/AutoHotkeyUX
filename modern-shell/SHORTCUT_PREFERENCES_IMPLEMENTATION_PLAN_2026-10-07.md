@@ -57,4 +57,4 @@
 - [x] Correct ClassNN unverified ordinal and verify beyond-enumeration behavior with a focused native fixture.
 - [x] Run covering service checks, AHK syntax/runtime configuration and terminal placement, native WinUI page verification; build/publish once code is final. Read actual outputs and stop testing once risk-matched evidence is sufficient.
 - [x] Commit feature, generate full change review package, dispatch one fresh reviewer under requesting-code-review; address material findings with targeted regression checks.
-- [ ] Deliver source guide/example, Markdown coding record, incremental ZIP, merge into original branch and deploy approved app. Verify new manager and owned built-in runtime, preserving other scripts.
+- [x] Deliver source guide/example, Markdown coding record, incremental ZIP, merge into original branch and deploy approved app. Verify new manager and owned built-in runtime, preserving other scripts.

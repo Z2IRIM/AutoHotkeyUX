@@ -76,7 +76,13 @@
 1. 自定义解压目录带尾部分隔符时，失败清理路径比较失配，可能掩盖原始错误。保存标准化输出根目录时保留盘符/UNC 根语义，确保清理只针对生成的暂存目录。证据：`review-red-cleanup.log` → `review-green-cleanup.log`（2 项）。
 2. 配置写入成功但确认丢失时，相同值保存可能绕过不确定状态，导航也会丢失警告。保存服务现在持有待确认快照；每次重试先只读核对运行时和存储，同值保存仍需确认，界面持续显示警告。真实私有 AHK 接收配置后故意丢失查询确认复现，恢复查询后 revision 不变且不重放配置。证据：`review-red-confirmation.log` → `review-green-confirmation.log`（5 项）。
 
-正式合并、部署和源码包证据在交付后补齐。
+功能提交 `9779dd264713ce94c049e21089a4eb2dc8a7b76e`、审阅修复提交 `42c8cefdd0ba87b89e0896fa227a74bb11732e63` 已 fast-forward 合回原 `codex/script-manager-core` 分支。仅新增本阶段文件和修改必要源码，`RelayPrompt.md` 保持原样。
+
+2026-10-07 22:32–22:33（+08:00）已更新正式 `modern-shell/artifacts/win-x64/AutoHotkeyUX.Modern.exe`，哈希与已验证发布件一致。正常 `--background` 启动：管理器 PID 18388、内置解释器 PID 33436（精确启动时间 `2026-10-07T14:32:19.0366082Z`），窗口不显示、托盘图标正常、Explorer shortcuts 开启、无启动警告。随后普通打开应用复用同一管理器和脚本，窗口显示，无重复解释器。
+
+正式部署只读原生查询已确认运行脚本缓存的默认 revision；用户尚未保存过新配置，因此 REG_SZ 保持缺省状态。新 v3 根文件和三个模块与发布源码一致，原 v2 模块字节未改，自动迁移备份与部署前根文件字节完全一致。已开启的登录启动命令仍为正式 EXE 加 `--background`。证据：`.verification/shortcut-preferences/deployed-background.json`、`deployed-visible.json`、`deployed-live.json`。
+
+定向检查、RED/GREEN、发布与原生 UI 报告已保存到主项目 `.verification/shortcut-preferences`，不依赖临时工作树。源码交付使用现有脚本：`powershell -NoProfile -ExecutionPolicy Bypass -File .\package-source.ps1 -Incremental -BaseRef 58822392df5b99e9450de2233fa9cc9aeba8c8fd`，输出到 `C:\DESKTOP\srcpack_Area\AutoHotkeyUX`。包清单保留基线/交付 HEAD、文件数和删除列表；只包含增量源码与文档，排除测试、依赖、运行时和构建输出。包核验报告保存为 `.verification/shortcut-preferences/source-package.json`，最终交付链接指向实际生成的 ZIP。
 
 ## 执行中的裁决
 
