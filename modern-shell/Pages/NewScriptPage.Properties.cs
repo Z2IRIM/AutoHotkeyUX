@@ -18,7 +18,7 @@ public sealed partial class NewScriptPage
             TriggerKindCombo.SelectedIndex = trigger.Kind == FlowTriggerKind.Startup ? 1 : 0; TriggerKeyCombo.SelectedItem = trigger.Key;
             CtrlCheck.IsChecked = trigger.Modifiers.HasFlag(FlowModifiers.Ctrl); AltCheck.IsChecked = trigger.Modifiers.HasFlag(FlowModifiers.Alt);
             ShiftCheck.IsChecked = trigger.Modifiers.HasFlag(FlowModifiers.Shift); WinCheck.IsChecked = trigger.Modifiers.HasFlag(FlowModifiers.Win);
-            ScopeCombo.SelectedIndex = trigger.Application.Length == 0 ? 0 : 1; ApplicationBox.Text = trigger.Application;
+            ScopeCombo.SelectedIndex = trigger.Scope == FlowScopeKind.ActiveApplication ? 1 : 0; ApplicationBox.Text = trigger.Application;
             ApplicationBox.Visibility = ScopeCombo.SelectedIndex == 1 ? Visibility.Visible : Visibility.Collapsed;
             HotkeyFields.Visibility = trigger.Kind == FlowTriggerKind.Hotkey ? Visibility.Visible : Visibility.Collapsed;
             return;

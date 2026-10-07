@@ -8,23 +8,29 @@ namespace AutoHotkeyUX.Modern.Pages;
 
 public sealed partial class NewScriptPage
 {
-    /// <summary>Opens a supported pair after guarding a different unsaved draft.</summary>
+    /// <summary>Serializes opening, retains unchanged-file drafts and guards replacement by a newer saved pair.</summary>
     internal async Task OpenAsync(string path, XamlRoot root)
     {
-        if (_busy) throw new InvalidOperationException("Finish the current save before opening another workflow.");
-        var opened = await Task.Run(() => _services.VisualFlows.Open(path));
-        if (_opened?.ScriptPath.Equals(opened.ScriptPath, StringComparison.OrdinalIgnoreCase) == true) return;
-        if (!await CanReplaceDraftAsync(root)) return;
-        _opened = opened; _session.Load(opened.Document);
-        _rendering = true; ScriptNameTextBox.Text = Path.GetFileNameWithoutExtension(opened.ScriptPath); ScriptLocationTextBox.Text = Path.GetDirectoryName(opened.ScriptPath)!; _rendering = false;
-        RememberSaved(); RenderDocument(); ShowCreateMessage("Opened the visual workflow. Saving does not start or restart it.", InfoBarSeverity.Informational);
+        if (_busy) throw new InvalidOperationException("Finish the current workflow operation before opening another workflow.");
+        _busy = true; SetEditingEnabled(false); RefreshValidation();
+        try
+        {
+            var opened = await Task.Run(() => _services.VisualFlows.Open(path));
+            if (_opened?.ScriptPath.Equals(opened.ScriptPath, StringComparison.OrdinalIgnoreCase) == true
+                && _opened.SourceHash == opened.SourceHash && _opened.SidecarHash == opened.SidecarHash) return;
+            if (!await CanReplaceDraftAsync(root)) return;
+            _opened = opened; _session.Load(opened.Document);
+            _rendering = true; ScriptNameTextBox.Text = Path.GetFileNameWithoutExtension(opened.ScriptPath); ScriptLocationTextBox.Text = Path.GetDirectoryName(opened.ScriptPath)!; _rendering = false;
+            RememberSaved(); ShowCreateMessage("Opened the visual workflow. Saving does not start or restart it.", InfoBarSeverity.Informational);
+        }
+        finally { _busy = false; SetEditingEnabled(true); RenderDocument(); }
     }
 
     /// <summary>Uses an in-app discard choice only when switching would lose an actual unsaved draft.</summary>
     private async Task<bool> CanReplaceDraftAsync(XamlRoot root)
     {
         if (!HasChanges()) return true;
-        var dialog = new ContentDialog { XamlRoot = root, Title = "Keep your current changes?", Content = "Opening another workflow replaces this unsaved draft.",
+        var dialog = new ContentDialog { XamlRoot = root, Title = "Keep your current changes?", Content = "Loading a saved workflow or starting a new one replaces this unsaved draft.",
             PrimaryButtonText = "Discard changes", CloseButtonText = "Keep editing", DefaultButton = ContentDialogButton.Close };
         return await dialog.ShowAsync() == ContentDialogResult.Primary;
     }

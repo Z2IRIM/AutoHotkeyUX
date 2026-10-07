@@ -62,7 +62,7 @@ public sealed partial class NewScriptPage : Page
             if (_cards.Count == actions.Length && _cards.Select(card => card.Action.Id).SequenceEqual(actions.Select(action => action.Id)))
             {
                 for (var index = 0; index < actions.Length; index++)
-                    if (_cards[index].Action != actions[index]) _cards[index] = new(actions[index], index + 1);
+                    if (_cards[index].Action != actions[index] || _cards[index].Number != index + 1) _cards[index] = new(actions[index], index + 1);
             }
             else
             {
@@ -72,7 +72,8 @@ public sealed partial class NewScriptPage : Page
             ActionList.SelectedItem = _cards.FirstOrDefault(card => card.Action.Id == _session.Selection);
             var trigger = _session.Document.Trigger;
             TriggerSummaryText.Text = trigger.Kind == FlowTriggerKind.Startup ? "When script starts" : HotkeyLabel(trigger);
-            ScopeSummaryText.Text = trigger.Application.Length == 0 ? "Any active application" : "Only " + trigger.Application;
+            ScopeSummaryText.Text = trigger.Scope == FlowScopeKind.AnyApplication ? "Any active application"
+                : trigger.Application.Length == 0 ? "Choose an application" : "Only " + trigger.Application;
             TriggerButton.BorderThickness = new Thickness(_session.Selection is null ? 2 : 1);
             TriggerButton.BorderBrush = (Brush)Application.Current.Resources[_session.Selection is null ? "AccentFillColorDefaultBrush" : "CardStrokeColorDefaultBrush"];
             ActionCountText.Text = _cards.Count + " / " + VisualFlowCodec.MaximumActions + " actions";

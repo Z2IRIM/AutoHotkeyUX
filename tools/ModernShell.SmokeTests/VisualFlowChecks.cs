@@ -44,7 +44,7 @@ internal static class VisualFlowChecks
         var source = VisualFlowGenerator.Generate(flow);
         Check(source.Contains("SendText \"中```\"文`r`n`t\"", StringComparison.Ordinal), "literal quote/backtick/control escaping");
         Check(source.Contains("^!d:: {", StringComparison.Ordinal), "Ctrl+Alt+D trigger");
-        var scoped = flow with { Trigger = flow.Trigger with { Application = "explorer.exe" } };
+        var scoped = flow with { Trigger = flow.Trigger with { Scope = FlowScopeKind.ActiveApplication, Application = "explorer.exe" } };
         Check(VisualFlowGenerator.Generate(scoped).Contains("#HotIf WinActive(\"ahk_exe explorer.exe\")"), "hotkey scope");
         var startup = scoped with { Trigger = scoped.Trigger with { Kind = FlowTriggerKind.Startup } };
         var generated = VisualFlowGenerator.Generate(startup);
@@ -69,6 +69,9 @@ internal static class VisualFlowChecks
         }) Reject(() => VisualFlowCodec.Validate(Flow(action)), "invalid action");
         Reject(() => VisualFlowCodec.Validate(Flow() with { Trigger = new() { Key = "D::Run" } }), "hotkey injection");
         Reject(() => VisualFlowCodec.Validate(Flow() with { Trigger = new() { Application = "x.exe\nRun" } }), "scope injection");
+        Reject(() => VisualFlowCodec.Validate(Flow() with { Trigger = new() { Scope = FlowScopeKind.ActiveApplication } }), "empty scoped application");
+        Reject(() => VisualFlowCodec.Validate(Flow() with { Trigger = new() { Scope = (FlowScopeKind)99 } }), "unknown scope");
+        Reject(() => VisualFlowCodec.Validate(Flow() with { Trigger = new() { Scope = FlowScopeKind.AnyApplication, Application = "explorer.exe" } }), "unexpected unscoped application");
         Reject(() => VisualFlowCodec.Validate(Flow() with { Actions = Enumerable.Range(0, 25).Select(_ => new FlowAction { Kind = FlowActionKind.Wait }).ToArray() }), "action bound");
     }
 
@@ -82,6 +85,7 @@ internal static class VisualFlowChecks
         Reject(() => VisualFlowCodec.Decode(json.Replace("\"Wait\"", "99")), "numeric enum");
         Reject(() => VisualFlowCodec.Decode(json.Replace("\"schemaVersion\": 1", "\"schemaVersion\": 9")), "future schema");
         Reject(() => VisualFlowCodec.Decode("{}"), "missing fields");
+        Reject(() => VisualFlowCodec.Decode(json.Replace("\"scope\": \"AnyApplication\",", "")), "missing scope loses semantics");
         Reject(() => VisualFlowCodec.Decode(new string(' ', 262145)), "JSON bound");
     }
 
@@ -108,16 +112,18 @@ internal static class VisualFlowChecks
         var opened = store.Create(folder, "source", Flow());
         File.AppendAllText(opened.ScriptPath, "; manual edit\n");
         var bytes = File.ReadAllBytes(opened.ScriptPath);
-        Reject(() => store.Update(opened, Flow()), "source changed");
+        RejectMessage(() => store.Update(opened, opened.Document), "changed outside the editor", "source changed");
         Check(bytes.SequenceEqual(File.ReadAllBytes(opened.ScriptPath)), "manual source preserved");
         Reject(() => store.Open(opened.ScriptPath), "modified source cannot masquerade as visual");
         var side = store.Create(folder, "side", Flow());
         File.AppendAllText(side.ScriptPath + ".flow.json", " ");
-        Reject(() => store.Update(side, Flow()), "sidecar raw bytes changed");
+        var sideBytes = File.ReadAllBytes(side.ScriptPath + ".flow.json");
+        RejectMessage(() => store.Update(side, side.Document), "changed outside the editor", "sidecar raw bytes changed");
+        Check(sideBytes.SequenceEqual(File.ReadAllBytes(side.ScriptPath + ".flow.json")), "external sidecar formatting preserved");
         var saved = store.Create(folder, "saved", Flow());
         var updated = store.Update(saved, saved.Document with { Actions = [new() { Kind = FlowActionKind.Wait, DelayMs = 123 }] });
         Check(updated.Document.Revision == 2 && store.Open(saved.ScriptPath).Document.Actions[0].DelayMs == 123, "revision and emitted source update");
-        Reject(() => store.Update(saved, Flow()), "stale revision retry");
+        RejectMessage(() => store.Update(saved, saved.Document), "changed outside the editor", "stale revision retry");
     }
 
     // Fails if a denied write or interrupted transaction is treated as a normal editable script.
@@ -127,12 +133,12 @@ internal static class VisualFlowChecks
         var opened = store.Create(Fresh(root, "recovery"), "locked", Flow());
         var original = File.ReadAllBytes(opened.ScriptPath);
         using (var locked = new FileStream(opened.ScriptPath + ".flow.json", FileMode.Open, FileAccess.Read, FileShare.Read))
-            Reject(() => store.Update(opened, Flow()), "locked sidecar");
+            RejectSharingViolation(() => store.Update(opened, opened.Document));
         Check(original.SequenceEqual(File.ReadAllBytes(opened.ScriptPath)), "write failure preserves source");
         Directory.CreateDirectory(opened.ScriptPath + ".flow.pending");
         File.WriteAllText(Path.Combine(opened.ScriptPath + ".flow.pending", "source.before"), "recovery copy");
         Reject(() => store.Open(opened.ScriptPath), "interrupted transaction blocks editing");
-        Reject(() => store.Update(opened, Flow()), "interrupted transaction blocks overwriting");
+        RejectMessage(() => store.Update(opened, opened.Document), "unfinished save", "interrupted transaction blocks overwriting");
         Check(original.SequenceEqual(File.ReadAllBytes(opened.ScriptPath)), "recovery does not guess");
     }
 
@@ -202,7 +208,7 @@ internal static class VisualFlowChecks
         finally { execution.Stop(path); }
     }
 
-    // Parses every action without executing it, then verifies generated literal text in a test-owned Notepad window.
+    // Parses every action without executing it, then runs a safe generated wait with test-owned marker output.
     private static async Task Runtime(string runtime, string root)
     {
         var flow = Flow(new FlowAction() { Kind = FlowActionKind.OpenProgram, Value = "notepad.exe" },
@@ -215,7 +221,7 @@ internal static class VisualFlowChecks
         foreach (var trigger in new[] { FlowTriggerKind.Hotkey, FlowTriggerKind.Startup })
         {
             var path = Path.Combine(root, "parse-" + trigger + ".ahk");
-            File.WriteAllText(path, "ExitApp 0\n" + VisualFlowGenerator.Generate(flow with { Trigger = flow.Trigger with { Kind = trigger, Application = "explorer.exe" } }), new UTF8Encoding(false));
+            File.WriteAllText(path, "ExitApp 0\n" + VisualFlowGenerator.Generate(flow with { Trigger = flow.Trigger with { Kind = trigger, Scope = FlowScopeKind.ActiveApplication, Application = "explorer.exe" } }), new UTF8Encoding(false));
             var start = new ProcessStartInfo(runtime) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true, RedirectStandardOutput = true };
             start.ArgumentList.Add("/ErrorStdOut=UTF-8"); start.ArgumentList.Add(path);
             using var process = Process.Start(start)!;
@@ -231,9 +237,9 @@ internal static class VisualFlowChecks
         try
         {
             var first = execution.Run(runtimePath);
-            await Until(() => File.Exists(marker) && File.ReadAllLines(marker).Length == 1);
+            await Until(() => File.Exists(marker) && MarkerLines(marker) == 1);
             var second = execution.Restart(runtimePath);
-            await Until(() => File.ReadAllLines(marker).Length == 2);
+            await Until(() => MarkerLines(marker) == 2);
             Check(second.ProcessId != first.ProcessId && second.State == ScriptState.Running, "generated startup works with existing Run/Restart owner");
         }
         finally { execution.Stop(runtimePath); }
@@ -246,11 +252,35 @@ internal static class VisualFlowChecks
     private static string Fresh(string root, string label) { var path = Path.Combine(root, label + "-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(path); return path; }
     // Asserts rejection without accidentally treating a failed assertion as a successful rejection.
     private static void Reject(Action action, string description) { try { action(); } catch (Exception ex) when (ex is not NotImplementedException) { return; } throw new Exception("Accepted " + description); }
+    /// <summary>Requires the intended boundary to reject the operation rather than an unrelated earlier guard.</summary>
+    private static void RejectMessage(Action action, string expected, string description)
+    {
+        try { action(); }
+        catch (Exception ex) when (ex is not NotImplementedException)
+        { Check(ex.Message.Contains(expected, StringComparison.OrdinalIgnoreCase), description + " rejected for the wrong reason: " + ex.Message); return; }
+        throw new Exception("Accepted " + description);
+    }
+    /// <summary>Checks the actual OS file-sharing boundary without depending on localized exception text.</summary>
+    private static void RejectSharingViolation(Action action)
+    {
+        try { action(); }
+        catch (IOException ex) when ((ex.HResult & 0xffff) is 32 or 33) { return; }
+        throw new Exception("The locked sidecar was not rejected by its sharing violation.");
+    }
     // Reports a concrete broken boundary.
     private static void Check(bool condition, string description) { if (!condition) throw new Exception(description); }
 
     // Uses literal quoting for the test's own marker path, independently of the production generator.
     private static string Quote(string value) => "\"" + value.Replace("`", "``").Replace("\"", "`\"") + "\"";
+    /// <summary>Observes runtime markers without denying the interpreter concurrent write access during polling.</summary>
+    private static int MarkerLines(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        var count = 0;
+        while (reader.ReadLine() is not null) count++;
+        return count;
+    }
     // Waits only for this probe's bounded filesystem side effect.
     private static async Task Until(Func<bool> predicate) { var watch = Stopwatch.StartNew(); while (!predicate() && watch.ElapsedMilliseconds < 5000) await Task.Delay(25); Check(predicate(), "runtime marker timed out"); }
 

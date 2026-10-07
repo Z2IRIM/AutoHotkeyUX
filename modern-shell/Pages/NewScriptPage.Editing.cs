@@ -86,7 +86,8 @@ public sealed partial class NewScriptPage
     {
         if (_rendering || _busy) return;
         _session.Replace(_session.Document with { Trigger = _session.Document.Trigger with
-        { Application = ScopeCombo.SelectedIndex == 1 ? (ApplicationBox.Text.Length == 0 ? "explorer.exe" : ApplicationBox.Text) : "" } });
+        { Scope = ScopeCombo.SelectedIndex == 1 ? FlowScopeKind.ActiveApplication : FlowScopeKind.AnyApplication,
+            Application = ScopeCombo.SelectedIndex == 1 ? (ApplicationBox.Text.Length == 0 ? "explorer.exe" : ApplicationBox.Text) : "" } });
         RenderDocument();
     }
     /// <summary>Preserves incomplete application input until validation permits saving.</summary>

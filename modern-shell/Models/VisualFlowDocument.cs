@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 namespace AutoHotkeyUX.Modern.Models;
 
 internal enum FlowTriggerKind { Hotkey, Startup }
+internal enum FlowScopeKind { AnyApplication, ActiveApplication }
 [Flags] internal enum FlowModifiers { None = 0, Ctrl = 1, Alt = 2, Shift = 4, Win = 8 }
 internal enum FlowActionKind { OpenProgram, OpenFolder, OpenWebsite, SendText, SendKeys, Wait }
 internal enum FlowFolderKind { Documents, Desktop, Custom }
@@ -24,6 +25,7 @@ internal sealed record FlowTrigger
     [JsonRequired] public FlowTriggerKind Kind { get; init; }
     [JsonRequired] public FlowModifiers Modifiers { get; init; } = FlowModifiers.Ctrl | FlowModifiers.Alt;
     [JsonRequired] public string Key { get; init; } = "D";
+    [JsonRequired] public FlowScopeKind Scope { get; init; }
     [JsonRequired] public string Application { get; init; } = "";
 }
 

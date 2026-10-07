@@ -20,6 +20,7 @@ public sealed partial class MainWindow
         if (_services.Catalog.Snapshot().All(entry => entry.Path != saved)) throw new InvalidOperationException("Created workflow did not reach the existing script catalog.");
         await OpenVisualScriptAsync(saved); await Task.Delay(80);
         var form = await _newScriptPage.VerifyRetainedWorkflowAsync();
+        var review = await _newScriptPage.VerifyReviewBoundariesAsync(() => { NavigateTo("scripts"); NavigateTo("new"); });
         AppWindow.Resize(new Windows.Graphics.SizeInt32((int)Math.Round(1100 * scale), (int)Math.Round(900 * scale)));
         await Task.Delay(120);
         var medium = _newScriptPage.VerifyWorkflowLayout();
@@ -27,7 +28,7 @@ public sealed partial class MainWindow
         await Task.Delay(120);
         var narrow = _newScriptPage.VerifyWorkflowLayout();
         await CaptureVisualAsync(Path.ChangeExtension(reportPath, "narrow.png"));
-        return new { Passed = true, Shell = shell, Form = form, Wide = wide, Medium = medium, Narrow = narrow,
+        return new { Passed = true, Shell = shell, Form = form, Review = review, Wide = wide, Medium = medium, Narrow = narrow,
             Capture = "WinUI RenderTargetBitmap with opaque theme background; Mica and native caption are excluded",
             DragCompletionBoundary = true, PhysicalMouseDrag = "unvalidated", StateDirectory = _services.StateDirectory };
     }

@@ -17,7 +17,7 @@ internal static class VisualFlowGenerator
             .Append("; Workflow: ").Append(value.Id.ToString("D")).Append("\r\n")
             .Append("#Requires AutoHotkey v2.0\r\n#SingleInstance Ignore\r\n\r\n");
         var trigger = value.Trigger;
-        var scoped = trigger.Application.Length > 0;
+        var scoped = trigger.Scope == FlowScopeKind.ActiveApplication;
         var condition = "WinActive(" + Literal("ahk_exe " + trigger.Application) + ")";
         if (trigger.Kind == FlowTriggerKind.Hotkey)
         {

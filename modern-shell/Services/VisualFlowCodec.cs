@@ -58,7 +58,9 @@ internal static class VisualFlowCodec
             || !Keys.Contains(trigger.Key, StringComparer.Ordinal)) throw new InvalidDataException("Choose a supported trigger and key.");
         if (trigger.Kind == FlowTriggerKind.Hotkey && trigger.Modifiers == FlowModifiers.None && !trigger.Key.StartsWith('F'))
             throw new InvalidDataException("Letter hotkeys need at least one modifier.");
-        if (trigger.Application is null || trigger.Application.Length > 128
+        if (!Enum.IsDefined(trigger.Scope) || trigger.Application is null || trigger.Application.Length > 128
+            || (trigger.Scope == FlowScopeKind.ActiveApplication && trigger.Application.Length == 0)
+            || (trigger.Scope == FlowScopeKind.AnyApplication && trigger.Application.Length != 0)
             || (trigger.Application.Length > 0 && !Regex.IsMatch(trigger.Application, "^[a-zA-Z0-9_ .-]+\\.exe$", RegexOptions.CultureInvariant)))
             throw new InvalidDataException("Use an application file name such as explorer.exe.");
         if (value.Actions is null || value.Actions.Length is < 1 or > MaximumActions)
