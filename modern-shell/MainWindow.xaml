@@ -34,16 +34,6 @@
                 FontWeight="SemiBold"
                 VerticalAlignment="Center" />
 
-            <AutoSuggestBox
-                x:Name="GlobalSearchBox"
-                Grid.Column="1"
-                Width="430"
-                Height="40"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                PlaceholderText="Search scripts, tools and settings"
-                QueryIcon="Find"
-                QuerySubmitted="GlobalSearchBox_QuerySubmitted" />
         </Grid>
 
         <Grid

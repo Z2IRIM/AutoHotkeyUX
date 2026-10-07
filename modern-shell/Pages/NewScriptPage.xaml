@@ -94,18 +94,25 @@
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
 
-                <Grid ColumnSpacing="16">
+                <Grid x:Name="TemplateGrid" ColumnSpacing="16" SizeChanged="TemplateGrid_SizeChanged">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
 
                     <Button
                         x:Name="BlankTemplateButton"
                         Grid.Column="0"
                         Tag="Blank"
                         MinHeight="180"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
                         Style="{StaticResource InteractiveCardButtonStyle}"
                         BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
                         BorderThickness="2"
@@ -137,6 +144,8 @@
                         Grid.Column="1"
                         Tag="Hotkeys"
                         MinHeight="180"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
                         Style="{StaticResource InteractiveCardButtonStyle}"
                         Click="TemplateButton_Click">
                         <StackPanel Spacing="15">
@@ -166,6 +175,8 @@
                         Grid.Column="2"
                         Tag="Automation"
                         MinHeight="180"
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Stretch"
                         Style="{StaticResource InteractiveCardButtonStyle}"
                         Click="TemplateButton_Click">
                         <StackPanel Spacing="15">

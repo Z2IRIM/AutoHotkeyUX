@@ -10,6 +10,7 @@ public sealed partial class NewScriptPage : Page
 {
     private readonly AutoHotkeyIntegration _integration;
     private string _selectedTemplate = "Blank";
+    private bool? _templatesStacked;
 
     /// <summary>
     /// Initializes script creation with the user's Documents\AutoHotkey folder as the default destination.
@@ -24,6 +25,22 @@ public sealed partial class NewScriptPage : Page
             "AutoHotkey");
 
         UpdatePreview();
+    }
+
+    /// <summary>Uses the template area's actual DIP width to keep cards readable at any display scaling.</summary>
+    private void TemplateGrid_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        var stacked = e.NewSize.Width < 632;
+        if (_templatesStacked == stacked) return;
+        _templatesStacked = stacked;
+        TemplateGrid.RowSpacing = stacked ? 16 : 0;
+        var buttons = new[] { BlankTemplateButton, HotkeysTemplateButton, AutomationTemplateButton };
+        for (var index = 0; index < buttons.Length; index++)
+        {
+            Grid.SetColumn(buttons[index], stacked ? 0 : index);
+            Grid.SetRow(buttons[index], stacked ? index : 0);
+            Grid.SetColumnSpan(buttons[index], stacked ? 3 : 1);
+        }
     }
 
     /// <summary>

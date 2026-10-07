@@ -4,15 +4,11 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Windows.Graphics;
 
 namespace AutoHotkeyUX.Modern;
 
 public sealed partial class MainWindow : Window
 {
-    private const int MinimumWindowWidth = 980;
-    private const int MinimumWindowHeight = 680;
-
     private readonly AutoHotkeyIntegration _integration;
     private readonly AutoHotkeySettings _settings;
     private readonly ApplicationServices _services;
@@ -24,14 +20,14 @@ public sealed partial class MainWindow : Window
     internal bool HasCustomIcon { get; private set; }
 
     /// <summary>
-    /// Initializes the integrated Windows 11 shell, approved icon and shared AutoHotkey services.
+    /// Initializes the screen-proportioned Windows 11 shell, approved icon and shared services.
     /// </summary>
     internal MainWindow(ApplicationServices services, ApplicationIconService? icon)
     {
         InitializeComponent();
 
         Title = "AutoHotkey";
-        AppWindow.Resize(new SizeInt32(1280, 820));
+        ConfigureInitialWindowBounds();
         AppWindow.Changed += AppWindow_Changed;
         ConfigureWindowChrome();
         ConfigureWindowIcon(icon);
@@ -53,27 +49,6 @@ public sealed partial class MainWindow : Window
             HasCustomIcon = true;
         }
         catch (Exception ex) { ServiceDiagnostics.Write("Icon", "The custom window icon could not be applied.", ex); }
-    }
-
-    /// <summary>
-    /// Keeps the desktop workspace above its minimum usable size instead of compressing content into broken columns.
-    /// </summary>
-    private void AppWindow_Changed(
-        Microsoft.UI.Windowing.AppWindow sender,
-        Microsoft.UI.Windowing.AppWindowChangedEventArgs args)
-    {
-        if (!args.DidSizeChange)
-        {
-            return;
-        }
-
-        var width = Math.Max(sender.Size.Width, MinimumWindowWidth);
-        var height = Math.Max(sender.Size.Height, MinimumWindowHeight);
-
-        if (width != sender.Size.Width || height != sender.Size.Height)
-        {
-            sender.Resize(new SizeInt32(width, height));
-        }
     }
 
     /// <summary>
@@ -164,58 +139,6 @@ public sealed partial class MainWindow : Window
             : ReferenceEquals(button, ScriptsNavButton) ? "scripts" : "home";
 
         NavigateTo(tag);
-    }
-
-    /// <summary>
-    /// Provides a compact command-palette-like search for the shell's primary pages and tools.
-    /// </summary>
-    private void GlobalSearchBox_QuerySubmitted(
-        AutoSuggestBox sender,
-        AutoSuggestBoxQuerySubmittedEventArgs args)
-    {
-        var query = (args.QueryText ?? string.Empty)
-            .Trim()
-            .ToLowerInvariant();
-
-        if (query.Length == 0)
-        {
-            return;
-        }
-
-        if (query.Contains("setting", StringComparison.Ordinal)
-            || query.Contains("preference", StringComparison.Ordinal))
-        {
-            NavigateTo("settings");
-        }
-        else if (query.Contains("new", StringComparison.Ordinal)
-                 || query.Contains("create", StringComparison.Ordinal))
-        {
-            NavigateTo("new");
-        }
-        else if (query.Contains("script", StringComparison.Ordinal))
-        {
-            NavigateTo("scripts");
-        }
-        else if (query.Contains("window", StringComparison.Ordinal)
-                 && query.Contains("spy", StringComparison.Ordinal))
-        {
-            _integration.OpenWindowSpy();
-        }
-        else if (query.Contains("compile", StringComparison.Ordinal))
-        {
-            _integration.OpenCompiler();
-        }
-        else if (query.Contains("doc", StringComparison.Ordinal)
-                 || query.Contains("help", StringComparison.Ordinal))
-        {
-            _integration.OpenDocumentation();
-        }
-        else
-        {
-            NavigateTo("home");
-        }
-
-        sender.Text = string.Empty;
     }
 
     /// <summary>
