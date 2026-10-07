@@ -74,8 +74,8 @@ internal sealed class ScriptExecutionService : IDisposable
         Changed?.Invoke(this, EventArgs.Empty);
     }
 
-    /// <summary>Launches one owned interpreter per canonical script path using the bundled runtime explicitly.</summary>
-    internal RunningScriptSession Run(string scriptPath)
+    /// <summary>Launches one owned interpreter per canonical path, refusing unfinished workflows through the shared save claim.</summary>
+    internal RunningScriptSession Run(string scriptPath, bool workflowClaimHeld = false)
     {
         var path = Path.GetFullPath(scriptPath);
         lock (_gate)
@@ -91,6 +91,7 @@ internal sealed class ScriptExecutionService : IDisposable
             Process? process = null;
             try
             {
+                using var workflowClaim = workflowClaimHeld ? null : VisualFlowStore.ClaimForExecution(path);
                 if (!File.Exists(path)) throw new FileNotFoundException("The script no longer exists.", path);
                 if (!Path.GetExtension(path).Equals(".ahk", StringComparison.OrdinalIgnoreCase))
                     throw new InvalidOperationException("Select an AutoHotkey .ahk script.");
@@ -172,10 +173,11 @@ internal sealed class ScriptExecutionService : IDisposable
         }
     }
 
-    /// <summary>Keeps stop-then-run atomic relative to repeated UI actions.</summary>
+    /// <summary>Claims visual source before stopping it, preserving a live interpreter when a save is unfinished or in flight.</summary>
     internal RunningScriptSession Restart(string scriptPath)
     {
-        lock (_gate) { Stop(scriptPath); return Run(scriptPath); }
+        var path = Path.GetFullPath(scriptPath);
+        lock (_gate) { using var workflowClaim = VisualFlowStore.ClaimForExecution(path); Stop(path); return Run(path, workflowClaimHeld: true); }
     }
 
     /// <summary>Registers callbacks after ownership metadata, then checks the already-exited race explicitly.</summary>

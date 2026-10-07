@@ -14,6 +14,7 @@ internal sealed class ApplicationServices : IDisposable
     internal DocumentationService Documentation { get; }
     internal ShortcutPreferencesService ShortcutPreferences { get; }
     internal ShortcutActivityService ShortcutActivity { get; } = new();
+    internal VisualFlowStore VisualFlows { get; } = new();
     internal string StateDirectory { get; }
     private readonly string? _diagnosticRegistryBase;
 
@@ -25,7 +26,7 @@ internal sealed class ApplicationServices : IDisposable
         StateDirectory = diagnosticRoot is null ? ServiceDiagnostics.StateDirectory : Path.Combine(diagnosticRoot, "state");
         Catalog = new(diagnosticRoot is null ? null : Path.Combine(diagnosticRoot, "Scripts"));
         WindowsStartup = new(_diagnosticRegistryBase is null ? null : _diagnosticRegistryBase + @"\Run");
-        var locator = new AutoHotkeyRuntimeLocator(new EmbeddedAutoHotkeyRuntime());
+        var locator = new AutoHotkeyRuntimeLocator(new EmbeddedAutoHotkeyRuntime(diagnosticRoot is null ? null : Path.Combine(StateDirectory, "runtime")));
         Integration = new AutoHotkeyIntegration(locator);
         Compiler = new CompilerService(Integration, new EmbeddedCompiler());
         Documentation = new DocumentationService(Integration);

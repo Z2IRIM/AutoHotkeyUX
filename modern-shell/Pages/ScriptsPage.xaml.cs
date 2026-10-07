@@ -13,12 +13,13 @@ public sealed partial class ScriptsPage : Page
     private readonly ScriptStartupService _startup;
     private readonly AutoHotkeyIntegration _integration;
     private readonly AutoHotkeySettings _settings;
+    private readonly Func<string, Task<bool>> _openVisual;
     private bool _subscribed;
     private bool _busy;
 
     /// <summary>Renders application-owned services without scanning files or owning interpreter handles.</summary>
     internal ScriptsPage(ScriptCatalogService catalog, ScriptExecutionService execution,
-        ScriptStartupService startup, AutoHotkeyIntegration integration, AutoHotkeySettings settings)
+        ScriptStartupService startup, AutoHotkeyIntegration integration, AutoHotkeySettings settings, Func<string, Task<bool>> openVisual)
     {
         InitializeComponent();
         _catalog = catalog;
@@ -26,6 +27,7 @@ public sealed partial class ScriptsPage : Page
         _startup = startup;
         _integration = integration;
         _settings = settings;
+        _openVisual = openVisual;
         ScriptRootText.Text = catalog.RootDirectory;
         ToolTipService.SetToolTip(ScriptRootText, catalog.RootDirectory);
         Loaded += Page_Loaded;
@@ -141,9 +143,25 @@ public sealed partial class ScriptsPage : Page
     private async void RestartButton_Click(object sender, RoutedEventArgs args)
     { if (sender is Button { Tag: string path }) await RunActionAsync(() => _execution.Restart(path)); }
 
-    /// <summary>Reuses the user's existing editor command or the non-mutating Notepad fallback.</summary>
+    /// <summary>Reopens intact visual workflows internally; preserves the configured external editor for ordinary or modified source.</summary>
     private async void EditButton_Click(object sender, RoutedEventArgs args)
-    { if (sender is Button { Tag: string path }) await RunActionAsync(() => { _integration.EditScript(path, _settings); return null; }); }
+    {
+        if (_busy || sender is not Button { Tag: string path }) return;
+        _busy = true; RefreshRows();
+        try
+        {
+            if (!await _openVisual(path)) await Task.Run(() => _integration.EditScript(path, _settings));
+            ActionInfoBar.IsOpen = false; ActionInfoBar.ActionButton = null;
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(ex.Message, InfoBarSeverity.Error);
+            var button = new Button { Content = "Edit code" };
+            button.Click += async (_, _) => await RunActionAsync(() => { _integration.EditScript(path, _settings); return null; });
+            ActionInfoBar.ActionButton = button;
+        }
+        finally { _busy = false; if (_subscribed) RefreshRows(); }
+    }
 
     /// <summary>Reveals the script with the shared Explorer select action.</summary>
     private async void RevealButton_Click(object sender, RoutedEventArgs args)
@@ -206,10 +224,11 @@ internal sealed class ScriptRow
         Details = FileExists ? $"Modified {entry.ModifiedText} · {entry.Size:N0} bytes" : "File removed; the managed interpreter is still running.";
         var state = session?.State ?? ScriptState.Stopped;
         StateText = state.ToString();
-        Error = session?.Error;
-        CanRun = !busy && FileExists && state is ScriptState.Stopped or ScriptState.Failed;
+        var pending = System.IO.Path.Exists(entry.Path + ".flow.pending");
+        Error = session?.Error ?? (pending ? "Unfinished workflow save. Inspect the retained .flow.pending recovery copies before running." : null);
+        CanRun = !busy && FileExists && !pending && state is ScriptState.Stopped or ScriptState.Failed;
         CanStop = !busy && state == ScriptState.Running;
-        CanRestart = CanStop && FileExists;
+        CanRestart = CanStop && FileExists && !pending;
         RunAtSignIn = startup.IsRunAtSignIn(entry.Path);
         CanChangeStartup = FileExists && !startup.IsExplorerScript(entry.Path);
         StartupHint = startup.IsExplorerScript(entry.Path) ? "Controlled by Explorer shortcuts in Settings." : "Starts when the manager starts at Windows sign-in.";

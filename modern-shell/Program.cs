@@ -33,8 +33,10 @@ internal static class Program
                 return 0;
             }
             var verifyPreferences = Array.IndexOf(args, "--verify-preferences");
+            var verifyVisual = Array.IndexOf(args, "--verify-visual-creation");
             if (verifyPreferences >= 0 && verifyPreferences + 1 >= args.Length) throw new ArgumentException("Specify an absolute preference verification report path.");
-            using var singleInstance = new SingleInstanceService(verifyPreferences >= 0 ? Guid.NewGuid().ToString("N") : null);
+            if (verifyVisual >= 0 && verifyVisual + 1 >= args.Length) throw new ArgumentException("Specify an absolute visual creation verification report path.");
+            using var singleInstance = new SingleInstanceService(verifyPreferences >= 0 || verifyVisual >= 0 ? Guid.NewGuid().ToString("N") : null);
             if (!singleInstance.IsPrimary) { singleInstance.Redirect(args); return 0; }
             if (args.Contains("--exit-manager")) return 0;
             WinRT.ComWrappersSupport.InitializeComWrappers();

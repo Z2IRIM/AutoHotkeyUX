@@ -88,10 +88,10 @@ public sealed partial class MainWindow : Window
                 "spy" => _windowSpyPage ??= new WindowSpyPage(_services.WindowSpy, this, () => NavigateTo("home")),
                 "compile" => _compilePage ??= new CompilePage(_services.Compiler, _integration, () => NavigateTo("home")),
                 "docs" => _documentationPage ??= new DocumentationPage(_services.Documentation, this, () => NavigateTo("home")),
-                "new" => _newScriptPage ??= new NewScriptPage(_integration),
+                "new" => _newScriptPage ??= new NewScriptPage(_services, () => NavigateTo("scripts")),
                 "settings" => _settingsPage ??= new SettingsPage(_integration, _settings, _services.WindowsStartup, _services.ScriptStartup, _services.Execution, () => NavigateTo("shortcuts")),
                 "shortcuts" => _shortcutSettingsPage ??= new ShortcutSettingsPage(_services, () => NavigateTo("settings")),
-                "scripts" => _scriptsPage ??= new ScriptsPage(_services.Catalog, _services.Execution, _services.ScriptStartup, _integration, _settings),
+                "scripts" => _scriptsPage ??= new ScriptsPage(_services.Catalog, _services.Execution, _services.ScriptStartup, _integration, _settings, OpenVisualScriptAsync),
                 _ => _homePage ??= new HomePage(
                     _integration,
                     () => NavigateTo("new"),
@@ -121,6 +121,16 @@ public sealed partial class MainWindow : Window
     /// <summary>Translates a Home tool intent into a route owned by the existing content host.</summary>
     private void OpenTool(WorkspaceTool tool) => NavigateTo(tool switch
     { WorkspaceTool.WindowSpy => "spy", WorkspaceTool.Compile => "compile", WorkspaceTool.Documentation => "docs", _ => "home" });
+
+    /// <summary>Routes generated workflows into the cached native editor while leaving ordinary AHK in the configured editor.</summary>
+    private async Task<bool> OpenVisualScriptAsync(string path)
+    {
+        if (!await Task.Run(() => VisualFlowStore.IsVisualCandidate(path))) return false;
+        _newScriptPage ??= new NewScriptPage(_services, () => NavigateTo("scripts"));
+        await _newScriptPage.OpenAsync(path, RootLayout.XamlRoot);
+        NavigateTo("new");
+        return true;
+    }
 
     /// <summary>
     /// Keeps the custom sidebar mutually exclusive using the native RadioButton group state.

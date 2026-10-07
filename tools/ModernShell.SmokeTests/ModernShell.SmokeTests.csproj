@@ -8,6 +8,8 @@
   <ItemGroup>
     <PackageReference Include="SharpCompress" Version="0.50.3" />
     <Compile Include="..\..\modern-shell\Models\*.cs" Link="Models\%(Filename)%(Extension)" />
+    <Compile Include="..\..\modern-shell\Services\Visual*.cs" Link="Services\%(Filename)%(Extension)" />
+    <Compile Include="..\..\modern-shell\Services\ScriptFileName.cs" Link="Services\ScriptFileName.cs" />
     <Compile Include="..\..\modern-shell\Services\ScriptCatalogService.cs" Link="Services\ScriptCatalogService.cs" />
     <Compile Include="..\..\modern-shell\Services\ScriptExecutionService.cs" Link="Services\ScriptExecutionService.cs" />
     <Compile Include="..\..\modern-shell\Services\ScriptSessionStore.cs" Link="Services\ScriptSessionStore.cs" />

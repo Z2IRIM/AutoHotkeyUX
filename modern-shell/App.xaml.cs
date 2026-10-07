@@ -31,7 +31,7 @@ public partial class App : Application
         _arguments = arguments;
         _singleInstance = singleInstance;
         _dispatcher = DispatcherQueue.GetForCurrentThread();
-        _silent = arguments.Contains("--background") || arguments.Contains("--verify-ui") || arguments.Contains("--verify-tools") || arguments.Contains("--verify-preferences");
+        _silent = arguments.Contains("--background") || arguments.Contains("--verify-ui") || arguments.Contains("--verify-tools") || arguments.Contains("--verify-preferences") || arguments.Contains("--verify-visual-creation");
         try
         {
             InitializeComponent();
@@ -52,8 +52,10 @@ public partial class App : Application
         try
         {
             var verifyPreferencesIndex = Array.IndexOf(_arguments, "--verify-preferences");
-            var diagnosticRoot = verifyPreferencesIndex < 0 ? null : Path.Combine(
-                Path.GetDirectoryName(Path.GetFullPath(_arguments[verifyPreferencesIndex + 1]))!, "native-preferences-" + Guid.NewGuid().ToString("N"));
+            var verifyVisualIndex = Array.IndexOf(_arguments, "--verify-visual-creation");
+            var isolatedIndex = Math.Max(verifyPreferencesIndex, verifyVisualIndex);
+            var diagnosticRoot = isolatedIndex < 0 ? null : Path.Combine(
+                Path.GetDirectoryName(Path.GetFullPath(_arguments[isolatedIndex + 1]))!, "native-workspace-" + Guid.NewGuid().ToString("N"));
             _services = new ApplicationServices(diagnosticRoot);
             await Task.Run(_services.Initialize);
             try { _icon = new ApplicationIconService(); }
@@ -101,10 +103,12 @@ public partial class App : Application
             var verifyToolsIndex = Array.IndexOf(_arguments, "--verify-tools");
             if (verifyToolsIndex >= 0) verifyIndex = verifyToolsIndex;
             if (verifyPreferencesIndex >= 0) verifyIndex = verifyPreferencesIndex;
+            if (verifyVisualIndex >= 0) verifyIndex = verifyVisualIndex;
             if (verifyIndex >= 0 && verifyIndex + 1 < _arguments.Length)
             {
                 ShowWindow();
-                var report = verifyPreferencesIndex >= 0 ? await _window.VerifyShortcutPreferencesAsync()
+                var report = verifyVisualIndex >= 0 ? await _window.VerifyVisualCreationAsync(_arguments[verifyIndex + 1])
+                    : verifyPreferencesIndex >= 0 ? await _window.VerifyShortcutPreferencesAsync()
                     : _arguments.Contains("--verify-docs-only") ? await _window.VerifyDocumentationAsync()
                     : verifyToolsIndex >= 0 ? await _window.VerifyToolsAsync() : await _window.VerifyPagesAsync();
                 File.WriteAllText(_arguments[verifyIndex + 1], JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
@@ -118,7 +122,7 @@ public partial class App : Application
                 : _arguments.Contains("--verify-ui") ? "UI verification failed" : "MainWindow startup failed", ex);
             _quitting = true;
             if (_shortcuts is not null) await _shortcuts.DrainAsync();
-            if (_services is not null) await Task.WhenAll(_services.Compiler.CancelAndDrainAsync(), _services.Documentation.CancelAndDrainAsync(), _services.ShortcutPreferences.DrainAsync());
+            if (_services is not null) await Task.WhenAll(_services.Compiler.CancelAndDrainAsync(), _services.Documentation.CancelAndDrainAsync(), _services.ShortcutPreferences.DrainAsync(), _services.VisualFlows.DrainAsync());
             _closeAllowed = true;
             _tray?.Dispose();
             _services?.Dispose();
@@ -132,7 +136,7 @@ public partial class App : Application
     private void ShowWindow()
     {
         if (_quitting || _window is null) return;
-        if (!_arguments.Contains("--verify-ui") && !_arguments.Contains("--verify-tools") && !_arguments.Contains("--verify-preferences")) _silent = false;
+        if (!_arguments.Contains("--verify-ui") && !_arguments.Contains("--verify-tools") && !_arguments.Contains("--verify-preferences") && !_arguments.Contains("--verify-visual-creation")) _silent = false;
         _window.AppWindow.Show();
         if (_window.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter
             && presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized)
@@ -170,7 +174,7 @@ public partial class App : Application
         if (_quitting) return;
         _quitting = true;
         if (_shortcuts is not null) await _shortcuts.DrainAsync();
-        if (_services is not null) await Task.WhenAll(_services.Compiler.CancelAndDrainAsync(), _services.Documentation.CancelAndDrainAsync(), _services.ShortcutPreferences.DrainAsync());
+        if (_services is not null) await Task.WhenAll(_services.Compiler.CancelAndDrainAsync(), _services.Documentation.CancelAndDrainAsync(), _services.ShortcutPreferences.DrainAsync(), _services.VisualFlows.DrainAsync());
         _closeAllowed = true;
         _tray?.Dispose();
         _services?.Dispose();

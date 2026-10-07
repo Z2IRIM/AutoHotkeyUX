@@ -1,283 +1,138 @@
-<Page
-    x:Class="AutoHotkeyUX.Modern.Pages.NewScriptPage"
+<Page x:Class="AutoHotkeyUX.Modern.Pages.NewScriptPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel
-            MaxWidth="1080"
-            Padding="44,40,44,56"
-            Spacing="30">
-
-            <StackPanel Spacing="7">
-                <TextBlock
-                    Text="NEW SCRIPT"
-                    Style="{StaticResource EyebrowTextStyle}" />
-                <TextBlock
-                    Text="Create a script"
-                    Style="{StaticResource PageTitleTextStyle}" />
-                <TextBlock
-                    Text="Choose where it lives, pick a starter, then create a clean AutoHotkey v2 file."
-                    Style="{StaticResource PageSubtitleTextStyle}"
-                    MaxWidth="720" />
+    <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel x:Name="PageBody" MaxWidth="1440" Padding="28,28,28,40" Spacing="20">
+            <StackPanel Spacing="6">
+                <TextBlock Text="VISUAL SCRIPT" Style="{StaticResource EyebrowTextStyle}" />
+                <TextBlock x:Name="PageTitle" Text="Build a workflow" Style="{StaticResource PageTitleTextStyle}" />
+                <TextBlock Text="Choose a trigger, add actions, then set their properties. Your workflow becomes an AutoHotkey v2 script." Style="{StaticResource PageSubtitleTextStyle}" />
             </StackPanel>
-
-            <StackPanel Spacing="16">
-                <TextBlock
-                    Text="Script details"
-                    Style="{StaticResource SectionTitleTextStyle}" />
-
-                <Border
-                    Style="{StaticResource SurfaceCardStyle}"
-                    Padding="24">
-                    <Grid ColumnSpacing="18">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="1.25*" />
-                        </Grid.ColumnDefinitions>
-
-                        <StackPanel Spacing="10">
-                            <TextBlock
-                                Text="Name"
-                                FontSize="15"
-                                FontWeight="SemiBold" />
-                            <TextBox
-                                x:Name="ScriptNameTextBox"
-                                Text="ExplorerTools"
-                                PlaceholderText="MyScript"
-                                TextChanged="ScriptInput_Changed" />
-                            <TextBlock
-                                Text=".ahk is added automatically when omitted."
-                                FontSize="13"
-                                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                        </StackPanel>
-
-                        <StackPanel
-                            Grid.Column="1"
-                            Spacing="10">
-                            <TextBlock
-                                Text="Location"
-                                FontSize="15"
-                                FontWeight="SemiBold" />
-                            <Grid ColumnSpacing="10">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBox
-                                    x:Name="ScriptLocationTextBox"
-                                    PlaceholderText="Choose a folder"
-                                    TextChanged="ScriptInput_Changed" />
-                                <Button
-                                    Grid.Column="1"
-                                    Content="Browse"
-                                    MinWidth="108"
-                                    Click="BrowseScriptLocationButton_Click" />
-                            </Grid>
-                            <TextBlock
-                                Text="Existing scripts are never replaced."
-                                FontSize="13"
-                                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                        </StackPanel>
+            <Border Style="{StaticResource SurfaceCardStyle}" Padding="16">
+                <Grid x:Name="DetailsGrid" ColumnSpacing="16" RowSpacing="12" SizeChanged="DetailsGrid_SizeChanged">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="2*" /></Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                    <TextBox x:Name="ScriptNameTextBox" Header="Name" Text="QuickActions" MaxLength="128" TextChanged="ScriptInput_Changed" />
+                    <Grid x:Name="LocationPanel" Grid.Column="1" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBox x:Name="ScriptLocationTextBox" Header="Location" MaxLength="2048" TextChanged="ScriptInput_Changed" />
+                        <Button x:Name="BrowseButton" Grid.Column="1" Content="Browse" VerticalAlignment="Bottom" Click="Browse_Click" />
                     </Grid>
-                </Border>
-            </StackPanel>
-
-            <StackPanel Spacing="16">
-                <StackPanel Spacing="3">
-                    <TextBlock
-                        Text="Starter template"
-                        Style="{StaticResource SectionTitleTextStyle}" />
-                    <TextBlock
-                        Text="Start small. You can replace everything later."
-                        FontSize="15"
-                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                </StackPanel>
-
-                <Grid x:Name="TemplateGrid" ColumnSpacing="16" SizeChanged="TemplateGrid_SizeChanged">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-
-                    <Button
-                        x:Name="BlankTemplateButton"
-                        Grid.Column="0"
-                        Tag="Blank"
-                        MinHeight="180"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Style="{StaticResource InteractiveCardButtonStyle}"
-                        BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
-                        BorderThickness="2"
-                        Click="TemplateButton_Click">
-                        <StackPanel Spacing="15">
-                            <Border Style="{StaticResource IconBadgeStyle}">
-                                <FontIcon
-                                    Glyph="&#xE8A5;"
-                                    FontSize="22"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center" />
-                            </Border>
-                            <StackPanel Spacing="4">
-                                <TextBlock
-                                    Text="Blank"
-                                    FontWeight="SemiBold"
-                                    FontSize="17" />
-                                <TextBlock
-                                    Text="Only #Requires and room to start writing."
-                                    FontSize="15"
-                                    TextWrapping="Wrap"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Button>
-
-                    <Button
-                        x:Name="HotkeysTemplateButton"
-                        Grid.Column="1"
-                        Tag="Hotkeys"
-                        MinHeight="180"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Style="{StaticResource InteractiveCardButtonStyle}"
-                        Click="TemplateButton_Click">
-                        <StackPanel Spacing="15">
-                            <Border Style="{StaticResource IconBadgeStyle}">
-                                <FontIcon
-                                    Glyph="&#xE765;"
-                                    FontSize="22"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center" />
-                            </Border>
-                            <StackPanel Spacing="4">
-                                <TextBlock
-                                    Text="Hotkeys"
-                                    FontWeight="SemiBold"
-                                    FontSize="17" />
-                                <TextBlock
-                                    Text="A compact keyboard shortcut starter."
-                                    FontSize="15"
-                                    TextWrapping="Wrap"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Button>
-
-                    <Button
-                        x:Name="AutomationTemplateButton"
-                        Grid.Column="2"
-                        Tag="Automation"
-                        MinHeight="180"
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        Style="{StaticResource InteractiveCardButtonStyle}"
-                        Click="TemplateButton_Click">
-                        <StackPanel Spacing="15">
-                            <Border Style="{StaticResource IconBadgeStyle}">
-                                <FontIcon
-                                    Glyph="&#xE945;"
-                                    FontSize="22"
-                                    HorizontalAlignment="Center"
-                                    VerticalAlignment="Center" />
-                            </Border>
-                            <StackPanel Spacing="4">
-                                <TextBlock
-                                    Text="Automation"
-                                    FontWeight="SemiBold"
-                                    FontSize="17" />
-                                <TextBlock
-                                    Text="A desktop automation entry point with a first action."
-                                    FontSize="15"
-                                    TextWrapping="Wrap"
-                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Button>
-                </Grid>
-            </StackPanel>
-
-            <StackPanel Spacing="16">
-                <Grid>
-                    <StackPanel Spacing="3">
-                        <TextBlock
-                            Text="Preview"
-                            Style="{StaticResource SectionTitleTextStyle}" />
-                        <TextBlock
-                            Text="This is exactly what will be written to the new file."
-                            FontSize="15"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    </StackPanel>
-
-                    <TextBlock
-                        Text="Read only"
-                        HorizontalAlignment="Right"
-                        VerticalAlignment="Center"
-                        FontSize="13"
-                        Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                </Grid>
-
-                <Border
-                    Style="{StaticResource SurfaceCardStyle}"
-                    Padding="15">
-                    <TextBox
-                        x:Name="ScriptPreviewTextBox"
-                        MinHeight="240"
-                        Padding="17"
-                        AcceptsReturn="True"
-                        IsReadOnly="True"
-                        FontFamily="Consolas"
-                        FontSize="15"
-                        TextWrapping="NoWrap"
-                        ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                        ScrollViewer.VerticalScrollBarVisibility="Auto" />
-                </Border>
-            </StackPanel>
-
-            <Border
-                Style="{StaticResource SurfaceCardStyle}"
-                Padding="22,18">
-                <Grid ColumnSpacing="18">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel
-                        Orientation="Horizontal"
-                        Spacing="9"
-                        VerticalAlignment="Center">
-                        <FontIcon
-                            Glyph="&#xE946;"
-                            FontSize="17"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock
-                            x:Name="CreateScriptStatusText"
-                            VerticalAlignment="Center"
-                            FontSize="15"
-                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                            TextWrapping="Wrap" />
-                    </StackPanel>
-
-                    <Button
-                        Grid.Column="1"
-                        Content="Create script"
-                        MinWidth="155"
-                        Style="{StaticResource AccentButtonStyle}"
-                        Click="CreateScriptButton_Click" />
                 </Grid>
             </Border>
-
-            <InfoBar
-                x:Name="CreateInfoBar"
-                IsOpen="False"
-                IsClosable="True" />
+            <Grid x:Name="EditorGrid" ColumnSpacing="16" RowSpacing="16" SizeChanged="EditorGrid_SizeChanged">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="180" /><ColumnDefinition Width="*" /><ColumnDefinition Width="280" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Border x:Name="LibraryPanel" Style="{StaticResource SurfaceCardStyle}" Padding="12">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Action library" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock Text="Click to add a step" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <StackPanel x:Name="ActionLibrary" Spacing="8" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="FlowPanel" Grid.Column="1" Style="{StaticResource SurfaceCardStyle}" Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Your workflow" Style="{StaticResource SectionTitleTextStyle}" />
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock x:Name="ActionCountText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            <StackPanel x:Name="HistoryButtons" Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                                <Button x:Name="UndoButton" Padding="8" ToolTipService.ToolTip="Undo" AutomationProperties.Name="Undo" Click="Undo_Click"><FontIcon Glyph="&#xE7A7;" FontSize="16" /></Button>
+                                <Button x:Name="RedoButton" Padding="8" ToolTipService.ToolTip="Redo" AutomationProperties.Name="Redo" Click="Redo_Click"><FontIcon Glyph="&#xE7A6;" FontSize="16" /></Button>
+                            </StackPanel>
+                        </Grid>
+                        <Button x:Name="TriggerButton" Style="{StaticResource InteractiveCardButtonStyle}" Padding="12" HorizontalAlignment="Stretch" Click="Trigger_Click" AutomationProperties.Name="Edit workflow trigger">
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="TRIGGER" Style="{StaticResource EyebrowTextStyle}" />
+                                <TextBlock x:Name="TriggerSummaryText" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock x:Name="ScopeSummaryText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Button>
+                        <ListView x:Name="ActionList" SelectionMode="Single" CanDragItems="True" CanReorderItems="True" AllowDrop="True" IsSwipeEnabled="False"
+                            MaxHeight="440" SelectionChanged="ActionList_SelectionChanged" DragItemsStarting="ActionList_DragItemsStarting"
+                            DragItemsCompleted="ActionList_DragItemsCompleted" AutomationProperties.Name="Ordered workflow actions">
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="ListViewItem">
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0,0,0,8" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource SurfaceCardStyle}" CornerRadius="8">
+                                    <Grid Padding="12" ColumnSpacing="10" MinHeight="76">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="24" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                        <FontIcon Glyph="{Binding Glyph}" FontSize="18" VerticalAlignment="Center" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                        <StackPanel Grid.Column="1" Spacing="4">
+                                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding Summary}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <TextBlock x:Name="EmptyFlowText" Text="Add your first action from the library." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
+                        <StackPanel x:Name="OrderButtons" Orientation="Horizontal" Spacing="8">
+                            <Button x:Name="UpButton" Padding="10" ToolTipService.ToolTip="Move selected action up" AutomationProperties.Name="Move selected action up" Click="Up_Click"><FontIcon Glyph="&#xE74A;" FontSize="16" /></Button>
+                            <Button x:Name="DownButton" Padding="10" ToolTipService.ToolTip="Move selected action down" AutomationProperties.Name="Move selected action down" Click="Down_Click"><FontIcon Glyph="&#xE74B;" FontSize="16" /></Button>
+                            <Button x:Name="DeleteButton" Padding="10" ToolTipService.ToolTip="Delete selected action" AutomationProperties.Name="Delete selected action" Click="Delete_Click"><FontIcon Glyph="&#xE74D;" FontSize="16" /></Button>
+                        </StackPanel>
+                        <TextBlock Text="Actions run from top to bottom. Drag to reorder, or use the arrow buttons." FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="PropertiesPanel" Grid.Column="2" Style="{StaticResource SurfaceCardStyle}" Padding="16">
+                    <StackPanel Spacing="14">
+                        <TextBlock Text="Properties" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock x:Name="SelectedTitleText" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <StackPanel x:Name="TriggerFields" Spacing="12">
+                            <ComboBox x:Name="TriggerKindCombo" Header="When to run" HorizontalAlignment="Stretch" SelectionChanged="TriggerInput_Changed">
+                                <ComboBoxItem Content="Keyboard shortcut" /><ComboBoxItem Content="When script starts" />
+                            </ComboBox>
+                            <StackPanel x:Name="HotkeyFields" Spacing="8">
+                                <TextBlock Text="Modifiers" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                <Grid ColumnSpacing="8" RowSpacing="4">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                                    <CheckBox x:Name="CtrlCheck" Content="Ctrl" Click="Modifiers_Click" /><CheckBox x:Name="AltCheck" Grid.Column="1" Content="Alt" Click="Modifiers_Click" />
+                                    <CheckBox x:Name="ShiftCheck" Grid.Row="1" Content="Shift" Click="Modifiers_Click" /><CheckBox x:Name="WinCheck" Grid.Row="1" Grid.Column="1" Content="Win" Click="Modifiers_Click" />
+                                </Grid>
+                                <ComboBox x:Name="TriggerKeyCombo" Header="Key" HorizontalAlignment="Stretch" SelectionChanged="TriggerInput_Changed" />
+                            </StackPanel>
+                            <ComboBox x:Name="ScopeCombo" Header="Active window" HorizontalAlignment="Stretch" SelectionChanged="Scope_Changed">
+                                <ComboBoxItem Content="Any application" /><ComboBoxItem Content="Only this application" />
+                            </ComboBox>
+                            <TextBox x:Name="ApplicationBox" Header="Application file name" PlaceholderText="explorer.exe" MaxLength="128" TextChanged="Application_Changed" />
+                            <TextBlock Text="The application condition applies to the whole workflow. Creating a script does not start it." FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <StackPanel x:Name="ActionFields" Spacing="12" Visibility="Collapsed">
+                            <ComboBox x:Name="FolderCombo" Header="Folder" HorizontalAlignment="Stretch" SelectionChanged="Folder_Changed">
+                                <ComboBoxItem Content="Documents" /><ComboBoxItem Content="Desktop" /><ComboBoxItem Content="Custom folder" />
+                            </ComboBox>
+                            <TextBox x:Name="ActionValueBox" Header="Value" MaxLength="4096" TextWrapping="Wrap" TextChanged="ActionValue_Changed" />
+                            <ComboBox x:Name="SendKeysCombo" Header="Key combination" HorizontalAlignment="Stretch" SelectionChanged="SendKeys_Changed" />
+                            <NumberBox x:Name="WaitBox" Header="Milliseconds" Minimum="0" Maximum="60000" SpinButtonPlacementMode="Compact" ValueChanged="Wait_Changed" />
+                            <TextBlock x:Name="ParameterHintText" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <TextBlock x:Name="FieldErrorsText" TextWrapping="Wrap" Foreground="{ThemeResource SystemFillColorCriticalBrush}" Visibility="Collapsed" />
+            <Expander x:Name="CodeExpander" Header="Generated AutoHotkey code" HorizontalAlignment="Stretch" IsExpanded="False">
+                <TextBox x:Name="ScriptPreviewTextBox" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" FontSize="13" MinHeight="160" MaxHeight="280"
+                    TextWrapping="NoWrap" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Generated AutoHotkey source" />
+            </Expander>
+            <Border Style="{StaticResource SurfaceCardStyle}" Padding="16">
+                <StackPanel Spacing="12">
+                    <TextBlock x:Name="CreateScriptStatusText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <StackPanel x:Name="SaveButtons" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="SaveButton" Content="Create script" Style="{StaticResource AccentButtonStyle}" Click="Save_Click" /><Button x:Name="ScriptsButton" Content="Open Scripts" Click="Scripts_Click" />
+                    </StackPanel>
+                    <StackPanel x:Name="SavedActions" Spacing="8" Visibility="Collapsed">
+                        <Button x:Name="CodeEditorButton" Content="Edit in code editor" Click="CodeEditor_Click" /><Button x:Name="NewWorkflowButton" Content="New workflow" Click="NewWorkflow_Click" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            <InfoBar x:Name="CreateInfoBar" IsOpen="False" IsClosable="True" />
         </StackPanel>
     </ScrollViewer>
 </Page>

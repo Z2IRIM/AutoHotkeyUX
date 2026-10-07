@@ -60,20 +60,7 @@ internal sealed class AutoHotkeyIntegration
     {
         Directory.CreateDirectory(directory);
 
-        var safeName =
-            SanitizeFileName(requestedName);
-
-        if (string.IsNullOrWhiteSpace(safeName))
-        {
-            safeName = "Untitled";
-        }
-
-        if (safeName.EndsWith(
-                ".ahk",
-                StringComparison.OrdinalIgnoreCase))
-        {
-            safeName = safeName[..^4];
-        }
+        var safeName = ScriptFileName.Normalize(requestedName);
 
         var path =
             Path.Combine(
@@ -309,19 +296,4 @@ internal sealed class AutoHotkeyIntegration
             "AutoHotkeyUX scripts could not be located.");
     }
 
-    /// <summary>
-    /// Removes Windows-invalid filename characters from a requested script name.
-    /// </summary>
-    private static string SanitizeFileName(
-        string value)
-    {
-        var invalid =
-            Path.GetInvalidFileNameChars();
-
-        return new string(
-                value
-                    .Where(c => !invalid.Contains(c))
-                    .ToArray())
-            .Trim();
-    }
 }

@@ -5,7 +5,7 @@ namespace AutoHotkeyUX.Modern;
 
 public sealed partial class MainWindow
 {
-    /// <summary>Checks startup placement, icon, navigation and real template geometry for the explicit UI command.</summary>
+    /// <summary>Checks startup placement, icon, navigation and workflow geometry for the explicit UI command.</summary>
     internal async Task<object> VerifyPagesAsync()
     {
         if (!HasCustomIcon) throw new InvalidOperationException("The embedded application icon was not applied to the window.");
@@ -35,10 +35,10 @@ public sealed partial class MainWindow
         AppWindow.Resize(new Windows.Graphics.SizeInt32((int)Math.Round(1280 * scale), (int)Math.Round(820 * scale)));
         NavigateTo("new");
         await Task.Delay(120);
-        var wideTemplates = _newScriptPage!.VerifyTemplateLayout(false);
+        var wideWorkflow = _newScriptPage!.VerifyWorkflowLayout();
         AppWindow.Resize(new Windows.Graphics.SizeInt32(MinimumWindowWidth, MinimumWindowHeight));
         await Task.Delay(120);
-        var narrowTemplates = _newScriptPage.VerifyTemplateLayout(RootLayout.ActualWidth < 960);
+        var narrowWorkflow = _newScriptPage.VerifyWorkflowLayout();
         NavigateTo("scripts");
         await Task.Delay(80);
         if (_scriptsPage.VerifyActionLayout() != true) throw new InvalidOperationException("Scripts action row overflows at the minimum desktop size.");
@@ -46,7 +46,7 @@ public sealed partial class MainWindow
         AppWindow.Resize(originalSize);
         NavigateTo("home");
         return new { Passed = true, StartupPlacement = startupPlacement, TitleBarSearchRemoved = true,
-            WideTemplates = wideTemplates, NarrowTemplates = narrowTemplates, CustomWindowIconApplied = HasCustomIcon, Checks = checks, ScriptsSearch = true, MinimumSizeActionLayout = true,
+            WideWorkflow = wideWorkflow, NarrowWorkflow = narrowWorkflow, CustomWindowIconApplied = HasCustomIcon, Checks = checks, ScriptsSearch = true, MinimumSizeActionLayout = true,
             MinimumPageWidth = minimumPageWidth, CatalogCount = _services.Catalog.Snapshot().Count, RuntimePath = _integration.FindRuntime()?.Path };
     }
 }

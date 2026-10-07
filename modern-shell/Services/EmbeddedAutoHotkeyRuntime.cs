@@ -27,6 +27,10 @@ internal sealed class EmbeddedAutoHotkeyRuntime
         "AutoHotkeyUX.Modern.Runtime.Manifest.json";
 
     private static readonly object Gate = new();
+    private readonly string? _baseDirectory;
+
+    /// <summary>Allows explicit diagnostic instances to materialize payloads away from running user interpreters.</summary>
+    internal EmbeddedAutoHotkeyRuntime(string? baseDirectory = null) => _baseDirectory = baseDirectory;
 
     /// <summary>
     /// Extracts and validates the embedded runtime into the app's private LocalAppData directory.
@@ -49,7 +53,7 @@ internal sealed class EmbeddedAutoHotkeyRuntime
                 manifest.UxSha256,
                 "AutoHotkeyUX scripts");
 
-            var baseDirectory = Path.Combine(
+            var baseDirectory = _baseDirectory ?? Path.Combine(
                 Environment.GetFolderPath(
                     Environment.SpecialFolder.LocalApplicationData),
                 "AutoHotkeyUX.Modern",
