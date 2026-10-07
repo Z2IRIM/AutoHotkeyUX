@@ -36,6 +36,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="ToolPayload\**" />
+    <Content Remove="ToolPayload\**" />
+    <EmbeddedResource Include="ToolPayload\Ahk2Exe.zip" LogicalName="AutoHotkeyUX.Modern.Tools.Ahk2Exe.zip" />
+    <EmbeddedResource Include="Resources\DocumentationTheme.css" LogicalName="AutoHotkeyUX.Modern.DocumentationTheme.css" />
     <!-- The icon is compiled/embedded; its editable artwork is a development asset. -->
     <None Remove="Assets\AutoHotkey.ico;Assets\AutoHotkey.svg;Assets\AutoHotkey.png" />
     <Content Remove="Assets\AutoHotkey.ico;Assets\AutoHotkey.svg;Assets\AutoHotkey.png" />
@@ -58,6 +62,10 @@
   <Target Name="PrepareEmbeddedAutoHotkeyRuntime"
           BeforeTargets="PrepareResources">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\prepare-embedded-runtime.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot;" />
+  </Target>
+
+  <Target Name="PrepareEmbeddedCompiler" BeforeTargets="PrepareResources">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\prepare-embedded-tools.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot;" />
   </Target>
 
 </Project>

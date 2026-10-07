@@ -1,0 +1,75 @@
+<Page x:Class="AutoHotkeyUX.Modern.Pages.WindowSpyPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Page.Resources>
+        <Style x:Key="SpyValue" TargetType="TextBlock">
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="IsTextSelectionEnabled" Value="True" />
+            <Setter Property="FontSize" Value="15" />
+        </Style>
+    </Page.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1080" Padding="44,32,44,48" Spacing="22">
+            <Button Content="←  Home / Tools" Click="Back_Click" />
+            <StackPanel Spacing="7">
+                <TextBlock Text="Window Spy" Style="{StaticResource PageTitleTextStyle}" />
+                <TextBlock Text="Inspect windows, controls and coordinates while keeping the workspace open." Style="{StaticResource PageSubtitleTextStyle}" />
+            </StackPanel>
+            <VariableSizedWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="4" ItemHeight="44">
+                <CheckBox x:Name="FollowMouseCheckBox" Content="Follow mouse" IsChecked="True" Margin="0,0,18,0" />
+                <Button x:Name="PauseButton" Content="Pause" Click="Pause_Click" Margin="0,0,12,0" />
+                <Button x:Name="CopyButton" Content="Copy selectors" Click="Copy_Click" IsEnabled="False" Margin="0,0,18,0" />
+                <TextBlock x:Name="CaptureStatusText" Text="Move the pointer to an external window." VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            </VariableSizedWrapGrid>
+            <InfoBar x:Name="CaptureInfoBar" IsOpen="False" Severity="Warning" />
+            <Grid x:Name="InspectionGrid" ColumnSpacing="16" RowSpacing="16" SizeChanged="InspectionGrid_SizeChanged">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                <Border x:Name="WindowCard" Style="{StaticResource SurfaceCardStyle}" Padding="22">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Window" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock x:Name="WindowTitleText" Text="No external window captured" Style="{StaticResource SpyValue}" />
+                        <TextBlock x:Name="WindowClassText" Style="{StaticResource SpyValue}" />
+                        <TextBlock x:Name="ProcessText" Style="{StaticResource SpyValue}" />
+                        <TextBox x:Name="SelectorsTextBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" MinHeight="118" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="MouseCard" Grid.Column="1" Style="{StaticResource SurfaceCardStyle}" Padding="22">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Mouse position" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock x:Name="MouseScreenText" Text="Screen: —" Style="{StaticResource SpyValue}" />
+                        <TextBlock x:Name="MouseWindowText" Text="Window: —" Style="{StaticResource SpyValue}" />
+                        <TextBlock x:Name="MouseClientText" Text="Client: —" Style="{StaticResource SpyValue}" />
+                        <TextBlock x:Name="PixelColorText" Text="Color: —" Style="{StaticResource SpyValue}" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="ControlCard" Grid.Row="1" Style="{StaticResource SurfaceCardStyle}" Padding="22">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Control under mouse" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock x:Name="ControlClassText" Text="ClassNN: —" Style="{StaticResource SpyValue}" />
+                        <TextBlock x:Name="ControlText" Text="Text: —" Style="{StaticResource SpyValue}" />
+                        <TextBlock x:Name="ControlBoundsText" Text="Bounds: —" Style="{StaticResource SpyValue}" />
+                    </StackPanel>
+                </Border>
+                <Border x:Name="PositionCard" Grid.Row="1" Grid.Column="1" Style="{StaticResource SurfaceCardStyle}" Padding="22">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Window position" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock x:Name="WindowBoundsText" Text="Screen: —" Style="{StaticResource SpyValue}" />
+                        <TextBlock x:Name="ClientBoundsText" Text="Client: —" Style="{StaticResource SpyValue}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+            <Expander x:Name="WindowTextExpander" Header="Window text and status bar" HorizontalAlignment="Stretch">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Status bar" FontWeight="SemiBold" />
+                    <TextBlock x:Name="StatusBarText" Style="{StaticResource SpyValue}" />
+                    <TextBlock Text="Visible text" FontWeight="SemiBold" />
+                    <TextBlock x:Name="VisibleText" Style="{StaticResource SpyValue}" />
+                    <TextBlock Text="All text" FontWeight="SemiBold" />
+                    <TextBlock x:Name="AllWindowText" Style="{StaticResource SpyValue}" />
+                </StackPanel>
+            </Expander>
+            <TextBlock Text="Hold Ctrl or Shift to freeze updates. Some applications expose no Win32 control text." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

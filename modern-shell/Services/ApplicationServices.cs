@@ -9,12 +9,17 @@ internal sealed class ApplicationServices : IDisposable
     internal ScriptExecutionService Execution { get; }
     internal ScriptStartupService ScriptStartup { get; }
     internal WindowsStartupService WindowsStartup { get; } = new();
+    internal WindowSpyService WindowSpy { get; } = new();
+    internal CompilerService Compiler { get; }
+    internal DocumentationService Documentation { get; }
 
     /// <summary>Creates one instance of each shared service without redesigning the embedded runtime.</summary>
     internal ApplicationServices()
     {
         var locator = new AutoHotkeyRuntimeLocator(new EmbeddedAutoHotkeyRuntime());
         Integration = new AutoHotkeyIntegration(locator);
+        Compiler = new CompilerService(Integration, new EmbeddedCompiler());
+        Documentation = new DocumentationService(Integration);
         Execution = new ScriptExecutionService(() => Integration.FindRuntime(Settings.Read(@"Launcher\v2", "Build"))?.Path,
             new ScriptSessionStore());
         ScriptStartup = new ScriptStartupService(Catalog.RootDirectory, Settings, Execution);
@@ -32,5 +37,5 @@ internal sealed class ApplicationServices : IDisposable
     }
 
     /// <summary>Stops monitoring and detaches process handles while preserving running user scripts.</summary>
-    public void Dispose() { Catalog.Dispose(); Execution.Dispose(); }
+    public void Dispose() { Compiler.Dispose(); Catalog.Dispose(); Execution.Dispose(); }
 }

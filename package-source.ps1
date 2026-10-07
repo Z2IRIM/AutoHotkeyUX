@@ -12,7 +12,7 @@ if ($Incremental -and -not $PSBoundParameters.ContainsKey('OutputDirectory')) {
 function Test-PackSourcePath([string]$RelativePath) {
     $relative = $RelativePath.Replace('/', '\')
     $name = [IO.Path]::GetFileName($relative)
-    return $relative -notmatch '(^|\\)(\.git|\.agents|\.codex|\.aws|node_modules|bin|obj|artifacts|RuntimePayload|backups|tests?|testfixtures|\.verification)(\\|$)' -and
+    return $relative -notmatch '(^|\\)(\.git|\.agents|\.codex|\.aws|\.superpowers|node_modules|bin|obj|artifacts|RuntimePayload|ToolPayload|backups|tests?|testfixtures|\.verification)(\\|$)' -and
         $relative -notmatch '^tools\\ModernShell\.SmokeTests\\' -and
         $relative -notmatch '(^|\\)[^\\]*tests?[^\\]*\.(ahk|cs|ps1)$' -and
         $name -notmatch '^\.env(\.|$)' -and

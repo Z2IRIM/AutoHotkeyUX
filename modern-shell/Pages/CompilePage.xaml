@@ -1,0 +1,53 @@
+<Page x:Class="AutoHotkeyUX.Modern.Pages.CompilePage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="1080" Padding="44,32,44,48" Spacing="22">
+            <Button Content="←  Home / Tools" Click="Back_Click" />
+            <StackPanel Spacing="7">
+                <TextBlock Text="Compile" Style="{StaticResource PageTitleTextStyle}" />
+                <TextBlock Text="Create a standalone executable from an AutoHotkey v2 script." Style="{StaticResource PageSubtitleTextStyle}" />
+            </StackPanel>
+            <Border Style="{StaticResource SurfaceCardStyle}" Padding="24">
+                <StackPanel Spacing="18">
+                    <TextBlock Text="Source script" FontWeight="SemiBold" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBox x:Name="SourceTextBox" PlaceholderText="Choose an .ahk script" TextChanged="Source_Changed" />
+                        <Button x:Name="SourceBrowseButton" Grid.Column="1" Content="Browse" Tag="source" Click="BrowseInput_Click" />
+                    </Grid>
+                    <TextBlock Text="Output executable" FontWeight="SemiBold" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBox x:Name="OutputTextBox" PlaceholderText="Output path ending in .exe" TextChanged="Output_Changed" />
+                        <Button x:Name="OutputBrowseButton" Grid.Column="1" Content="Browse" Click="BrowseOutput_Click" />
+                    </Grid>
+                    <TextBlock Text="Icon (optional)" FontWeight="SemiBold" />
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBox x:Name="IconTextBox" PlaceholderText="Default AutoHotkey icon" />
+                        <Button x:Name="IconBrowseButton" Grid.Column="1" Content="Browse" Tag="icon" Click="BrowseInput_Click" />
+                    </Grid>
+                    <TextBlock Text="Architecture" FontWeight="SemiBold" />
+                    <ComboBox x:Name="ArchitectureComboBox" SelectedIndex="0" HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="64-bit" /><ComboBoxItem Content="32-bit" />
+                    </ComboBox>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button x:Name="CompileButton" Content="Compile" Style="{StaticResource AccentButtonStyle}" Click="Compile_Click" />
+                        <Button x:Name="CancelButton" Content="Cancel" IsEnabled="False" Click="Cancel_Click" />
+                        <ProgressRing x:Name="BuildProgressRing" Width="24" Height="24" IsActive="False" Visibility="Collapsed" />
+                    </StackPanel>
+                    <TextBlock x:Name="BuildStatusText" Text="AutoHotkey v2.0.29 · Ready" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+            </Border>
+            <InfoBar x:Name="ReplaceInfoBar" Severity="Warning" Title="Output already exists" IsOpen="False">
+                <InfoBar.ActionButton><Button Content="Replace existing output" Click="Replace_Click" /></InfoBar.ActionButton>
+            </InfoBar>
+            <InfoBar x:Name="BuildInfoBar" IsOpen="False" Severity="Error" />
+            <TextBlock Text="Build output" Style="{StaticResource SectionTitleTextStyle}" />
+            <TextBox x:Name="BuildLogTextBox" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap" FontFamily="Consolas" MinHeight="180" MaxHeight="420" />
+            <Button x:Name="OpenOutputButton" Content="Open output folder" Visibility="Collapsed" Click="OpenOutput_Click" />
+            <TextBlock Text="Build directives and FileInstall may be processed. The executable is saved without running it." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

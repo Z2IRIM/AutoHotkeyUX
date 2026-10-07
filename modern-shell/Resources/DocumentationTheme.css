@@ -1,0 +1,24 @@
+html, body { background: var(--ahk-bg) !important; color: var(--ahk-text) !important; }
+body, button, input, select { font-family: "Segoe UI Variable", "Segoe UI", sans-serif !important; font-size: 15px !important; }
+body { line-height: 1.65 !important; }
+h1, h2, h3, h4 { color: var(--ahk-text) !important; font-weight: 600 !important; }
+h1 { font-size: 28px !important; }
+h2 { font-size: 20px !important; }
+a, a:visited { color: var(--ahk-link) !important; }
+pre, code, .Syntax { background: var(--ahk-code) !important; color: var(--ahk-text) !important; font-family: Consolas, monospace !important; }
+pre, .Syntax { border: 1px solid var(--ahk-border) !important; border-radius: 8px !important; padding: 14px !important; }
+table, th, td { border-color: var(--ahk-border) !important; }
+th { background: var(--ahk-code) !important; }
+button, input, select { background: var(--ahk-code) !important; color: var(--ahk-text) !important; border-color: var(--ahk-border) !important; border-radius: 5px !important; }
+#ahklogo { display: none !important; }
+#sidebar, #left, .sidebar, .toc, #head, #header { background: var(--ahk-bg) !important; color: var(--ahk-text) !important; border-color: var(--ahk-border) !important; }
+.lyt_head, .lyt_left, .lyt_right, .lyt_head .dropdown ul { background: var(--ahk-bg) !important; color: var(--ahk-text) !important; border-color: var(--ahk-border) !important; }
+.lyt_head { box-shadow: none !important; border-bottom: 1px solid var(--ahk-border); }
+.lyt_head button { color: var(--ahk-text) !important; }
+.lyt_head .selected { background: var(--ahk-selection) !important; }
+.lyt_tools .online, .lyt_tools .chm, .lyt_tools .main { display: none !important; }
+.lyt_dragbar { background: var(--ahk-border) !important; }
+* { scrollbar-color: var(--ahk-border) var(--ahk-bg) !important; }
+.note, .warning, .info { background: var(--ahk-code) !important; color: var(--ahk-text) !important; border-color: var(--ahk-border) !important; }
+hr { border-color: var(--ahk-border) !important; }
+::selection { background: var(--ahk-selection); }

@@ -1,4 +1,5 @@
 using AutoHotkeyUX.Modern.Services;
+using AutoHotkeyUX.Modern.Models;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System.Diagnostics;
@@ -11,6 +12,7 @@ public sealed partial class HomePage : Page
     private readonly Action _openNewScript;
     private readonly Action _openSettings;
     private readonly ScriptCatalogService _catalog;
+    private readonly Action<WorkspaceTool> _openTool;
     private bool _subscribed;
 
     /// <summary>
@@ -20,13 +22,15 @@ public sealed partial class HomePage : Page
         AutoHotkeyIntegration integration,
         Action openNewScript,
         Action openSettings,
-        ScriptCatalogService catalog)
+        ScriptCatalogService catalog,
+        Action<WorkspaceTool> openTool)
     {
         InitializeComponent();
         _integration = integration;
         _openNewScript = openNewScript;
         _openSettings = openSettings;
         _catalog = catalog;
+        _openTool = openTool;
         Loaded += HomePage_Loaded;
         Unloaded += HomePage_Unloaded;
     }
@@ -112,27 +116,27 @@ public sealed partial class HomePage : Page
     }
 
     /// <summary>
-    /// Opens Window Spy and surfaces launch failures inside the page.
+    /// Navigates to the app-owned Window Spy page.
     /// </summary>
     private void WindowSpyButton_Click(object sender, RoutedEventArgs e)
     {
-        RunAction("Window Spy", _integration.OpenWindowSpy);
+        _openTool(WorkspaceTool.WindowSpy);
     }
 
     /// <summary>
-    /// Opens Ahk2Exe or the existing compiler installer.
+    /// Navigates to the app-owned compiler form.
     /// </summary>
     private void CompileButton_Click(object sender, RoutedEventArgs e)
     {
-        RunAction("Compile", _integration.OpenCompiler);
+        _openTool(WorkspaceTool.Compile);
     }
 
     /// <summary>
-    /// Opens local AutoHotkey help when available and otherwise the official online docs.
+    /// Navigates to the app-owned offline documentation page.
     /// </summary>
     private void DocumentationButton_Click(object sender, RoutedEventArgs e)
     {
-        RunAction("Documentation", _integration.OpenDocumentation);
+        _openTool(WorkspaceTool.Documentation);
     }
 
     /// <summary>

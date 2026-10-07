@@ -1,4 +1,5 @@
 using AutoHotkeyUX.Modern.Pages;
+using AutoHotkeyUX.Modern.Models;
 using AutoHotkeyUX.Modern.Services;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;
@@ -17,6 +18,9 @@ public sealed partial class MainWindow : Window
     private NewScriptPage? _newScriptPage;
     private SettingsPage? _settingsPage;
     private ScriptsPage? _scriptsPage;
+    private WindowSpyPage? _windowSpyPage;
+    private CompilePage? _compilePage;
+    private DocumentationPage? _documentationPage;
     internal bool HasCustomIcon { get; private set; }
 
     /// <summary>
@@ -80,6 +84,9 @@ public sealed partial class MainWindow : Window
         {
             PageHost.Content = tag switch
             {
+                "spy" => _windowSpyPage ??= new WindowSpyPage(_services.WindowSpy, this, () => NavigateTo("home")),
+                "compile" => _compilePage ??= new CompilePage(_services.Compiler, _integration, () => NavigateTo("home")),
+                "docs" => _documentationPage ??= new DocumentationPage(_services.Documentation, this, () => NavigateTo("home")),
                 "new" => _newScriptPage ??= new NewScriptPage(_integration),
                 "settings" => _settingsPage ??= new SettingsPage(_integration, _settings, _services.WindowsStartup, _services.ScriptStartup, _services.Execution),
                 "scripts" => _scriptsPage ??= new ScriptsPage(_services.Catalog, _services.Execution, _services.ScriptStartup, _integration, _settings),
@@ -87,10 +94,11 @@ public sealed partial class MainWindow : Window
                     _integration,
                     () => NavigateTo("new"),
                     () => NavigateTo("settings"),
-                    _services.Catalog)
+                    _services.Catalog,
+                    OpenTool)
             };
 
-            SetSelectedNavigation(tag);
+            SetSelectedNavigation(tag is "spy" or "compile" or "docs" ? "home" : tag);
 
             if (tag == "home")
             {
@@ -107,6 +115,10 @@ public sealed partial class MainWindow : Window
             PageHost.Content = CreateFallbackContent(tag, ex);
         }
     }
+
+    /// <summary>Translates a Home tool intent into a route owned by the existing content host.</summary>
+    private void OpenTool(WorkspaceTool tool) => NavigateTo(tool switch
+    { WorkspaceTool.WindowSpy => "spy", WorkspaceTool.Compile => "compile", WorkspaceTool.Documentation => "docs", _ => "home" });
 
     /// <summary>
     /// Keeps the custom sidebar mutually exclusive using the native RadioButton group state.

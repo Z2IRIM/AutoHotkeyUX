@@ -31,7 +31,7 @@ public partial class App : Application
         _arguments = arguments;
         _singleInstance = singleInstance;
         _dispatcher = DispatcherQueue.GetForCurrentThread();
-        _silent = arguments.Contains("--background") || arguments.Contains("--verify-ui");
+        _silent = arguments.Contains("--background") || arguments.Contains("--verify-ui") || arguments.Contains("--verify-tools");
         try
         {
             InitializeComponent();
@@ -94,10 +94,13 @@ public partial class App : Application
                 catch (Exception ex) { ReportStartupFailure("Activation failed", ex); }
             }));
             var verifyIndex = Array.IndexOf(_arguments, "--verify-ui");
+            var verifyToolsIndex = Array.IndexOf(_arguments, "--verify-tools");
+            if (verifyToolsIndex >= 0) verifyIndex = verifyToolsIndex;
             if (verifyIndex >= 0 && verifyIndex + 1 < _arguments.Length)
             {
                 ShowWindow();
-                var report = await _window.VerifyPagesAsync();
+                var report = _arguments.Contains("--verify-docs-only") ? await _window.VerifyDocumentationAsync()
+                    : verifyToolsIndex >= 0 ? await _window.VerifyToolsAsync() : await _window.VerifyPagesAsync();
                 File.WriteAllText(_arguments[verifyIndex + 1], JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
                 ExitManager();
             }
@@ -105,9 +108,11 @@ public partial class App : Application
         catch (Exception ex)
         {
             Program.ExitCode = 1;
-            ReportStartupFailure(_arguments.Contains("--verify-ui") ? "UI verification failed" : "MainWindow startup failed", ex);
+            ReportStartupFailure(_arguments.Contains("--verify-tools") ? "Tool verification failed"
+                : _arguments.Contains("--verify-ui") ? "UI verification failed" : "MainWindow startup failed", ex);
             _quitting = true;
             if (_shortcuts is not null) await _shortcuts.DrainAsync();
+            if (_services is not null) await _services.Compiler.CancelAndDrainAsync();
             _closeAllowed = true;
             _tray?.Dispose();
             _services?.Dispose();
@@ -121,7 +126,7 @@ public partial class App : Application
     private void ShowWindow()
     {
         if (_quitting || _window is null) return;
-        if (!_arguments.Contains("--verify-ui")) _silent = false;
+        if (!_arguments.Contains("--verify-ui") && !_arguments.Contains("--verify-tools")) _silent = false;
         _window.AppWindow.Show();
         if (_window.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter
             && presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized)
@@ -159,6 +164,7 @@ public partial class App : Application
         if (_quitting) return;
         _quitting = true;
         if (_shortcuts is not null) await _shortcuts.DrainAsync();
+        if (_services is not null) await _services.Compiler.CancelAndDrainAsync();
         _closeAllowed = true;
         _tray?.Dispose();
         _services?.Dispose();
