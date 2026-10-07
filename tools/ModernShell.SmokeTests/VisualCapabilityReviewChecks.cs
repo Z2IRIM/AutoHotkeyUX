@@ -53,6 +53,13 @@ internal static class VisualCapabilityReviewChecks
             Require(VisualHotkeyConflicts.CheckBuiltInAgainstRunning(ShortcutPreferences.Default, [unknown]) is not null, "unknown live shortcut was skipped for builtin mutation");
             Require(VisualHotkeyConflicts.CheckBuiltInAgainstRunning(ShortcutPreferences.Default with { TerminalEnabled = false, ArchiveEnabled = false }, [unknown]) is null,
                 "unknown registration blocked turning all builtin bindings off");
+            var startup = new ScriptStartupService(root, settings, service);
+            var preferences = new ShortcutPreferencesService(settings, startup, service, _ => "blocked binding change");
+            await preferences.SaveAsync(ShortcutPreferences.Default with { TerminalWidth = 880 });
+            Require(preferences.Saved.TerminalWidth == 880, "non-key settings were blocked by shortcut uncertainty");
+            var preferenceRejected = false;
+            try { await preferences.SaveAsync(preferences.Saved with { TerminalShortcut = "alt-middle" }); } catch (InvalidOperationException ex) when (ex.Message.Contains("blocked")) { preferenceRejected = true; }
+            Require(preferenceRejected && preferences.Saved.TerminalShortcut == "alt-left", "rejected shortcut mutation changed saved state");
         }
         finally { service.Stop(old.ScriptPath); service.Stop(second.ScriptPath); service.Dispose(); Registry.CurrentUser.DeleteSubKeyTree(registry, false); }
     }
