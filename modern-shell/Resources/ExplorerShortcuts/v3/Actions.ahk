@@ -8,8 +8,10 @@ QuotePath(path) {
 ; Places the window bottom above the pointer and clamps the rectangle to the clicked monitor's work area.
 GetPopupRectangle(x, y, width, height, work, gap := 12, position := "above") {
     width := Min(width, work.Right - work.Left), height := Min(height, work.Bottom - work.Top)
-    desiredX := position = "center" ? work.Left + (work.Right - work.Left - width) / 2 : x - width / 2
-    desiredY := position = "center" ? work.Top + (work.Bottom - work.Top - height) / 2 : y - height - gap
+    desiredX := position = "center" ? work.Left + (work.Right - work.Left - width) / 2
+        : position = "left" ? x - width - gap : position = "right" ? x + gap : x - width / 2
+    desiredY := position = "center" ? work.Top + (work.Bottom - work.Top - height) / 2
+        : position = "below" ? y + gap : position = "left" || position = "right" ? y - height / 2 : y - height - gap
     return {X: Max(work.Left, Min(Round(desiredX), work.Right - width)),
         Y: Max(work.Top, Min(Round(desiredY), work.Bottom - height)), Width: width, Height: height}
 }
@@ -25,14 +27,14 @@ GetClickMonitor(x, y) {
 }
 
 ; Creates a distinct terminal window at the pointer, then briefly watches only that newly created window.
-OpenTerminal(directory, x, y, report := "", preferences := false) {
+OpenTerminal(directory, x, y, report := "", preferences := false, completion := false) {
     launch := GetTerminalLaunchState()
     if !preferences
         preferences := GetShortcutRuntime().Snapshot
     if launch.Pending {
         if launch.Queue.Length >= 4
             throw Error("The terminal launch queue is full. Wait for the current window to open.")
-        launch.Queue.Push({Directory: directory, X: x, Y: y, Report: report, Preferences: preferences})
+        launch.Queue.Push({Directory: directory, X: x, Y: y, Report: report, Preferences: preferences, Completion: completion})
         return
     }
     if !DirExist(directory)
@@ -47,16 +49,18 @@ OpenTerminal(directory, x, y, report := "", preferences := false) {
     for className in ["CASCADIA_HOSTING_WINDOW_CLASS", "ConsoleWindowClass"]
         for window in WinGetList("ahk_class " className)
             existing[window] := true
-    title := "AutoHotkey · " directory
+    launchId := "AutoHotkeyUX-" DllCall("GetCurrentProcessId") "-" A_TickCount "-" Random(1, 2147483647)
+    title := "AutoHotkey · " directory " [" launchId "]"
     job := {X: x, Y: y, Work: work, Rectangle: rectangle, Existing: existing, Title: title,
         Started: A_TickCount, Report: report, Pid: 0, Terminal: false, Directory: directory,
-        Gap: Round(preferences.Gap * scale), Position: preferences.Position}
+        Gap: Round(preferences.Gap * scale), Position: preferences.Position, Completion: completion,
+        Timeout: completion ? completion.TimeoutMs : 4000}
     terminal := EnvGet("LOCALAPPDATA") "\Microsoft\WindowsApps\wt.exe"
     if preferences.Program = "wt" && !FileExist(terminal)
         throw Error("Windows Terminal is unavailable. Install it or choose Auto / Windows PowerShell.")
     if preferences.Program != "powershell" && FileExist(terminal) {
         try {
-            name := "AutoHotkeyUX-" DllCall("GetCurrentProcessId") "-" A_TickCount
+            name := launchId
             command := QuotePath(terminal) " -w " name " --pos " rectangle.X "," rectangle.Y
                 . " --size 96,24 new-tab -d " QuotePath(StrReplace(directory, ";", "\;"))
                 . " --title " QuotePath(StrReplace(title, ";", "\;")) " --suppressApplicationTitle"
@@ -121,8 +125,12 @@ OpenQueuedTerminal() {
     if launch.Pending || !launch.Queue.Length
         return
     queued := launch.Queue.RemoveAt(1)
-    try OpenTerminal(queued.Directory, queued.X, queued.Y, queued.Report, queued.Preferences)
+    try OpenTerminal(queued.Directory, queued.X, queued.Y, queued.Report, queued.Preferences, queued.Completion)
     catch Error as exception {
+        if queued.Completion {
+            queued.Completion.Error := exception.Message
+            queued.Completion.Done := true
+        }
         ReportTerminalResult(queued.Directory, false, 0, exception.Message)
         LogShortcut("terminal-error", exception.Message)
         if launch.Queue.Length
@@ -144,6 +152,10 @@ PositionTerminal(job) {
             rectangle := GetPopupRectangle(job.X, job.Y, width, height, job.Work, job.Gap, job.Position)
             WinMove rectangle.X, rectangle.Y,,, "ahk_id " window
             WinGetPos &actualX, &actualY, &width, &height, "ahk_id " window
+            if job.Completion {
+                job.Completion.WindowId := window
+                job.Completion.Done := true
+            }
             FinishTerminalLaunch(job)
             LogShortcut("terminal-ready", "readyMs=" (A_TickCount - job.Started) " x=" actualX " y=" actualY)
             if job.Report != "" {
@@ -158,7 +170,11 @@ PositionTerminal(job) {
                 (job.Terminal ? "Windows Terminal" : "Windows PowerShell") " opened at " actualX ", " actualY ".")
             return
         }
-        if A_TickCount - job.Started > 4000 {
+        if A_TickCount - job.Started > job.Timeout {
+            if job.Completion {
+                job.Completion.Error := "Timed out locating the new terminal window."
+                job.Completion.Done := true
+            }
             FinishTerminalLaunch(job)
             LogShortcut("terminal-position", "Timed out locating the new terminal window; initial position was requested.")
             if job.Report != "" {
@@ -169,6 +185,10 @@ PositionTerminal(job) {
         }
     }
     catch Error as exception {
+        if job.Completion {
+            job.Completion.Error := exception.Message
+            job.Completion.Done := true
+        }
         FinishTerminalLaunch(job)
         LogShortcut("terminal-position", exception.Message)
         if job.Report != "" {

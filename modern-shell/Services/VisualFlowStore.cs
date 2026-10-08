@@ -85,6 +85,7 @@ internal sealed class VisualFlowStore
         if (current.Id != opened.Document.Id || current.Revision != opened.Document.Revision)
             throw new IOException("The saved workflow revision changed. Reopen before editing.");
         var generated = Prepare(flow with { Revision = checked(current.Revision + 1) });
+        if (current.SchemaVersion < 3 && generated.Document.SchemaVersion == 3) BackupUpgrade(path, current, before, companionBefore);
         var pending = new VisualFlowPending(path, before, companionBefore, generated.Source, generated.Sidecar);
         pending.Stage();
         pending.Apply(source, sidecar);
@@ -125,6 +126,22 @@ internal sealed class VisualFlowStore
         var claim = TryClaim(path) ?? throw new IOException("This workflow is being saved. Wait before running or restarting it.");
         try { CheckRecovery(path); return claim; }
         catch { claim.Dispose(); throw; }
+    }
+
+    /// <summary>Durably preserves the exact legacy pair before the first v3 save changes its generator contract.</summary>
+    private static void BackupUpgrade(string path, VisualFlowDocument previous, byte[] source, byte[] sidecar)
+    {
+        var root = path + ".flow.backups";
+        Directory.CreateDirectory(root);
+        if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0) throw new IOException("Workflow backup directory cannot be a link.");
+        var folder = Path.Combine(root, $"v{previous.SchemaVersion}-r{previous.Revision}-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(folder);
+        foreach (var item in new[] { (Name: Path.GetFileName(path), Bytes: source), (Name: Path.GetFileName(path) + ".flow.json", Bytes: sidecar) })
+        {
+            using var copy = new FileStream(Path.Combine(folder, item.Name), FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            copy.Write(item.Bytes); copy.Flush(true);
+        }
+        ServiceDiagnostics.Write("VisualFlow", "Preserved pre-v3 workflow pair at " + folder);
     }
 
     /// <summary>Builds both intended byte arrays before touching any destination file.</summary>

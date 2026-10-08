@@ -12,9 +12,11 @@ internal sealed class VisualExecutionSource
     internal string Path { get; }
     internal string Hash { get; }
     internal FlowTrigger Trigger { get; }
+    internal bool SupportsReady { get; }
+    internal string ReadyPath => Path + ".ready";
     /// <summary>Retains the read-shared handle until the interpreter exits or the manager detaches.</summary>
-    private VisualExecutionSource(string path, string hash, FlowTrigger trigger, FileStream stream)
-    { Path = path; Hash = hash; Trigger = trigger; _stream = stream; _root = System.IO.Path.GetDirectoryName(System.IO.Path.GetDirectoryName(path)!)!; }
+    private VisualExecutionSource(string path, string hash, FlowTrigger trigger, FileStream stream, bool supportsReady)
+    { Path = path; Hash = hash; Trigger = trigger; _stream = stream; SupportsReady = supportsReady; _root = System.IO.Path.GetDirectoryName(System.IO.Path.GetDirectoryName(path)!)!; }
 
     /// <summary>Creates a private immutable copy only for an intact visual pair; ordinary/manual code keeps its original path.</summary>
     internal static VisualExecutionSource? Capture(string sourcePath, string root)
@@ -38,7 +40,7 @@ internal sealed class VisualExecutionSource
         {
             stream = new(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.Read);
             stream.Write(bytes); stream.Flush(true);
-            return new(path, opened.SourceHash, opened.Document.Trigger, stream);
+            return new(path, opened.SourceHash, opened.Document.Trigger, stream, opened.Document.SchemaVersion == 3);
         }
         catch { if (stream is not null) { stream.Dispose(); File.Delete(path); } if (!Directory.EnumerateFileSystemEntries(folder).Any()) Directory.Delete(folder); throw; }
     }
@@ -51,8 +53,9 @@ internal sealed class VisualExecutionSource
         var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         try
         {
-            if (VisualFlowGenerator.Hash(Read(stream)) != hash) throw new InvalidDataException("The visual execution snapshot changed.");
-            return new(path, hash, trigger, stream);
+            var bytes = Read(stream);
+            if (VisualFlowGenerator.Hash(bytes) != hash) throw new InvalidDataException("The visual execution snapshot changed.");
+            return new(path, hash, trigger, stream, VisualFlowCodec.Utf8.GetString(bytes).StartsWith("; AutoHotkey UX visual workflow v3\r\n", StringComparison.Ordinal));
         }
         catch { stream.Dispose(); throw; }
     }
@@ -71,7 +74,7 @@ internal sealed class VisualExecutionSource
         try
         {
             if (!Owns(Path, _root) || !OrdinaryDirectories(Path, _root)) throw new IOException("Snapshot cleanup refused a changed directory identity.");
-            File.Delete(Path); Directory.Delete(System.IO.Path.GetDirectoryName(Path)!, recursive: false);
+            File.Delete(ReadyPath); File.Delete(Path); Directory.Delete(System.IO.Path.GetDirectoryName(Path)!, recursive: false);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         { ServiceDiagnostics.Write("VisualFlow", "Could not remove completed snapshot " + Path, ex); }

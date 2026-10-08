@@ -15,7 +15,7 @@ internal static class VisualFlowValidationV3
         if (p.Then is null || p.Else is null) Fail("Invalid branch parameters.");
         if (p.Terminal is not null && action.Kind != FlowActionKind.OpenTerminal
             || p.Extraction is not null && action.Kind != FlowActionKind.ExtractArchive
-            || p.Context is not null && action.Kind is not (FlowActionKind.GetClickedObject or FlowActionKind.GetSelectedObject or FlowActionKind.GetCurrentDirectory or FlowActionKind.GetPathProperties)
+            || p.Context is not null && action.Kind is not (FlowActionKind.GetClickedObject or FlowActionKind.GetSelectedObject or FlowActionKind.GetCurrentDirectory)
             || p.JoinPath is not null && action.Kind != FlowActionKind.JoinPath
             || p.Directory is not null && action.Kind != FlowActionKind.CreateDirectory
             || p.Stop is not null && action.Kind != FlowActionKind.StopWorkflow
@@ -40,6 +40,8 @@ internal static class VisualFlowValidationV3
             else if (p.Input is not null) Fail("This action uses composed text or stop options instead of a path input.");
         }
         foreach (var input in VisualFlowSchema.Inputs(action)) VisualFlowValidation.ValidateInput(flow, action, input);
+        if (action.Kind == FlowActionKind.IfElse && p.Condition is FlowConditionKind.IsFolder or FlowConditionKind.IsFile or FlowConditionKind.IsArchive or FlowConditionKind.PathExists)
+            VisualFlowValidation.ValidatePathInput(p.Input!, "condition path");
         if (p.Input is { Kind: FlowInputKind.Result } target && target.Field is FlowResultField.Exists or FlowResultField.Success or FlowResultField.MouseX or FlowResultField.MouseY)
             Fail("Choose a path or text input rather than a boolean or coordinate result.");
         if (p.Terminal is { } terminal && (!Enum.IsDefined(terminal.Mode) || !Enum.IsDefined(terminal.Program) || !Enum.IsDefined(terminal.Position)
@@ -52,6 +54,8 @@ internal static class VisualFlowValidationV3
             if (archive.Mode == FlowConfigurationMode.Custom && (archive.Destination == FlowArchiveDestination.Custom) != (p.Destination is not null)) Fail("Choose a custom destination source, or use the archive parent folder.");
             if (archive.Naming == FlowArchiveNaming.ArchiveName && archive.Name.Parts.Length > 0) Fail("Archive-name mode cannot carry a custom name expression.");
             if (archive.Naming == FlowArchiveNaming.Composition && archive.Name.Parts.Length == 0) Fail("Add at least one name part.");
+            if (archive.Naming == FlowArchiveNaming.Composition && archive.Name.Parts.All(input => input.Kind == FlowInputKind.Literal)
+                && string.IsNullOrWhiteSpace(string.Concat(archive.Name.Parts.Select(input => input.Literal)))) Fail("The custom folder name cannot be empty.");
             foreach (var input in archive.Name.Parts)
                 if (input.Kind == FlowInputKind.Literal && (input.Literal.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || input.Literal.Any(char.IsControl))) Fail("Folder-name parts cannot contain separators or reserved characters.");
         }

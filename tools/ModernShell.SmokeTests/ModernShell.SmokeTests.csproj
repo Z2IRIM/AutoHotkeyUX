@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="..\..\modern-shell\Resources\VisualFlow\v2\*.ahk" LogicalName="AutoHotkeyUX.Modern.VisualFlow.V2.%(Filename).ahk" />
+    <EmbeddedResource Include="..\..\modern-shell\Resources\VisualFlow\v3\*.ahk" LogicalName="AutoHotkeyUX.Modern.VisualFlow.V3.%(Filename).ahk" />
     <EmbeddedResource Include="..\..\modern-shell\Resources\VisualFlow.Runtime.ahk" LogicalName="AutoHotkeyUX.Modern.VisualFlow.Runtime.ahk" />
     <PackageReference Include="SharpCompress" Version="0.50.3" />
     <Compile Include="..\..\modern-shell\Models\*.cs" Link="Models\%(Filename)%(Extension)" />
@@ -27,6 +28,7 @@
     <Compile Include="..\..\modern-shell\Services\ScriptStartupService.cs" Link="Services\ScriptStartupService.cs" />
     <Compile Include="..\..\modern-shell\Services\ExplorerShortcutInstaller.cs" Link="Services\ExplorerShortcutInstaller.cs" />
     <Compile Include="..\..\modern-shell\Services\ShortcutCommandService.cs" Link="Services\ShortcutCommandService.cs" />
+    <Compile Include="..\..\modern-shell\Services\ShortcutCommandService.Workflow.cs" Link="Services\ShortcutCommandService.Workflow.cs" />
     <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.ahk" />
     <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts\v3\Shell.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Shell.ahk" />
     <EmbeddedResource Include="..\..\modern-shell\Resources\ExplorerShortcuts\v3\Actions.ahk" LogicalName="AutoHotkeyUX.Modern.ExplorerShortcuts.Actions.ahk" />

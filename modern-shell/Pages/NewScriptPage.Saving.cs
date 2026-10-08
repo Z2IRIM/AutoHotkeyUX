@@ -76,7 +76,7 @@ public sealed partial class NewScriptPage
     private async void NewWorkflow_Click(object sender, RoutedEventArgs e)
     {
         if (_busy || !await CanReplaceDraftAsync(XamlRoot)) return;
-        _opened = null; _session.Load(VisualEditorSession.DefaultDocument()); _insertion = default; _branchSelection = null;
+        _opened = null; _session.Load(VisualFlowExamples.Blank()); _insertion = default; _branchSelection = null;
         _rendering = true; ScriptNameTextBox.Text = "QuickActions"; ScriptLocationTextBox.Text = _services.Catalog.RootDirectory; _rendering = false;
         _baseline = _session.Document; _baselineName = ScriptNameTextBox.Text; _baselineDirectory = ScriptLocationTextBox.Text;
         PageTitle.Text = "Build a workflow"; SavedActions.Visibility = Visibility.Collapsed; CreateInfoBar.IsOpen = false; SetEditingEnabled(true); RenderDocument();

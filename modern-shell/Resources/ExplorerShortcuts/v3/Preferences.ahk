@@ -2,8 +2,18 @@
 
 ; Provides one cached snapshot; hooks never poll settings or enumerate files.
 GetShortcutRuntime() {
-    static runtime := {Key: "HKCU\Software\AutoHotkey\Modern", Token: "", Snapshot: false, Registered: Map()}
+    static runtime := {Key: ShortcutRegistryKey(), Token: "", Snapshot: false, Registered: Map()}
     return runtime
+}
+
+; Carries the launching manager's settings owner into its child interpreter, including isolated diagnostics.
+ShortcutRegistryKey() {
+    key := EnvGet("AUTOHOTKEYUX_FLOW_KEY")
+    if key = ""
+        return "HKCU\Software\AutoHotkey\Modern"
+    if StrLen(key) > 512 || !RegExMatch(key, "i)^HKCU\\Software\\[a-z0-9_.\\-]+$")
+        throw Error("The manager settings context is invalid.")
+    return key
 }
 
 ; Matches the immutable default snapshot and schema shared with the manager codec.
@@ -60,7 +70,9 @@ ParseShortcutPreferences(text) {
 }
 
 ; Loads the snapshot once, registers only the supported context variants and publishes a transient endpoint.
-InitializeShortcutPreferences(key := "HKCU\Software\AutoHotkey\Modern") {
+InitializeShortcutPreferences(key := "") {
+    if key = ""
+        key := GetShortcutRuntime().Key
     runtime := GetShortcutRuntime(), runtime.Key := key
     try runtime.Snapshot := ParseShortcutPreferences(RegRead(key, "ShortcutPreferences", ""))
     catch Error as exception {

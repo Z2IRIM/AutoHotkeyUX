@@ -19,7 +19,7 @@ public sealed partial class NewScriptPage
             return new { Panel = panel.Name, X = position.X, Y = position.Y, Width = panel.ActualWidth, Height = panel.ActualHeight };
         }).ToArray();
         foreach (var category in ActionLibrary.Children.OfType<Button>())
-            if (category.Flyout is not MenuFlyout { Items.Count: 4 })
+            if (category.Flyout is not MenuFlyout)
                 throw new InvalidOperationException("An action category is missing its floating menu.");
         foreach (var container in new FrameworkElement[] { DetailsGrid, PropertiesPanel, FlowPanel, LibraryPanel })
             CheckVisibleBounds(container, container);
@@ -77,6 +77,7 @@ public sealed partial class NewScriptPage
         await VerifyPropertyEditorsAsync();
         ScopeCombo.SelectedIndex = 1;
         await Task.Delay(60);
+        RefreshValidation(generateSource: true);
         if (_session.Document.Trigger.Application != "explorer.exe" || !ScriptPreviewTextBox.Text.Contains("#HotIf")) throw new InvalidOperationException("Native active-application scope failed.");
         await SaveDraftAsync();
         if (_opened is null || SaveButton.IsEnabled || _services.Execution.Snapshot().Count != 0) throw new InvalidOperationException("Native create failed or implicitly ran the workflow.");

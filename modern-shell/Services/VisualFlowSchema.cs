@@ -25,6 +25,20 @@ internal static class VisualFlowSchema
     /// <summary>Adds operation defaults only when an editing action explicitly introduces v3 semantics.</summary>
     internal static VisualFlowDocument Upgrade(VisualFlowDocument flow) => flow with { SchemaVersion = 3, Actions = UpgradeActions(flow.Actions) };
 
+    /// <summary>Transforms sources in the same stable order used by portable preset slots.</summary>
+    internal static FlowAction MapInputs(FlowAction action, Func<FlowInput, FlowInput> map)
+    {
+        if (action.Parameters is not { } p) return action;
+        FlowInput? Map(FlowInput? input) => input is null ? null : map(input);
+        var input = Map(p.Input); var argument = Map(p.ArgumentInput); var working = Map(p.WorkingDirectory); var destination = Map(p.Destination);
+        var extraction = p.Extraction is { } archive ? archive with { Name = archive.Name with { Parts = archive.Name.Parts.Select(map).ToArray() } } : null;
+        var join = p.JoinPath is { } path ? path with { Segments = path.Segments.Select(map).ToArray() } : null;
+        var notification = p.Notification is { } notice ? notice with { Title = notice.Title with { Parts = notice.Title.Parts.Select(map).ToArray() },
+            Message = notice.Message with { Parts = notice.Message.Parts.Select(map).ToArray() } } : null;
+        return action with { Parameters = p with { Input = input, ArgumentInput = argument, WorkingDirectory = working, Destination = destination,
+            Extraction = extraction, JoinPath = join, Notification = notification } };
+    }
+
     /// <summary>Preserves older extraction destinations while adding immutable per-operation defaults.</summary>
     private static FlowAction[] UpgradeActions(FlowAction[] actions) => actions.Select(action =>
     {

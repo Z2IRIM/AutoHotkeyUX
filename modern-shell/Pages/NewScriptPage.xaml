@@ -91,6 +91,8 @@
                     <StackPanel Spacing="14">
                         <TextBlock Text="Properties" Style="{StaticResource SectionTitleTextStyle}" />
                         <TextBlock x:Name="SelectedTitleText" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <ScrollViewer x:Name="PropertiesScroll" Height="600" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Spacing="12">
                         <StackPanel x:Name="TriggerFields" Spacing="12">
                             <ComboBox x:Name="TriggerKindCombo" Header="When to run" HorizontalAlignment="Stretch" SelectionChanged="TriggerInput_Changed">
                                 <ComboBoxItem Content="Keyboard shortcut" /><ComboBoxItem Content="When script starts" />
@@ -121,6 +123,13 @@
                             <TextBlock x:Name="ParameterHintText" FontSize="12" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             <StackPanel x:Name="ExtendedFields" Spacing="12" />
                         </StackPanel>
+                        </StackPanel>
+                        </ScrollViewer>
+                        <Grid x:Name="ActionTools" ColumnSpacing="8" Visibility="Collapsed">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Button x:Name="DuplicateActionButton" Content="Duplicate" Click="DuplicateAction_Click" HorizontalAlignment="Stretch" />
+                            <Button x:Name="SavePresetButton" Grid.Column="1" Content="Save preset" Click="SavePreset_Click" HorizontalAlignment="Stretch" />
+                        </Grid>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -129,6 +138,20 @@
             <Expander x:Name="CodeExpander" Header="Generated AutoHotkey code" HorizontalAlignment="Stretch" IsExpanded="False">
                 <TextBox x:Name="ScriptPreviewTextBox" IsReadOnly="True" AcceptsReturn="True" FontFamily="Consolas" FontSize="13" MinHeight="160" MaxHeight="280"
                     TextWrapping="NoWrap" ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto" AutomationProperties.Name="Generated AutoHotkey source" />
+            </Expander>
+            <Expander x:Name="ExecutionExpander" Header="Workflow execution" HorizontalAlignment="Stretch" IsExpanded="False">
+                <StackPanel Spacing="10">
+                    <ComboBox x:Name="ExecutionRunCombo" Header="Invocation" HorizontalAlignment="Stretch" SelectionChanged="ExecutionRun_Changed" />
+                    <TextBlock x:Name="ExecutionEmptyText" Text="Run this saved workflow to see its steps and results." TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <ItemsControl x:Name="ExecutionItems">
+                        <ItemsControl.ItemTemplate><DataTemplate>
+                            <StackPanel Spacing="3" Margin="0,0,0,12">
+                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </DataTemplate></ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
             </Expander>
             <Border Style="{StaticResource SurfaceCardStyle}" Padding="16">
                 <StackPanel Spacing="12">

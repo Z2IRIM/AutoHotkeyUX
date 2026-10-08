@@ -13,7 +13,10 @@ public sealed partial class NewScriptPage
         if (_busy || sender is not FrameworkElement target) return;
         var menu = new MenuFlyout();
         foreach (var (label, name, create) in new (string, string, Func<VisualFlowDocument>)[]
-        { ("Terminal / extract at clicked object", "ExplorerActions", VisualFlowExamples.Explorer),
+        { ("Blank workflow", "QuickActions", VisualFlowExamples.Blank),
+          ("Terminal / extract at clicked object", "ExplorerActions", VisualFlowExamples.ExplorerV3),
+          ("Open terminal in current directory", "OpenTerminal", VisualFlowExamples.Terminal),
+          ("Extract selected archive", "ExtractArchive", VisualFlowExamples.Extract),
           ("Copy selected object's full path", "CopySelectedPath", VisualFlowExamples.CopyPath),
           ("Launch program, wait, activate and type", "LaunchAndType", VisualFlowExamples.LaunchAndType) })
         {

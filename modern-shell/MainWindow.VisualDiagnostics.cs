@@ -6,6 +6,23 @@ namespace AutoHotkeyUX.Modern;
 
 public sealed partial class MainWindow
 {
+    /// <summary>Checks only configurable forms, floating menus and paired saving in the isolated native instance.</summary>
+    internal async Task<object> VerifyConfigurableActionsAsync(string reportPath, bool withRuntime = false)
+    {
+        NavigateTo("new"); await Task.Delay(120);
+        var scale = RootLayout.XamlRoot.RasterizationScale;
+        AppWindow.Resize(new Windows.Graphics.SizeInt32((int)Math.Round(1600 * scale), (int)Math.Round(1000 * scale)));
+        await Task.Delay(120);
+        var menus = await _newScriptPage!.VerifyFlyoutLayoutAsync();
+        var form = await _newScriptPage.VerifyConfigurableActionsAsync();
+        var wide = _newScriptPage.VerifyWorkflowLayout(); await CaptureVisualAsync(Path.ChangeExtension(reportPath, "wide.png"));
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(MinimumWindowWidth, MinimumWindowHeight)); await Task.Delay(120);
+        var narrow = _newScriptPage.VerifyWorkflowLayout(); await CaptureVisualAsync(Path.ChangeExtension(reportPath, "narrow.png"));
+        var runtime = withRuntime ? await VerifyConfigurableRuntimeAsync() : null;
+        return new { Passed = true, Form = form, Menus = menus, Wide = wide, Narrow = narrow, StateDirectory = _services.StateDirectory,
+            Capture = "WinUI RenderTargetBitmap; excludes native caption and Mica", InterpreterExecuted = withRuntime, Runtime = runtime };
+    }
+
     /// <summary>Verifies the native workflow UI with isolated files and captures rendered evidence at wide and narrow sizes.</summary>
     internal async Task<object> VerifyVisualCreationAsync(string reportPath)
     {

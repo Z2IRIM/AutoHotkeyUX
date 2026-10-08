@@ -16,7 +16,13 @@ internal sealed class ArchiveExtractionService
 
     /// <summary>Stages complete extraction beside the source or under a chosen root, keeping unique per-archive output.</summary>
     internal string Extract(string archivePath, string? destinationRoot = null)
+        => Extract(archivePath, destinationRoot, null, AutoHotkeyUX.Modern.Models.FlowArchiveCollision.AutoSuffix);
+
+    /// <summary>Stages one configurable extraction using the same path, budget, checksum and commit protections.</summary>
+    internal string Extract(string archivePath, string? destinationRoot, string? outputName, AutoHotkeyUX.Modern.Models.FlowArchiveCollision collision)
     {
+        ValidateOutputName(outputName ?? "");
+        if (!Enum.IsDefined(collision)) throw new ArgumentException("Choose a supported collision policy.");
         var source = Path.GetFullPath(archivePath);
         if (!File.Exists(source)) throw new FileNotFoundException("The archive no longer exists.", source);
         var extension = Extensions.FirstOrDefault(extension => source.EndsWith(extension, StringComparison.OrdinalIgnoreCase))
@@ -27,6 +33,10 @@ internal sealed class ArchiveExtractionService
             throw new DirectoryNotFoundException("The chosen extraction folder does not exist or is unavailable.");
         var name = Path.GetFileName(source)[..^extension.Length];
         if (string.IsNullOrWhiteSpace(name)) name = "Extracted archive";
+        if (!string.IsNullOrEmpty(outputName)) name = outputName;
+        ValidateOutputName(name);
+        if (collision == AutoHotkeyUX.Modern.Models.FlowArchiveCollision.Error && (Directory.Exists(Path.Combine(parent, name)) || File.Exists(Path.Combine(parent, name))))
+            throw new IOException("The extraction destination already exists.");
         var staging = Path.Combine(parent, ".autohotkeyux-extract-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(staging);
         var committed = false;
@@ -61,7 +71,8 @@ internal sealed class ArchiveExtractionService
             for (var index = 0; index < 10000; index++)
             {
                 var destination = Path.Combine(parent, index == 0 ? name : $"{name} ({index})");
-                if (Directory.Exists(destination) || File.Exists(destination)) continue;
+                if (Directory.Exists(destination) || File.Exists(destination))
+                { if (collision == AutoHotkeyUX.Modern.Models.FlowArchiveCollision.Error) throw new IOException("The extraction destination already exists."); continue; }
                 try
                 {
                     CommitDirectory(staging, destination);
@@ -70,7 +81,7 @@ internal sealed class ArchiveExtractionService
                     return destination;
                 }
                 catch (IOException) when (Directory.Exists(destination) || File.Exists(destination))
-                { /* Another extraction claimed this name; retry a new name without overwriting it. */ }
+                { if (collision == AutoHotkeyUX.Modern.Models.FlowArchiveCollision.Error) throw; /* Another request claimed this name; choose a new one without overwriting. */ }
             }
             throw new IOException("No free destination folder name could be found.");
         }
@@ -87,6 +98,16 @@ internal sealed class ArchiveExtractionService
                 { ServiceDiagnostics.Write("Extraction", $"Could not remove partial extraction: {staging}", ex); }
             }
         }
+    }
+
+    /// <summary>Rejects traversal, reserved Windows names and ambiguous single-folder output names.</summary>
+    internal static void ValidateOutputName(string name)
+    {
+        if (name.Length == 0) return;
+        if (name.Length > 255 || string.IsNullOrWhiteSpace(name) || name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0
+            || name is "." or ".." || name.EndsWith('.') || name.EndsWith(' ') || name.Any(char.IsControl))
+            throw new InvalidDataException("Use one folder name of at most 255 characters without reserved characters.");
+        _ = ResolveDestination(Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar), name);
     }
 
     /// <summary>Retries bounded Windows sharing/access races at commit without repeating decompression or overwriting a destination.</summary>

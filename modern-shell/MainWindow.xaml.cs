@@ -91,7 +91,7 @@ public sealed partial class MainWindow : Window
                 "new" => _newScriptPage ??= new NewScriptPage(_services, () => NavigateTo("scripts")),
                 "settings" => _settingsPage ??= new SettingsPage(_integration, _settings, _services.WindowsStartup, _services.ScriptStartup, _services.Execution, () => NavigateTo("shortcuts")),
                 "shortcuts" => _shortcutSettingsPage ??= new ShortcutSettingsPage(_services, () => NavigateTo("settings")),
-                "scripts" => _scriptsPage ??= new ScriptsPage(_services.Catalog, _services.Execution, _services.ScriptStartup, _integration, _settings, OpenVisualScriptAsync),
+                "scripts" => _scriptsPage ??= new ScriptsPage(_services.Catalog, _services.Execution, _services.ScriptStartup, _integration, _settings, OpenVisualScriptAsync, _services.VisualActivation),
                 _ => _homePage ??= new HomePage(
                     _integration,
                     () => NavigateTo("new"),

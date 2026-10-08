@@ -13,13 +13,14 @@ public sealed partial class ScriptsPage : Page
     private readonly ScriptStartupService _startup;
     private readonly AutoHotkeyIntegration _integration;
     private readonly AutoHotkeySettings _settings;
+    private readonly VisualWorkflowActivationService _visualActivation;
     private readonly Func<string, Task<bool>> _openVisual;
     private bool _subscribed;
     private bool _busy;
 
     /// <summary>Renders application-owned services without scanning files or owning interpreter handles.</summary>
     internal ScriptsPage(ScriptCatalogService catalog, ScriptExecutionService execution,
-        ScriptStartupService startup, AutoHotkeyIntegration integration, AutoHotkeySettings settings, Func<string, Task<bool>> openVisual)
+        ScriptStartupService startup, AutoHotkeyIntegration integration, AutoHotkeySettings settings, Func<string, Task<bool>> openVisual, VisualWorkflowActivationService visualActivation)
     {
         InitializeComponent();
         _catalog = catalog;
@@ -27,6 +28,7 @@ public sealed partial class ScriptsPage : Page
         _startup = startup;
         _integration = integration;
         _settings = settings;
+        _visualActivation = visualActivation;
         _openVisual = openVisual;
         ScriptRootText.Text = catalog.RootDirectory;
         ToolTipService.SetToolTip(ScriptRootText, catalog.RootDirectory);
@@ -133,7 +135,7 @@ public sealed partial class ScriptsPage : Page
 
     /// <summary>Starts the selected script via the embedded interpreter.</summary>
     private async void RunButton_Click(object sender, RoutedEventArgs args)
-    { if (sender is Button { Tag: string path }) await RunActionAsync(() => _execution.Run(path)); }
+    { if (sender is Button { Tag: string path }) await RunWorkflowAsync(path, restart: false); }
 
     /// <summary>Stops only the tracked interpreter selected by the row.</summary>
     private async void StopButton_Click(object sender, RoutedEventArgs args)
@@ -141,7 +143,32 @@ public sealed partial class ScriptsPage : Page
 
     /// <summary>Executes the manager's atomic stop-then-run operation.</summary>
     private async void RestartButton_Click(object sender, RoutedEventArgs args)
-    { if (sender is Button { Tag: string path }) await RunActionAsync(() => _execution.Restart(path)); }
+    { if (sender is Button { Tag: string path }) await RunWorkflowAsync(path, restart: true); }
+
+    /// <summary>Presents the concrete built-in replacement choice without changing the user's bindings implicitly.</summary>
+    private async Task RunWorkflowAsync(string path, bool restart)
+    {
+        if (_busy) return;
+        _busy = true; RefreshRows();
+        try
+        {
+            RunningScriptSession result;
+            if (await Task.Run(() => _visualActivation.CanReplaceBuiltIn(path)))
+            {
+                var dialog = new ContentDialog { XamlRoot = XamlRoot, Title = "Replace built-in Explorer shortcuts?",
+                    Content = "This workflow uses the same shortcut. Replacing stops the managed Explorer Shortcuts script and starts “" + Path.GetFileName(path)
+                        + "”. If built-in startup was enabled, this workflow will inherit that startup choice. A failed start restores the previous choices.",
+                    PrimaryButtonText = "Replace built-in", CloseButtonText = "Cancel", DefaultButton = ContentDialogButton.Close };
+                if (await dialog.ShowAsync() != ContentDialogResult.Primary) return;
+                result = await Task.Run(() => _visualActivation.ReplaceBuiltIn(path));
+            }
+            else result = await Task.Run(() => restart ? _execution.Restart(path) : _execution.Run(path));
+            if (result.State == ScriptState.Failed) ShowStatus(result.Error ?? "The script failed.", InfoBarSeverity.Error);
+            else ActionInfoBar.IsOpen = false;
+        }
+        catch (Exception ex) { ServiceDiagnostics.Write("VisualFlow", "Workflow start failed: " + path, ex); ShowStatus(ex.Message, InfoBarSeverity.Error); }
+        finally { _busy = false; if (_subscribed) RefreshRows(); }
+    }
 
     /// <summary>Reopens intact visual workflows internally; preserves the configured external editor for ordinary or modified source.</summary>
     private async void EditButton_Click(object sender, RoutedEventArgs args)

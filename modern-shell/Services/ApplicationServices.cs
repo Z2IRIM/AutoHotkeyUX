@@ -15,6 +15,8 @@ internal sealed class ApplicationServices : IDisposable
     internal ShortcutPreferencesService ShortcutPreferences { get; }
     internal ShortcutActivityService ShortcutActivity { get; } = new();
     internal VisualFlowStore VisualFlows { get; } = new();
+    internal VisualActionPresets ActionPresets { get; }
+    internal VisualWorkflowActivationService VisualActivation { get; }
     internal string StateDirectory { get; }
     private readonly string? _diagnosticRegistryBase;
 
@@ -24,6 +26,8 @@ internal sealed class ApplicationServices : IDisposable
         _diagnosticRegistryBase = diagnosticRoot is null ? null : @"Software\AutoHotkeyUX.Verify\" + Guid.NewGuid().ToString("N");
         Settings = _diagnosticRegistryBase is null ? new() : new(_diagnosticRegistryBase);
         StateDirectory = diagnosticRoot is null ? ServiceDiagnostics.StateDirectory : Path.Combine(diagnosticRoot, "state");
+        if (diagnosticRoot is not null) ServiceDiagnostics.UseIsolatedDirectory(StateDirectory);
+        ActionPresets = new(StateDirectory);
         Catalog = new(diagnosticRoot is null ? null : Path.Combine(diagnosticRoot, "Scripts"));
         WindowsStartup = new(_diagnosticRegistryBase is null ? null : _diagnosticRegistryBase + @"\Run");
         var locator = new AutoHotkeyRuntimeLocator(new EmbeddedAutoHotkeyRuntime(diagnosticRoot is null ? null : Path.Combine(StateDirectory, "runtime")));
@@ -32,10 +36,12 @@ internal sealed class ApplicationServices : IDisposable
         Documentation = new DocumentationService(Integration);
         Execution = new ScriptExecutionService(() => Integration.FindRuntime(Settings.Read(@"Launcher\v2", "Build"))?.Path,
             new ScriptSessionStore(diagnosticRoot is null ? null : Path.Combine(StateDirectory, "managed-sessions.json")),
-            (path, trigger) => VisualHotkeyConflicts.Check(path, Execution!.Snapshot(), Settings, Path.Combine(Catalog.RootDirectory, "Explorer Shortcuts.ahk"), trigger));
+            (path, trigger) => VisualHotkeyConflicts.Check(path, Execution!.Snapshot(), Settings, Path.Combine(Catalog.RootDirectory, "Explorer Shortcuts.ahk"), trigger),
+            registryBase: Settings.BaseKey, diagnosticLocalDataRoot: diagnosticRoot);
         ScriptStartup = new ScriptStartupService(Catalog.RootDirectory, Settings, Execution);
         ShortcutPreferences = new(Settings, ScriptStartup, Execution,
             preferences => ScriptStartup.ExplorerEnabled ? VisualHotkeyConflicts.CheckBuiltInAgainstRunning(preferences, Execution.Snapshot(), ScriptStartup.ExplorerScriptPath) : null);
+        VisualActivation = new(ScriptStartup, Execution, ShortcutPreferences);
     }
 
     /// <summary>Recovers live identities before launching selected scripts and updates helper/startup executable paths.</summary>

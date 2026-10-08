@@ -42,9 +42,9 @@ internal sealed class ExplorerShortcutInstaller
         var marker = text.Split('\n', 2)[0].TrimEnd('\r');
         if (marker == CurrentMarker)
         {
-            if (Hash(text) != Hash(ReadResource("ExplorerShortcuts.ahk"))) PreserveWarning("The v3 root script has user edits.");
-            EnsureModules(root);
-            return false;
+            var ownedRoot = Hash(text) == Hash(ReadResource("ExplorerShortcuts.ahk"));
+            if (!ownedRoot) PreserveWarning("The v3 root script has user edits.");
+            return EnsureModules(root, allowUpgrade: ownedRoot);
         }
         if (marker is not (PreviousMarker or V2Marker))
             throw new IOException($"A user file already uses '{_path}'. Rename it before enabling Explorer shortcuts.");
@@ -88,19 +88,62 @@ internal sealed class ExplorerShortcutInstaller
         return true;
     }
 
-    /// <summary>Creates missing v3 modules only and surfaces existing helper edits without replacing them.</summary>
-    private void EnsureModules(string root)
+    /// <summary>Preflights every helper before upgrading hash-confirmed shipped predecessors as one owned group.</summary>
+    private bool EnsureModules(string root, bool allowUpgrade = true)
     {
         var directory = Path.Combine(root, "ExplorerShortcuts", "v3");
         Directory.CreateDirectory(directory);
-        foreach (var name in new[] { "Shell", "Actions", "Preferences" })
+        if ((File.GetAttributes(directory) & FileAttributes.ReparsePoint) != 0) throw new IOException("Shortcut helper directory cannot be a link.");
+        var streams = new List<FileStream>();
+        var replacements = new List<(string Name, FileStream Stream, byte[] Before, string Text)>();
+        try
         {
-            var path = Path.Combine(directory, name + ".ahk");
-            var shipped = ReadResource($"ExplorerShortcuts.{name}.ahk");
-            if (!File.Exists(path)) WriteNew(path, shipped);
-            else if (Hash(File.ReadAllText(path)) != Hash(shipped)) PreserveWarning($"The v3 {name} helper has user edits.");
+            foreach (var name in new[] { "Shell", "Actions", "Preferences" })
+            {
+                var path = Path.Combine(directory, name + ".ahk");
+                var shipped = ReadResource($"ExplorerShortcuts.{name}.ahk");
+                if (!File.Exists(path)) { WriteNew(path, shipped); continue; }
+                if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) throw new IOException("Shortcut helpers cannot be links.");
+                var file = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.Read); streams.Add(file);
+                if (file.Length > 256 * 1024) throw new IOException("Shortcut helper is too large.");
+                var before = new byte[(int)file.Length]; file.ReadExactly(before);
+                using var reader = new StreamReader(new MemoryStream(before), Encoding.UTF8, true);
+                var existing = reader.ReadToEnd();
+                if (Hash(existing) == Hash(shipped)) continue;
+                if (Hash(existing) == Hash(ReadResource("VisualFlow.V2." + name + ".ahk"))) replacements.Add((name, file, before, shipped));
+                else PreserveWarning($"The v3 {name} helper has user edits.");
+            }
+            if (!allowUpgrade || Warning is not null || replacements.Count == 0) return false;
+            var backups = Path.Combine(root, "backups"); Directory.CreateDirectory(backups);
+            if ((File.GetAttributes(backups) & FileAttributes.ReparsePoint) != 0) throw new IOException("Shortcut backup directory cannot be a link.");
+            var backupPaths = new List<string>();
+            foreach (var item in replacements)
+            {
+                var backup = Path.Combine(backups, $"Explorer Shortcuts.v3.{item.Name}.{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid():N}.bak");
+                using (var copy = new FileStream(backup, FileMode.CreateNew, FileAccess.Write, FileShare.Read)) { copy.Write(item.Before); copy.Flush(true); }
+                backupPaths.Add(backup);
+            }
+            try
+            {
+                var encoding = new UTF8Encoding(true);
+                foreach (var item in replacements) Rewrite(item.Stream, encoding.GetPreamble().Concat(encoding.GetBytes(item.Text)).ToArray());
+            }
+            catch (Exception failure)
+            {
+                var errors = new List<Exception> { failure };
+                foreach (var item in replacements) { try { Rewrite(item.Stream, item.Before); } catch (Exception recovery) { errors.Add(recovery); } }
+                if (errors.Count > 1) throw new AggregateException("Shortcut helper upgrade failed; recovery copies are in " + backups, errors);
+                throw;
+            }
+            ServiceDiagnostics.Write("Startup", "Updated owned v3 helpers; backups: " + string.Join(", ", backupPaths));
+            return true;
         }
+        finally { foreach (var stream in streams) stream.Dispose(); }
     }
+
+    /// <summary>Durably writes verified helper bytes through the already exclusive writer.</summary>
+    private static void Rewrite(FileStream stream, byte[] bytes)
+    { stream.Position = 0; stream.Write(bytes); stream.SetLength(bytes.Length); stream.Flush(true); }
 
     /// <summary>Records why automatic migration was refused, keeping all editable source in place.</summary>
     private void PreserveWarning(string reason)

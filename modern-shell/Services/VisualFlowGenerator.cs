@@ -13,6 +13,7 @@ internal static class VisualFlowGenerator
     internal static string Generate(VisualFlowDocument value)
     {
         VisualFlowCodec.Validate(value);
+        if (value.SchemaVersion == 3) return VisualFlowGeneratorV3.Generate(value);
         if (value.SchemaVersion == 2) return VisualFlowGeneratorV2.Generate(value);
         var code = new StringBuilder(OwnershipMarker + "\r\n")
             .Append("; Workflow: ").Append(value.Id.ToString("D")).Append("\r\n")

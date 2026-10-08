@@ -85,7 +85,8 @@ public partial class App : Application
             }
             _shortcuts = new ShortcutCommandService(WinRT.Interop.WindowNative.GetWindowHandle(_window),
                 _services.Settings, (message, error) => _dispatcher.TryEnqueue(() => _tray?.ShowNotification(message, error)),
-                preferences: _services.ShortcutPreferences, activity: _services.ShortcutActivity);
+                preferences: _services.ShortcutPreferences, activity: _services.ShortcutActivity,
+                workflowResultRoot: Path.Combine(_services.StateDirectory, "workflow-results"));
             if (_arguments.Contains("--enable-core")) await EnableCoreAsync();
             if (!_silent) ShowWindow();
             WriteStartupStatus();
@@ -107,7 +108,8 @@ public partial class App : Application
             if (verifyIndex >= 0 && verifyIndex + 1 < _arguments.Length)
             {
                 ShowWindow();
-                var report = verifyVisualIndex >= 0 ? (_arguments.Contains("--layout-only")
+                var report = verifyVisualIndex >= 0 ? (_arguments.Contains("--configurable-only")
+                    ? await _window.VerifyConfigurableActionsAsync(_arguments[verifyIndex + 1], _arguments.Contains("--with-runtime")) : _arguments.Contains("--layout-only")
                     ? await _window.VerifyWorkflowLayoutOnlyAsync(_arguments[verifyIndex + 1])
                     : await _window.VerifyVisualCreationAsync(_arguments[verifyIndex + 1]))
                     : verifyPreferencesIndex >= 0 ? await _window.VerifyShortcutPreferencesAsync()

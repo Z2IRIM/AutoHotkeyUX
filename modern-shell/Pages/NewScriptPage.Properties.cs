@@ -13,6 +13,7 @@ public sealed partial class NewScriptPage
         ExtendedFields.Children.Clear();
         TriggerFields.Visibility = action is null ? Visibility.Visible : Visibility.Collapsed;
         ActionFields.Visibility = action is null ? Visibility.Collapsed : Visibility.Visible;
+        ActionTools.Visibility = action is null || _branchSelection is not null ? Visibility.Collapsed : Visibility.Visible;
         SelectedTitleText.Text = action is null ? "Workflow trigger" : FlowActionCard.Label(action.Kind);
         if (action is null)
         {
@@ -25,7 +26,8 @@ public sealed partial class NewScriptPage
             HotkeyFields.Visibility = trigger.Kind == FlowTriggerKind.Hotkey ? Visibility.Visible : Visibility.Collapsed;
             return;
         }
-        FolderCombo.Visibility = action.Kind == FlowActionKind.OpenFolder ? Visibility.Visible : Visibility.Collapsed; FolderCombo.SelectedIndex = (int)action.Folder;
+        FolderCombo.Visibility = action.Kind == FlowActionKind.OpenFolder ? Visibility.Visible : Visibility.Collapsed;
+        FolderCombo.SelectedIndex = action.Parameters?.Input is not null ? (int)FlowFolderKind.Custom : (int)action.Folder;
         SendKeysCombo.Visibility = action.Kind == FlowActionKind.SendKeys ? Visibility.Visible : Visibility.Collapsed;
         SendKeysCombo.SelectedItem = action.Kind == FlowActionKind.SendKeys ? action.Value : null;
         WaitBox.Visibility = action.Kind == FlowActionKind.Wait ? Visibility.Visible : Visibility.Collapsed; WaitBox.Value = action.Kind == FlowActionKind.Wait ? action.DelayMs : 0;
@@ -49,7 +51,7 @@ public sealed partial class NewScriptPage
             FlowActionKind.GetClickedObject => "Use a mouse shortcut. Existing Shell resolution supports File Explorer and desktop; a drag does not trigger actions.",
             FlowActionKind.GetCurrentDirectory => "Gets the File Explorer directory or desktop directory captured by this trigger.",
             FlowActionKind.ReadClipboard => "Produces the clipboard text for later steps.",
-            FlowActionKind.OpenTerminal => "Uses the existing terminal preferences and placement above the mouse cursor.",
+            FlowActionKind.OpenTerminal => "Choose the directory and window settings. Ready results belong only to this launch.",
             FlowActionKind.ExtractArchive => "Requires AutoHotkeyUX. Keeps the source and existing output; produces the new extraction folder.",
             FlowActionKind.IfElse => "Choose each branch in the workflow to add its actions. Results from a branch stay in that branch.",
             _ => "Only previous results on this execution path are available. A failure stops the current workflow."

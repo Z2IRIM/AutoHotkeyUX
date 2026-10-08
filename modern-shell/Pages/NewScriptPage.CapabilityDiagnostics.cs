@@ -10,7 +10,7 @@ public sealed partial class NewScriptPage
     /// <summary>Proves category, branch, source-picker and paired persistence behavior in the isolated native app.</summary>
     internal async Task<object> VerifyCapabilitiesAsync()
     {
-        if (_libraryItems.Count != 16 || ActionLibrary.Children.OfType<Button>().Count() != 4)
+        if (_libraryItems.Count != 21 || ActionLibrary.Children.OfType<Button>().Count() != 5)
             throw new InvalidOperationException("The categorized action library is incomplete.");
         _opened = null; _session.Load(VisualFlowExamples.Explorer()); _insertion = default; _branchSelection = null;
         _rendering = true; ScriptNameTextBox.Text = "Native practical flow"; ScriptLocationTextBox.Text = _services.Catalog.RootDirectory; _rendering = false;
@@ -41,7 +41,7 @@ public sealed partial class NewScriptPage
         if (program.Parameters?.ArgumentInput?.Field != FlowResultField.Path || program.Parameters.WorkingDirectory?.Field != FlowResultField.Directory || !SaveButton.IsEnabled)
             throw new InvalidOperationException("Native program argument/working-directory result pickers failed.");
         await SaveDraftAsync();
-        if (_opened is null || _opened.Document.SchemaVersion != 2 || _services.Execution.Snapshot().Count != 0)
+        if (_opened is null || _opened.Document.SchemaVersion != 3 || _services.Execution.Snapshot().Count != 0)
             throw new InvalidOperationException("Practical flow did not save or ran automatically.");
         var reopened = _services.VisualFlows.Open(_opened.ScriptPath); _session.Load(reopened.Document); _opened = reopened; RememberSaved(); RenderDocument();
         var condition = reopened.Document.Actions[1]; _session.Selection = condition.Id; RenderDocument();
@@ -60,8 +60,8 @@ public sealed partial class NewScriptPage
         AddAction(FlowActionKind.ReadClipboard); Up_Click(this, new RoutedEventArgs()); Undo_Click(this, new RoutedEventArgs()); Redo_Click(this, new RoutedEventArgs());
         VisualFlowCodec.Validate(_session.Document);
         _session.Load(savedDocument); _session.Selection = condition.Id; _insertion = default; _branchSelection = null; RenderDocument();
-        return new { Passed = true, Actions = 16, Categories = 4, BranchInsertion = true, ResultPicker = true, NestedUndo = true,
-            ConditionEditor = true, ArgumentResult = true, WorkingDirectoryResult = true, DepthGuard = true, SavedSchema = 2, ScriptPath = _opened!.ScriptPath, ExecutionCount = _services.Execution.Snapshot().Count };
+        return new { Passed = true, Actions = 21, Categories = 4, BranchInsertion = true, ResultPicker = true, NestedUndo = true,
+            ConditionEditor = true, ArgumentResult = true, WorkingDirectoryResult = true, DepthGuard = true, SavedSchema = 3, ScriptPath = _opened!.ScriptPath, ExecutionCount = _services.Execution.Snapshot().Count };
     }
     /// <summary>Provides a three-layer native fixture for the insertion boundary without executing it.</summary>
     private static FlowAction NestedCondition(int depth) => new() { Kind = FlowActionKind.IfElse, Parameters = new() { Input = new() { Literal = "x" }, Condition = FlowConditionKind.IsNotEmpty,

@@ -17,7 +17,7 @@ internal static class VisualHotkeyConflicts
             var modifiers = FlowModifiers.Alt | (key.StartsWith("ctrl-", StringComparison.Ordinal) ? FlowModifiers.Ctrl : FlowModifiers.None);
             var button = key.EndsWith("middle", StringComparison.Ordinal) ? "MButton" : "LButton";
             if (trigger.Modifiers == modifiers && trigger.Key == button && ScopesOverlap(trigger, new() { Scope = FlowScopeKind.ExplorerDesktop, Key = button, Modifiers = modifiers }))
-                return "This mouse shortcut overlaps the built-in Explorer shortcuts. Change one shortcut in Settings or this workflow before running.";
+                return "This mouse shortcut overlaps the built-in Explorer shortcuts. Run an intact v3 workflow from Scripts and choose Replace built-in, or change one shortcut before running.";
         }
         return null;
     }
@@ -29,7 +29,8 @@ internal static class VisualHotkeyConflicts
         var candidate = launchTrigger ?? Read(path, claimHeld: true)?.Trigger;
         if (candidate?.Kind != FlowTriggerKind.Hotkey) return null;
         var preferences = ReadPreferences(settings);
-        var builtin = BuiltIn(candidate, preferences, settings.ReadBoolean("Modern", "ExplorerShortcuts", false));
+        var builtin = BuiltIn(candidate, preferences, settings.ReadBoolean("Modern", "ExplorerShortcuts", false)
+            || sessions.Any(session => session.State == ScriptState.Running && session.ScriptPath.Equals(builtinPath, StringComparison.OrdinalIgnoreCase)));
         if (builtin is not null) return builtin;
         foreach (var session in sessions.Where(session => session.State == ScriptState.Running && !session.ScriptPath.Equals(path, StringComparison.OrdinalIgnoreCase)))
         {

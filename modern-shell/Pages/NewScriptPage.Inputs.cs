@@ -10,16 +10,20 @@ public sealed partial class NewScriptPage
     /// <summary>Creates only the typed fields that belong to the currently selected action.</summary>
     private void RenderExtendedProperties(FlowAction action)
     {
+        AddDisplayNameEditor(action);
         var accepts = action.Kind is FlowActionKind.OpenProgram or FlowActionKind.OpenWebsite or FlowActionKind.SendText or FlowActionKind.OpenTerminal
             or FlowActionKind.ExtractArchive or FlowActionKind.SetClipboard or FlowActionKind.WaitForWindow or FlowActionKind.ActivateWindow or FlowActionKind.IfElse
-            || action.Kind == FlowActionKind.OpenFolder && action.Folder == FlowFolderKind.Custom;
+            || action.Kind is FlowActionKind.GetPathProperties or FlowActionKind.JoinPath or FlowActionKind.CreateDirectory
+            || action.Kind == FlowActionKind.OpenFolder && (action.Folder == FlowFolderKind.Custom || action.Parameters?.Input is not null);
         if (accepts) AddInputEditor(action, "Value source", action.Parameters?.Input, false, "Input", action.Value);
         if (action.Kind == FlowActionKind.OpenProgram)
         {
             AddInputEditor(action, "Arguments source", action.Parameters?.ArgumentInput, false, "Arguments", action.Parameters?.Arguments ?? "");
             AddInputEditor(action, "Working directory", action.Parameters?.WorkingDirectory, true, "WorkingDirectory");
         }
-        if (action.Kind == FlowActionKind.ExtractArchive) AddInputEditor(action, "Destination", action.Parameters?.Destination, true, "Destination");
+        if (action.Kind == FlowActionKind.OpenTerminal) RenderTerminalOptions(action);
+        if (action.Kind == FlowActionKind.ExtractArchive) RenderExtractionOptions(action);
+        RenderGenericOptions(action);
         if (action.Kind is FlowActionKind.WaitForWindow or FlowActionKind.ActivateWindow)
         {
             var timeout = new NumberBox { Header = "Timeout (ms)", Minimum = 1, Maximum = 60000, Value = action.Parameters!.TimeoutMs, SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Compact };
@@ -29,7 +33,7 @@ public sealed partial class NewScriptPage
         if (action.Kind == FlowActionKind.IfElse)
         {
             var parameters = action.Parameters ?? throw new InvalidDataException("This condition has no parameters.");
-            var conditions = new[] { FlowConditionKind.IsFolder, FlowConditionKind.IsFile, FlowConditionKind.IsArchive, FlowConditionKind.ExtensionEquals, FlowConditionKind.IsEmpty, FlowConditionKind.IsNotEmpty }
+            var conditions = new[] { FlowConditionKind.IsFolder, FlowConditionKind.IsFile, FlowConditionKind.IsArchive, FlowConditionKind.ExtensionEquals, FlowConditionKind.IsEmpty, FlowConditionKind.IsNotEmpty, FlowConditionKind.PathExists }
                 .Select(kind => new FlowConditionChoice(FlowActionCard.ConditionLabel(kind), kind)).ToArray();
             var condition = new ComboBox { Header = "Condition", ItemsSource = conditions, DisplayMemberPath = "Label", SelectedItem = conditions.FirstOrDefault(choice => choice.Kind == parameters.Condition), HorizontalAlignment = HorizontalAlignment.Stretch };
             condition.SelectionChanged += (_, _) => { if (condition.SelectedItem is FlowConditionChoice choice) ChangeAction(current => current with { Parameters = current.Parameters! with { Condition = choice.Kind, Comparison = choice.Kind == FlowConditionKind.ExtensionEquals ? "zip" : "" } }, true); };
@@ -41,8 +45,9 @@ public sealed partial class NewScriptPage
                 ExtendedFields.Children.Add(extension);
             }
         }
-        var outputs = VisualFlowTree.Outputs(action.Kind);
-        if (outputs.Length > 0) ExtendedFields.Children.Add(new TextBlock { Text = "Results: " + string.Join(", ", outputs), TextWrapping = TextWrapping.Wrap });
+        var outputs = VisualFlowTree.Outputs(action, _session.Document.SchemaVersion);
+        if (outputs.Length > 0) ExtendedFields.Children.Add(new TextBlock { Text = "Results: " + string.Join(", ", outputs.Select(VisualFlowSchema.FieldLabel)), TextWrapping = TextWrapping.Wrap });
+        AddFailureOptions(action);
     }
 
     /// <summary>Offers fixed values or valid earlier output fields while retaining visibly broken references for repair.</summary>
@@ -53,8 +58,8 @@ public sealed partial class NewScriptPage
         var literal = current?.Kind == FlowInputKind.Literal ? current : new FlowInput { Literal = fallback };
         options.Add(new("Fixed value", literal));
         foreach (var producer in VisualFlowTree.Available(_session.Document.Actions, action.Id))
-            foreach (var field in VisualFlowTree.Outputs(producer.Kind).Where(field => slot == "Input" ? AllowsInput(action.Kind, field) : slot == "Arguments" ? field is not (FlowResultField.ProcessId or FlowResultField.WindowId) : field is FlowResultField.Path or FlowResultField.Directory or FlowResultField.Text))
-                options.Add(new(FlowActionCard.StepLabel(_session.Document, producer.Id) + " → " + field, FlowInput.Reference(producer.Id, field)));
+            foreach (var field in VisualFlowTree.Outputs(producer, _session.Document.SchemaVersion).Where(field => slot == "Input" ? AllowsInput(action.Kind, field) : slot == "Arguments" ? TextField(field) : field is FlowResultField.Path or FlowResultField.Directory or FlowResultField.ParentDirectory or FlowResultField.Text))
+                options.Add(new(FlowActionCard.StepLabel(_session.Document, producer.Id) + " → " + VisualFlowSchema.FieldLabel(field), FlowInput.Reference(producer.Id, field)));
         var selected = optional && current is null ? options[0] : options.FirstOrDefault(choice => choice.Input == (current ?? literal));
         if (selected is null) { selected = new("Missing / unavailable result · choose again", current); options.Add(selected); }
         var source = new ComboBox { Header = header, ItemsSource = options, DisplayMemberPath = "Label", SelectedItem = selected, HorizontalAlignment = HorizontalAlignment.Stretch };
@@ -68,6 +73,7 @@ public sealed partial class NewScriptPage
                 TextWrapping = TextWrapping.Wrap, AcceptsReturn = action.Kind == FlowActionKind.SendText, MinHeight = action.Kind == FlowActionKind.SendText ? 100 : 32 };
             text.TextChanged += (_, _) => SetInput(slot, effective with { Literal = text.Text }, false);
             ExtendedFields.Children.Add(text);
+            AddPathBrowse(action, slot);
         }
     }
     /// <summary>Writes one parameter source without exposing an expression field or disturbing unrelated branch data.</summary>
@@ -84,9 +90,9 @@ public sealed partial class NewScriptPage
     /// <summary>Filters available fields according to the receiving operation's path, text or window type.</summary>
     private static bool AllowsInput(FlowActionKind kind, FlowResultField field) => kind is FlowActionKind.WaitForWindow or FlowActionKind.ActivateWindow
         ? field is FlowResultField.ProcessId or FlowResultField.WindowId
-        : kind is FlowActionKind.OpenFolder or FlowActionKind.OpenTerminal or FlowActionKind.ExtractArchive or FlowActionKind.OpenProgram
-            ? field is FlowResultField.Path or FlowResultField.Directory or FlowResultField.Text
-            : field is not (FlowResultField.ProcessId or FlowResultField.WindowId);
+        : kind is FlowActionKind.OpenFolder or FlowActionKind.OpenTerminal or FlowActionKind.ExtractArchive or FlowActionKind.OpenProgram or FlowActionKind.GetPathProperties or FlowActionKind.JoinPath or FlowActionKind.CreateDirectory
+            ? field is FlowResultField.Path or FlowResultField.Directory or FlowResultField.ParentDirectory or FlowResultField.Text
+            : TextField(field);
     /// <summary>Provides a native display label for a closed typed source option.</summary>
     private sealed record FlowSourceChoice(string Label, FlowInput? Input);
     /// <summary>Keeps human-readable condition labels separate from persisted enum values.</summary>

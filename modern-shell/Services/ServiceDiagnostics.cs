@@ -7,9 +7,14 @@ namespace AutoHotkeyUX.Modern.Services;
 internal static class ServiceDiagnostics
 {
     private static readonly object Gate = new();
-    internal static string StateDirectory => Path.Combine(
+    private static string? _isolatedDirectory;
+    internal static string StateDirectory => _isolatedDirectory ?? Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "AutoHotkeyUX.Modern", "state");
+
+    /// <summary>Keeps an explicitly isolated diagnostic process from changing the normal manager log.</summary>
+    internal static void UseIsolatedDirectory(string path)
+    { if (!Path.IsPathFullyQualified(path)) throw new ArgumentException("Choose an absolute diagnostic directory."); _isolatedDirectory = path; }
 
     /// <summary>Records a component/action and preserves the original exception details.</summary>
     internal static void Write(string component, string message, Exception? error = null)

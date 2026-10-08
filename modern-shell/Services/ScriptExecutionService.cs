@@ -16,15 +16,19 @@ internal sealed class ScriptExecutionService : IDisposable
     private readonly Dictionary<string, VisualExecutionSource> _sources = new(StringComparer.OrdinalIgnoreCase);
     private bool _disposed;
     private readonly Func<string, FlowTrigger?, string?>? _workflowConflict;
+    private readonly string? _registryBase;
+    private readonly string? _diagnosticLocalDataRoot;
     internal string? LastWarning { get; private set; }
     internal event EventHandler? Changed;
 
     /// <summary>Reuses the shell runtime locator through a provider without coupling process handling to XAML.</summary>
-    internal ScriptExecutionService(Func<string?> runtimePath, ScriptSessionStore store, Func<string, FlowTrigger?, string?>? workflowConflict = null)
+    internal ScriptExecutionService(Func<string?> runtimePath, ScriptSessionStore store, Func<string, FlowTrigger?, string?>? workflowConflict = null,
+        string? registryBase = null, string? diagnosticLocalDataRoot = null)
     {
         _runtimePath = runtimePath;
         _store = store;
         _workflowConflict = workflowConflict;
+        _registryBase = registryBase; _diagnosticLocalDataRoot = diagnosticLocalDataRoot;
     }
 
     /// <summary>Returns a stable snapshot while process-exit events can arrive on a worker thread.</summary>
@@ -88,7 +92,7 @@ internal sealed class ScriptExecutionService : IDisposable
     }
 
     /// <summary>Launches one owned interpreter per canonical path, refusing unfinished workflows through the shared save claim.</summary>
-    internal RunningScriptSession Run(string scriptPath, bool workflowClaimHeld = false, VisualExecutionSource? executionSource = null)
+    internal RunningScriptSession Run(string scriptPath, bool workflowClaimHeld = false, VisualExecutionSource? executionSource = null, bool requireWorkflowReady = false)
     {
         var path = Path.GetFullPath(scriptPath);
         lock (VisualHotkeyConflicts.MutationGate)
@@ -108,6 +112,7 @@ internal sealed class ScriptExecutionService : IDisposable
             {
                 using var workflowClaim = workflowClaimHeld ? null : VisualFlowStore.ClaimForExecution(path);
                 captured ??= VisualExecutionSource.Capture(path, _store.SnapshotDirectory);
+                if (requireWorkflowReady && captured?.SupportsReady != true) throw new InvalidOperationException("Built-in replacement requires an intact v3 visual workflow.");
                 var conflict = _workflowConflict?.Invoke(path, captured?.Trigger);
                 if (conflict is not null) throw new InvalidOperationException(conflict);
                 if (!File.Exists(path)) throw new FileNotFoundException("The script no longer exists.", path);
@@ -125,7 +130,10 @@ internal sealed class ScriptExecutionService : IDisposable
                     CreateNoWindow = true
                 };
                 start.ArgumentList.Add("/ErrorStdOut=UTF-8");
+                if (_registryBase is not null) start.Environment["AUTOHOTKEYUX_FLOW_KEY"] = @"HKCU\" + _registryBase + @"\Modern";
+                if (_diagnosticLocalDataRoot is not null) start.Environment["LOCALAPPDATA"] = _diagnosticLocalDataRoot;
                 start.ArgumentList.Add(captured?.Path ?? path);
+                if (requireWorkflowReady) { start.ArgumentList.Add("--signal-ready"); start.ArgumentList.Add(captured!.ReadyPath); }
                 process = new Process { StartInfo = start };
                 if (!process.Start()) throw new InvalidOperationException("AutoHotkey did not start.");
                 _ = process.SafeHandle;
@@ -196,13 +204,13 @@ internal sealed class ScriptExecutionService : IDisposable
     }
 
     /// <summary>Claims visual source before stopping it, preserving a live interpreter when a save is unfinished or in flight.</summary>
-    internal RunningScriptSession Restart(string scriptPath)
+    internal RunningScriptSession Restart(string scriptPath, bool workflowClaimHeld = false, bool requireWorkflowReady = false)
     {
         var path = Path.GetFullPath(scriptPath);
         lock (VisualHotkeyConflicts.MutationGate)
         lock (_gate)
         {
-            using var workflowClaim = VisualFlowStore.ClaimForExecution(path);
+            using var workflowClaim = workflowClaimHeld ? null : VisualFlowStore.ClaimForExecution(path);
             var captured = VisualExecutionSource.Capture(path, _store.SnapshotDirectory);
             try
             {
@@ -210,10 +218,36 @@ internal sealed class ScriptExecutionService : IDisposable
                 if (conflict is not null) throw new InvalidOperationException(conflict);
                 Stop(path);
                 var transferred = captured; captured = null;
-                return Run(path, workflowClaimHeld: true, executionSource: transferred);
+                return Run(path, workflowClaimHeld: true, executionSource: transferred, requireWorkflowReady: requireWorkflowReady);
             }
             finally { captured?.Release(delete: true); }
         }
+    }
+
+    /// <summary>Confirms the exact pinned v3 script completed parsing before committing built-in replacement.</summary>
+    internal RunningScriptSession WaitForWorkflowReady(RunningScriptSession started, Guid flowId, int timeoutMs = 6000)
+    {
+        var timer = Stopwatch.StartNew();
+        while (timer.ElapsedMilliseconds < timeoutMs)
+        {
+            string ready;
+            RunningScriptSession current;
+            lock (_gate)
+            {
+                current = _sessions.GetValueOrDefault(started.ScriptPath) ?? throw new InvalidOperationException("The attempted script is no longer tracked.");
+                if (current.State != ScriptState.Running || current.ProcessId != started.ProcessId || !_sources.TryGetValue(started.ScriptPath, out var source))
+                    throw new InvalidOperationException(current.Error ?? "The replacement script stopped before it became ready.");
+                ready = source.ReadyPath;
+            }
+            try
+            {
+                if (File.Exists(ready) && new FileInfo(ready).Length <= 128
+                    && File.ReadAllText(ready).Trim().Replace("\r\n", "\n", StringComparison.Ordinal) == current.ProcessId + "\n" + flowId.ToString("D")) return current;
+            }
+            catch (IOException) { /* A short-lived writer can still be completing its ready receipt. */ }
+            Thread.Sleep(20);
+        }
+        throw new TimeoutException("The replacement script did not confirm startup within six seconds.");
     }
 
     /// <summary>Registers callbacks after ownership metadata, then checks the already-exited race explicitly.</summary>

@@ -16,12 +16,16 @@ public sealed partial class NewScriptPage
     {
         if (!VisualFlowTree.CanInsert(_session.Document.Actions, _insertion, kind)) return;
         var action = VisualFlowExamples.Action(kind);
-        var actions = VisualFlowTree.SetSequence(_session.Document.Actions, _insertion, [.. VisualFlowTree.Sequence(_session.Document.Actions, _insertion), action]);
-        if (action.Parameters?.Input is not null)
+        var sequence = VisualFlowTree.Sequence(_session.Document.Actions, _insertion).ToList();
+        var selectedIndex = _branchSelection is null ? sequence.FindIndex(item => item.Id == _session.Selection) : -1;
+        sequence.Insert(selectedIndex < 0 ? sequence.Count : selectedIndex + 1, action);
+        var actions = VisualFlowTree.SetSequence(_session.Document.Actions, _insertion, sequence.ToArray());
+        if (action.Parameters?.Input is not null || kind == FlowActionKind.OpenFolder)
         {
-            var input = VisualFlowTree.Available(actions, action.Id).Reverse().SelectMany(producer => VisualFlowTree.Outputs(producer.Kind).Select(field => FlowInput.Reference(producer.Id, field)))
+            var input = VisualFlowTree.Available(actions, action.Id).Reverse().SelectMany(producer => VisualFlowTree.Outputs(producer, 3)
+                    .OrderBy(field => kind is FlowActionKind.OpenTerminal or FlowActionKind.OpenFolder && field == FlowResultField.Directory ? 0 : 1).Select(field => FlowInput.Reference(producer.Id, field)))
                 .FirstOrDefault(input => AllowsInput(kind, input.Field));
-            if (input is not null) { action = action with { Parameters = action.Parameters with { Input = input } }; actions = VisualFlowTree.Update(actions, action.Id, _ => action); }
+            if (input is not null) { action = action with { Value = "", Parameters = (action.Parameters ?? new()) with { Input = input } }; actions = VisualFlowTree.Update(actions, action.Id, _ => action); }
         }
         _session.Replace(_session.Document with { Actions = actions }); _branchSelection = null;
         _session.Selection = action.Id; RenderDocument();
@@ -59,7 +63,15 @@ public sealed partial class NewScriptPage
     { if (_busy || !_session.Selection.HasValue || _branchSelection is not null) return; var item = VisualFlowTree.Walk(_session.Document.Actions).First(row => row.Action.Id == _session.Selection); var index = Array.FindIndex(VisualFlowTree.Sequence(_session.Document.Actions, item.Branch), action => action.Id == _session.Selection); _session.Move(_session.Selection.Value, index + direction); RenderDocument(); }
     /// <summary>Removes the selected action and returns the inspector to the trigger.</summary>
     private void Delete_Click(object sender, RoutedEventArgs e)
-    { if (_busy || !_session.Selection.HasValue || _branchSelection is not null) return; var row = VisualFlowTree.Walk(_session.Document.Actions).First(item => item.Action.Id == _session.Selection); _session.Replace(_session.Document with { Actions = VisualFlowTree.SetSequence(_session.Document.Actions, row.Branch, VisualFlowTree.Sequence(_session.Document.Actions, row.Branch).Where(action => action.Id != _session.Selection).ToArray()) }); _session.Selection = null; RenderDocument(); }
+    {
+        if (_busy || !_session.Selection.HasValue || _branchSelection is not null) return;
+        var row = VisualFlowTree.Walk(_session.Document.Actions).First(item => item.Action.Id == _session.Selection);
+        var removed = VisualFlowTree.Walk([row.Action]).Select(item => item.Action.Id).ToHashSet();
+        if (VisualFlowTree.Walk(_session.Document.Actions).Any(item => !removed.Contains(item.Action.Id) && VisualFlowSchema.Inputs(item.Action).Any(input => input.Kind == FlowInputKind.Result && removed.Contains(input.StepId))))
+        { ShowCreateMessage("Another action uses this result. Change its sources before removing this step.", Microsoft.UI.Xaml.Controls.InfoBarSeverity.Warning); return; }
+        _session.Replace(_session.Document with { Actions = VisualFlowTree.SetSequence(_session.Document.Actions, row.Branch, VisualFlowTree.Sequence(_session.Document.Actions, row.Branch).Where(action => action.Id != _session.Selection).ToArray()) });
+        _session.Selection = null; RenderDocument();
+    }
     /// <summary>Undoes the latest edit without saving files.</summary>
     private void Undo_Click(object sender, RoutedEventArgs e) { if (_busy) return; _session.Undo(); RenderDocument(); }
     /// <summary>Reapplies the latest undone edit.</summary>

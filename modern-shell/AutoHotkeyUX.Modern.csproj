@@ -37,6 +37,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\VisualFlow\v2\*.ahk" LogicalName="AutoHotkeyUX.Modern.VisualFlow.V2.%(Filename).ahk" />
+    <EmbeddedResource Include="Resources\VisualFlow\v3\*.ahk" LogicalName="AutoHotkeyUX.Modern.VisualFlow.V3.%(Filename).ahk" />
     <EmbeddedResource Include="Resources\VisualFlow.Runtime.ahk" LogicalName="AutoHotkeyUX.Modern.VisualFlow.Runtime.ahk" />
     <None Remove="ToolPayload\**" />
     <Content Remove="ToolPayload\**" />

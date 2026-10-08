@@ -34,7 +34,9 @@ public sealed partial class NewScriptPage : Page
         _services = services; _openScripts = openScripts;
         ScriptLocationTextBox.Text = services.Catalog.RootDirectory;
         TriggerKeyCombo.ItemsSource = VisualFlowCodec.Keys.Select(KeyLabel).ToArray(); SendKeysCombo.ItemsSource = VisualFlowCodec.SendKeys;
-        ActionList.ItemsSource = _cards; BuildLibrary();
+        ActionList.ItemsSource = _cards; BuildLibrary(); BuildPresetLibrary();
+        Loaded += Execution_Loaded; Unloaded += Execution_Unloaded;
+        CodeExpander.Expanding += (_, _) => RefreshValidation(generateSource: true);
         _baseline = _session.Document; _baselineDirectory = ScriptLocationTextBox.Text;
         _rendering = false; RenderDocument();
     }
@@ -90,7 +92,7 @@ public sealed partial class NewScriptPage : Page
     /// <summary>Reserves more action space on large windows while keeping a useful minimum on smaller screens.</summary>
     private void PageScroll_SizeChanged(object sender, SizeChangedEventArgs args)
     {
-        if (args.NewSize.Height > 0) ActionList.Height = Math.Clamp(args.NewSize.Height * 0.6, 440, 800);
+        if (args.NewSize.Height > 0) { ActionList.Height = Math.Clamp(args.NewSize.Height * 0.6, 440, 800); PropertiesScroll.Height = ActionList.Height + 160; }
     }
 
     /// <summary>Synchronizes card selection, properties and generated source after a semantic workflow edit.</summary>
@@ -124,17 +126,19 @@ public sealed partial class NewScriptPage : Page
             ActionList.CanDragItems = !nested; ActionList.CanReorderItems = !nested;
             OrderHintText.Text = nested ? "Select IF TRUE or ELSE to add there. Arrow buttons reorder within the selected sequence."
                 : "Actions run from top to bottom. Drag to reorder, or use the arrow buttons.";
-            InsertionHintText.Text = _insertion.ParentId is null ? "New actions append to the main sequence."
+            InsertionHintText.Text = _branchSelection is null && _session.Selection is { } selected
+                ? "New actions insert after " + FlowActionCard.StepLabel(_session.Document, selected) + "."
+                : _insertion.ParentId is null ? "New actions append to the main sequence."
                 : "New actions append to " + (_insertion.IsElse ? "ELSE" : "IF TRUE") + " of " + FlowActionCard.StepLabel(_session.Document, _insertion.ParentId.Value) + ".";
             EmptyFlowText.Visibility = _cards.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             if (properties) RenderProperties();
         }
         finally { _rendering = false; }
-        RefreshValidation();
+        RefreshValidation(); RefreshExecutionActivity();
     }
 
     /// <summary>Validates the full draft before enabling save, keeping incomplete form input visible.</summary>
-    private void RefreshValidation()
+    private void RefreshValidation(bool generateSource = false)
     {
         if (_rendering) return;
         string? error = null;
@@ -142,9 +146,9 @@ public sealed partial class NewScriptPage : Page
         {
             VisualFlowCodec.Validate(_session.Document); _ = ScriptFileName.Normalize(ScriptNameTextBox.Text);
             if (!VisualFlowCodec.IsPath(ScriptLocationTextBox.Text.Trim())) throw new ArgumentException("Choose an absolute script directory.");
-            ScriptPreviewTextBox.Text = VisualFlowGenerator.Generate(_session.Document);
+            if (generateSource || CodeExpander.IsExpanded) ScriptPreviewTextBox.Text = VisualFlowGenerator.Generate(_session.Document);
             _ = VisualFlowCodec.Encode(_session.Document with { Revision = Math.Max(1, _session.Document.Revision + 1),
-                SourceSha256 = VisualFlowGenerator.Hash(VisualFlowCodec.Utf8.GetBytes(ScriptPreviewTextBox.Text)) });
+                SourceSha256 = new string('0', 64) });
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidDataException or System.Text.EncoderFallbackException)
         { error = ex.Message; ScriptPreviewTextBox.Text = "Complete the workflow properties to generate its code."; }
@@ -157,6 +161,8 @@ public sealed partial class NewScriptPage : Page
         var index = Array.FindIndex(sequence, action => action.Id == _session.Selection);
         UpButton.IsEnabled = !_busy && _branchSelection is null && index > 0; DownButton.IsEnabled = !_busy && _branchSelection is null && index >= 0 && index < sequence.Length - 1;
         DeleteButton.IsEnabled = !_busy && _branchSelection is null && index >= 0;
+        DuplicateActionButton.IsEnabled = !_busy && _branchSelection is null && index >= 0 && _cards.Count < VisualFlowCodec.MaximumActions;
+        SavePresetButton.IsEnabled = !_busy && _branchSelection is null && index >= 0 && error is null;
         foreach (var item in _libraryItems) item.IsEnabled = !_busy && VisualFlowTree.CanInsert(_session.Document.Actions, _insertion, (FlowActionKind)item.Tag);
         foreach (var category in _libraryCategories) category.IsEnabled = !_busy;
         var conflict = VisualHotkeyConflicts.BuiltIn(_session.Document.Trigger, _services.ShortcutPreferences.Saved, _services.ScriptStartup.ExplorerEnabled);

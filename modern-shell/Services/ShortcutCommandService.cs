@@ -7,7 +7,7 @@ using AutoHotkeyUX.Modern.Models;
 namespace AutoHotkeyUX.Modern.Services;
 
 /// <summary>Accepts bounded shortcut messages and serializes extraction on a worker without loading another manager.</summary>
-internal sealed class ShortcutCommandService
+internal sealed partial class ShortcutCommandService
 {
     private const nuint Protocol = 0x41584B32;
     private const int MaximumPayloadBytes = 32768;
@@ -20,7 +20,8 @@ internal sealed class ShortcutCommandService
     private readonly SubclassProcedure _procedure;
     private readonly object _gate = new();
     private readonly HashSet<string> _pending = new(StringComparer.OrdinalIgnoreCase);
-    private readonly Channel<(string Path, string? Destination, long Queued)> _queue = Channel.CreateBounded<(string, string?, long)>(
+    private sealed record ExtractionJob(string Path, string? Destination, long Queued, VisualExtractionRequest? Workflow = null);
+    private readonly Channel<ExtractionJob> _queue = Channel.CreateBounded<ExtractionJob>(
         new BoundedChannelOptions(4) { SingleReader = true, AllowSynchronousContinuations = false });
     private readonly Task _worker;
     private bool _accepting = true;
@@ -29,11 +30,15 @@ internal sealed class ShortcutCommandService
     /// <summary>Publishes only this process's native endpoint; an absent window supports isolated queue verification.</summary>
     internal ShortcutCommandService(IntPtr window, AutoHotkeySettings settings,
         Action<string, bool> notify, Func<string, string?, string>? extract = null,
-        ShortcutPreferencesService? preferences = null, ShortcutActivityService? activity = null)
+        ShortcutPreferencesService? preferences = null, ShortcutActivityService? activity = null,
+        string? workflowResultRoot = null, Func<VisualExtractionRequest, string>? workflowExtract = null)
     {
         _window = window; _settings = settings; _notify = notify;
         _extract = extract ?? new ArchiveExtractionService().Extract;
         _preferences = preferences; _activity = activity ?? new();
+        _workflowResultRoot = Path.GetFullPath(workflowResultRoot ?? Path.Combine(ServiceDiagnostics.StateDirectory, "workflow-results"));
+        _workflowExtract = workflowExtract ?? (request => new ArchiveExtractionService().Extract(request.Source,
+            request.Destination.Length == 0 ? null : request.Destination, request.Name.Length == 0 ? null : request.Name, request.Collision));
         _procedure = WindowProcedure;
         if (window != IntPtr.Zero)
         {
@@ -44,6 +49,8 @@ internal sealed class ShortcutCommandService
                 _settings.Write("Modern", "ShortcutWindow", window.ToInt64().ToString());
                 _settings.Write("Modern", "ShortcutPid", Environment.ProcessId.ToString());
                 _settings.Write("Modern", "ShortcutToken", Token);
+                _settings.Write("Modern", "WorkflowResultRoot", _workflowResultRoot);
+                _settings.Write("Modern", "WorkflowProtocolVersion", "3");
             }
             catch { RemoveWindowSubclass(window, _procedure, 2); throw; }
         }
@@ -76,6 +83,9 @@ internal sealed class ShortcutCommandService
         var parts = body.Split('\n', 3);
         if (parts.Length != 3 || parts[1] != Token) return 0;
         if (parts[0] == "terminal") return RecordTerminal(body);
+        if (parts[0] == "flow-extract") return EnqueueWorkflow(parts[2]);
+        if (parts[0] == "flow-event") return RecordWorkflowEvent(parts[2]);
+        if (parts[0] == "flow-status") return WorkflowStatus(parts[2]);
         if (parts[0] != "extract") return 0;
         var preferences = _preferences?.Saved ?? ShortcutPreferences.Default;
         if (!preferences.ArchiveEnabled) return 0;
@@ -89,7 +99,7 @@ internal sealed class ShortcutCommandService
             if (!_accepting) return 0;
             if (_pending.Contains(path)) return 2;
             _pending.Add(path);
-            if (_queue.Writer.TryWrite((path, preferences.ArchiveDestination == "custom" ? preferences.ArchiveFolder : null,
+            if (_queue.Writer.TryWrite(new(path, preferences.ArchiveDestination == "custom" ? preferences.ArchiveFolder : null,
                 Stopwatch.GetTimestamp()))) return 1;
             _pending.Remove(path);
             return 3;
@@ -120,6 +130,7 @@ internal sealed class ShortcutCommandService
             var started = Stopwatch.GetTimestamp();
             try
             {
+                if (job.Workflow is { } workflow) { ProcessWorkflow(workflow, started); continue; }
                 ServiceDiagnostics.Write("Shortcut", $"Extracting {job.Path}; queueMs={Stopwatch.GetElapsedTime(job.Queued).TotalMilliseconds:F0}");
                 var destination = _extract(job.Path, job.Destination);
                 ServiceDiagnostics.Write("Shortcut", $"Completed in {Stopwatch.GetElapsedTime(started).TotalMilliseconds:F0} ms: {destination}");
@@ -135,7 +146,7 @@ internal sealed class ShortcutCommandService
                 _activity.Record(new(DateTimeOffset.Now, "Extract", false, job.Path,
                     (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds, ex.Message));
             }
-            finally { lock (_gate) _pending.Remove(job.Path); }
+            finally { lock (_gate) { if (job.Workflow is { } flow) _workflowRequests[flow.RequestId] = (flow, DateTimeOffset.UtcNow); else _pending.Remove(job.Path); } }
         }
     }
 

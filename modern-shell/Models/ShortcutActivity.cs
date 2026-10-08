@@ -2,4 +2,5 @@ namespace AutoHotkeyUX.Modern.Models;
 
 /// <summary>Describes one completed shortcut action without retaining script contents.</summary>
 internal sealed record ShortcutActivity(DateTimeOffset Time, string Action, bool Succeeded, string Source,
-    long DurationMilliseconds, string Detail, string? Destination = null);
+    long DurationMilliseconds, string Detail, string? Destination = null,
+    Guid FlowId = default, Guid RunId = default, Guid StepId = default, string StepName = "", string State = "");

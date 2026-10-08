@@ -17,18 +17,18 @@ public sealed partial class NewScriptPage
         _session.Load(_session.Document with { Actions = Enumerable.Range(0, 12)
             .Select(index => new FlowAction { Kind = FlowActionKind.Wait, DelayMs = index + 1 }).ToArray() });
         RenderDocument(); await Task.Delay(100); UpdateLayout();
-        if (_libraryItems.Count != 16 || _libraryCategories.Count != 4)
+        if (_libraryItems.Count != 21 || _libraryCategories.Count != 5)
             throw new InvalidOperationException("The floating library is incomplete.");
         var nodes = new FrameworkElement[] { EditorGrid, LibraryPanel, FlowPanel, PropertiesPanel, ActionLibrary }
             .Concat(_libraryCategories).ToArray();
         var before = nodes.Select(node => LayoutBounds(node, EditorGrid)).ToArray();
-        for (var index = 0; index < _libraryCategories.Count; index++)
+        for (var index = 0; index < FlowActionCard.Categories.Length; index++)
         {
             var category = _libraryCategories[index]; var menu = (MenuFlyout)category.Flyout;
             menu.ShowAt(category); await Task.Delay(100); UpdateLayout();
             var popup = VisualTreeHelper.GetOpenPopupsForXamlRoot(XamlRoot)
                 .SingleOrDefault(item => item.IsOpen && item.Child is MenuFlyoutPresenter);
-            if (popup?.Child is not FrameworkElement presenter || presenter.ActualWidth < 240 || menu.Items.Count != 4)
+            if (popup?.Child is not FrameworkElement presenter || presenter.ActualWidth < 240 || menu.Items.Count != FlowActionCard.Categories[index].Kinds.Length)
                 throw new InvalidOperationException("A native action menu did not render.");
             var after = nodes.Select(node => LayoutBounds(node, EditorGrid)).ToArray();
             if (before.Zip(after).Any(pair => Math.Abs(pair.First.X - pair.Second.X) > 1
@@ -54,7 +54,7 @@ public sealed partial class NewScriptPage
             throw new InvalidOperationException("The taller workflow list has insufficient visible rows.");
         if (rows.Max(item => item.ActualHeight) >= 76)
             throw new InvalidOperationException("Workflow rows retained their previous height.");
-        return new { Passed = true, Categories = 4, Actions = 16, StableGeometry = true, NativeMenuInvocation = true,
+        return new { Passed = true, Categories = 4, Actions = 21, MyActions = true, StableGeometry = true, NativeMenuInvocation = true,
             ListHeight = ActionList.ActualHeight, VisibleRows = visible, RowHeight = rows[0].ActualHeight,
             Layout = VerifyWorkflowLayout(), ExecutionCount = _services.Execution.Snapshot().Count };
     }
