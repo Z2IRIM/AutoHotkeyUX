@@ -24,7 +24,8 @@ public sealed partial class NewScriptPage : Page
     private int _layoutMode = -1;
     private FlowBranch _insertion;
     private FlowBranch? _branchSelection;
-    private readonly List<Button> _libraryButtons = [];
+    private readonly List<MenuFlyoutItem> _libraryItems = [];
+    private readonly List<Button> _libraryCategories = [];
 
     /// <summary>Initializes the approved starter and retains its draft when the content host navigates away.</summary>
     internal NewScriptPage(ApplicationServices services, Action openScripts)
@@ -38,28 +39,58 @@ public sealed partial class NewScriptPage : Page
         _rendering = false; RenderDocument();
     }
 
-    /// <summary>Creates uniform native buttons from the same metadata used by cards and the inspector.</summary>
+    /// <summary>Keeps category geometry fixed while native menus provide keyboard navigation and light dismissal.</summary>
     private void BuildLibrary()
     {
         foreach (var (category, kinds) in FlowActionCard.Categories)
         {
-            var group = new StackPanel { Spacing = 8 };
-            var expander = new Expander { Header = category, Content = group, IsExpanded = category == "Context", HorizontalAlignment = HorizontalAlignment.Stretch,
-                HorizontalContentAlignment = HorizontalAlignment.Stretch, Padding = new Thickness(0), MinWidth = 0 };
-            ActionLibrary.Children.Add(expander);
+            var flyout = new MenuFlyout { Placement = Microsoft.UI.Xaml.Controls.Primitives.FlyoutPlacementMode.RightEdgeAlignedTop,
+                OverlayInputPassThroughElement = ActionLibrary };
+            var presenterStyle = new Style { TargetType = typeof(MenuFlyoutPresenter) };
+            presenterStyle.Setters.Add(new Setter(MinWidthProperty, 240d));
+            presenterStyle.Setters.Add(new Setter(MaxWidthProperty, 320d));
+            flyout.MenuFlyoutPresenterStyle = presenterStyle;
+            flyout.Opening += LibraryFlyout_Opening;
             foreach (var kind in kinds)
             {
-            var content = new Grid { ColumnSpacing = 8 };
-            content.ColumnDefinitions.Add(new() { Width = new GridLength(20) });
-            content.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
-            content.Children.Add(new FontIcon { Glyph = FlowActionCard.Icon(kind), FontSize = 16 });
-            var label = new TextBlock { Text = FlowActionCard.Label(kind), TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center };
-            Grid.SetColumn(label, 1); content.Children.Add(label);
-            var button = new Button { Tag = kind, Content = content, HorizontalAlignment = HorizontalAlignment.Stretch,
-                HorizontalContentAlignment = HorizontalAlignment.Stretch, MinHeight = 56, Padding = new Thickness(10) };
-            button.Click += Library_Click; group.Children.Add(button); _libraryButtons.Add(button);
+                var item = new MenuFlyoutItem { Tag = kind, Text = FlowActionCard.Label(kind),
+                    Icon = new FontIcon { Glyph = FlowActionCard.Icon(kind), FontSize = 16 } };
+                item.Click += Library_Click; flyout.Items.Add(item); _libraryItems.Add(item);
             }
+            var content = new Grid { ColumnSpacing = 8 };
+            content.ColumnDefinitions.Add(new() { Width = new GridLength(1, GridUnitType.Star) });
+            content.ColumnDefinitions.Add(new() { Width = new GridLength(16) });
+            content.Children.Add(new TextBlock { Text = category, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
+            var chevron = new FontIcon { Glyph = "\uE76C", FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
+            Grid.SetColumn(chevron, 1); content.Children.Add(chevron);
+            var button = new Button { Content = content, Flyout = flyout, HorizontalAlignment = HorizontalAlignment.Stretch,
+                HorizontalContentAlignment = HorizontalAlignment.Stretch, MinHeight = 44, Padding = new Thickness(10, 8, 10, 8) };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, category + " actions");
+            ActionLibrary.Children.Add(button); _libraryCategories.Add(button);
         }
+        Unloaded += Library_Unloaded;
+    }
+
+    /// <summary>Allows switching categories with one click while keeping only one native action menu open.</summary>
+    private void LibraryFlyout_Opening(object? sender, object args)
+    {
+        foreach (var category in _libraryCategories)
+            if (category.Flyout is MenuFlyout flyout && !ReferenceEquals(flyout, sender)) flyout.Hide();
+    }
+
+    /// <summary>Dismisses detached menu content before the page is unloaded or editing is disabled.</summary>
+    private void CloseLibraryMenus()
+    {
+        foreach (var category in _libraryCategories) category.Flyout?.Hide();
+    }
+
+    /// <summary>Releases any visible menu when navigation removes its anchor page.</summary>
+    private void Library_Unloaded(object sender, RoutedEventArgs args) => CloseLibraryMenus();
+
+    /// <summary>Reserves more action space on large windows while keeping a useful minimum on smaller screens.</summary>
+    private void PageScroll_SizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        if (args.NewSize.Height > 0) ActionList.Height = Math.Clamp(args.NewSize.Height * 0.6, 440, 800);
     }
 
     /// <summary>Synchronizes card selection, properties and generated source after a semantic workflow edit.</summary>
@@ -126,7 +157,8 @@ public sealed partial class NewScriptPage : Page
         var index = Array.FindIndex(sequence, action => action.Id == _session.Selection);
         UpButton.IsEnabled = !_busy && _branchSelection is null && index > 0; DownButton.IsEnabled = !_busy && _branchSelection is null && index >= 0 && index < sequence.Length - 1;
         DeleteButton.IsEnabled = !_busy && _branchSelection is null && index >= 0;
-        foreach (var button in _libraryButtons) button.IsEnabled = !_busy && VisualFlowTree.CanInsert(_session.Document.Actions, _insertion, (FlowActionKind)button.Tag);
+        foreach (var item in _libraryItems) item.IsEnabled = !_busy && VisualFlowTree.CanInsert(_session.Document.Actions, _insertion, (FlowActionKind)item.Tag);
+        foreach (var category in _libraryCategories) category.IsEnabled = !_busy;
         var conflict = VisualHotkeyConflicts.BuiltIn(_session.Document.Trigger, _services.ShortcutPreferences.Saved, _services.ScriptStartup.ExplorerEnabled);
         ShortcutWarningText.Text = conflict ?? ""; ShortcutWarningText.Visibility = conflict is null ? Visibility.Collapsed : Visibility.Visible;
         CreateScriptStatusText.Text = _opened is null ? "Creates a script and its workflow file. Existing names receive a suffix. Actions run only after you start the script."
@@ -148,6 +180,7 @@ public sealed partial class NewScriptPage : Page
     {
         var mode = e.NewSize.Width >= 960 ? 0 : e.NewSize.Width >= 640 ? 1 : 2;
         if (_layoutMode == mode) return;
+        CloseLibraryMenus();
         _layoutMode = mode;
         EditorGrid.ColumnDefinitions[0].Width = mode == 0 ? new GridLength(180) : mode == 1 ? new GridLength(168) : new GridLength(1, GridUnitType.Star);
         EditorGrid.ColumnDefinitions[1].Width = mode == 2 ? new GridLength(0) : new GridLength(1, GridUnitType.Star);

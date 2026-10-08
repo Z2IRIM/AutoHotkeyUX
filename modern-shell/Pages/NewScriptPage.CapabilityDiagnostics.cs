@@ -10,7 +10,7 @@ public sealed partial class NewScriptPage
     /// <summary>Proves category, branch, source-picker and paired persistence behavior in the isolated native app.</summary>
     internal async Task<object> VerifyCapabilitiesAsync()
     {
-        if (_libraryButtons.Count != 16 || ActionLibrary.Children.OfType<Expander>().Count() != 4)
+        if (_libraryItems.Count != 16 || ActionLibrary.Children.OfType<Button>().Count() != 4)
             throw new InvalidOperationException("The categorized action library is incomplete.");
         _opened = null; _session.Load(VisualFlowExamples.Explorer()); _insertion = default; _branchSelection = null;
         _rendering = true; ScriptNameTextBox.Text = "Native practical flow"; ScriptLocationTextBox.Text = _services.Catalog.RootDirectory; _rendering = false;
@@ -18,7 +18,7 @@ public sealed partial class NewScriptPage
         var branch = _cards.First(card => card.IsBranch && !card.Branch.IsElse);
         ActionList.SelectedItem = branch; await Task.Delay(60);
         var count = VisualFlowTree.Sequence(_session.Document.Actions, branch.Branch).Length;
-        Library_Click(_libraryButtons.Single(button => (FlowActionKind)button.Tag == FlowActionKind.Wait), new RoutedEventArgs());
+        Library_Click(_libraryItems.Single(button => (FlowActionKind)button.Tag == FlowActionKind.Wait), new RoutedEventArgs());
         if (VisualFlowTree.Sequence(_session.Document.Actions, branch.Branch).Length != count + 1 || _session.Document.Actions.Length != 2)
             throw new InvalidOperationException("A native branch insertion went into the root sequence.");
         Up_Click(this, new RoutedEventArgs()); Undo_Click(this, new RoutedEventArgs());
@@ -53,7 +53,7 @@ public sealed partial class NewScriptPage
         var savedDocument = _session.Document;
         _session.Load(savedDocument with { Actions = [NestedCondition(3)] }); _insertion = default; _branchSelection = null; RenderDocument();
         var deepest = _cards.Last(card => card.IsBranch && !card.Branch.IsElse); ActionList.SelectedItem = deepest;
-        var ifButton = _libraryButtons.Single(button => (FlowActionKind)button.Tag == FlowActionKind.IfElse);
+        var ifButton = _libraryItems.Single(button => (FlowActionKind)button.Tag == FlowActionKind.IfElse);
         if (ifButton.IsEnabled) throw new InvalidOperationException("Native editor allows a fourth nested condition.");
         var beforeDepth = VisualFlowTree.Walk(_session.Document.Actions).Count(); AddAction(FlowActionKind.IfElse);
         if (VisualFlowTree.Walk(_session.Document.Actions).Count() != beforeDepth) throw new InvalidOperationException("Over-depth insertion changed the native draft.");

@@ -107,7 +107,9 @@ public partial class App : Application
             if (verifyIndex >= 0 && verifyIndex + 1 < _arguments.Length)
             {
                 ShowWindow();
-                var report = verifyVisualIndex >= 0 ? await _window.VerifyVisualCreationAsync(_arguments[verifyIndex + 1])
+                var report = verifyVisualIndex >= 0 ? (_arguments.Contains("--layout-only")
+                    ? await _window.VerifyWorkflowLayoutOnlyAsync(_arguments[verifyIndex + 1])
+                    : await _window.VerifyVisualCreationAsync(_arguments[verifyIndex + 1]))
                     : verifyPreferencesIndex >= 0 ? await _window.VerifyShortcutPreferencesAsync()
                     : _arguments.Contains("--verify-docs-only") ? await _window.VerifyDocumentationAsync()
                     : verifyToolsIndex >= 0 ? await _window.VerifyToolsAsync() : await _window.VerifyPagesAsync();

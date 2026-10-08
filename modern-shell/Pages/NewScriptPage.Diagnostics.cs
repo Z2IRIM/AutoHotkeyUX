@@ -18,14 +18,9 @@ public sealed partial class NewScriptPage
                 throw new InvalidOperationException("A workflow panel overflows: " + panel.Name);
             return new { Panel = panel.Name, X = position.X, Y = position.Y, Width = panel.ActualWidth, Height = panel.ActualHeight };
         }).ToArray();
-        foreach (var group in ActionLibrary.Children.OfType<Expander>().Where(group => group.IsExpanded))
-        {
-            var buttons = ((StackPanel)group.Content).Children.OfType<Button>().ToArray();
-            var libraryBounds = buttons.Select(button => button.TransformToVisual((StackPanel)group.Content).TransformPoint(default)).ToArray();
-            for (var index = 1; index < buttons.Length; index++)
-                if (Math.Abs(libraryBounds[index].Y - libraryBounds[index - 1].Y - buttons[index - 1].ActualHeight - 8) > 1.5)
-                    throw new InvalidOperationException("Action library spacing is uneven.");
-        }
+        foreach (var category in ActionLibrary.Children.OfType<Button>())
+            if (category.Flyout is not MenuFlyout { Items.Count: 4 })
+                throw new InvalidOperationException("An action category is missing its floating menu.");
         foreach (var container in new FrameworkElement[] { DetailsGrid, PropertiesPanel, FlowPanel, LibraryPanel })
             CheckVisibleBounds(container, container);
         if (Grid.GetRow(PropertiesPanel) != (_layoutMode == 0 ? 0 : _layoutMode == 1 ? 1 : 2))
@@ -63,7 +58,7 @@ public sealed partial class NewScriptPage
         if (!IsLoaded || !SaveButton.IsEnabled || CodeExpander.IsExpanded || _cards.Count != 2)
             throw new InvalidOperationException("The starter workflow did not load.");
         ScriptNameTextBox.Text = "Native workflow 测试";
-        Library_Click(_libraryButtons.Single(button => (FlowActionKind)button.Tag == FlowActionKind.OpenWebsite), new RoutedEventArgs());
+        Library_Click(_libraryItems.Single(button => (FlowActionKind)button.Tag == FlowActionKind.OpenWebsite), new RoutedEventArgs());
         ActionValueBox.Text = "file:///C:/invalid";
         await Task.Delay(80);
         if (SaveButton.IsEnabled || FieldErrorsText.Visibility != Visibility.Visible) throw new InvalidOperationException("The native form accepted an invalid URL.");

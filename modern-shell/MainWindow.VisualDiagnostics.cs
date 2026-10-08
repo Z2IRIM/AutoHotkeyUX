@@ -40,8 +40,29 @@ public sealed partial class MainWindow
             DragCompletionBoundary = true, PhysicalMouseDrag = "unvalidated", StateDirectory = _services.StateDirectory };
     }
 
+    /// <summary>Verifies only the changed workflow layout and floating menus, without saving or running scripts.</summary>
+    internal async Task<object> VerifyWorkflowLayoutOnlyAsync(string reportPath)
+    {
+        NavigateTo("new"); await Task.Delay(120);
+        var scale = RootLayout.XamlRoot.RasterizationScale;
+        AppWindow.Resize(new Windows.Graphics.SizeInt32((int)Math.Round(1600 * scale), (int)Math.Round(1000 * scale)));
+        await Task.Delay(120);
+        var wide = await _newScriptPage!.VerifyFlyoutLayoutAsync(element => CaptureVisualAsync(Path.ChangeExtension(reportPath, "menu.png"), element));
+        await CaptureVisualAsync(Path.ChangeExtension(reportPath, "wide.png"));
+        AppWindow.Resize(new Windows.Graphics.SizeInt32((int)Math.Round(1100 * scale), (int)Math.Round(900 * scale)));
+        await Task.Delay(120);
+        var medium = await _newScriptPage.VerifyFlyoutLayoutAsync();
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(MinimumWindowWidth, MinimumWindowHeight));
+        await Task.Delay(120);
+        var narrow = await _newScriptPage.VerifyFlyoutLayoutAsync();
+        await CaptureVisualAsync(Path.ChangeExtension(reportPath, "narrow.png"));
+        return new { Passed = true, Wide = wide, Medium = medium, Narrow = narrow,
+            Capture = "WinUI RenderTargetBitmap; popup captured separately; native caption and Mica excluded",
+            PhysicalKeyboardAndPointer = "unvalidated", StateDirectory = _services.StateDirectory };
+    }
+
     /// <summary>Captures actual WinUI-rendered pixels for the explicit diagnostic command, without desktop input automation.</summary>
-    private async Task CaptureVisualAsync(string path)
+    private async Task CaptureVisualAsync(string path, Microsoft.UI.Xaml.FrameworkElement? element = null)
     {
         var previous = RootLayout.Background;
         var bitmap = new RenderTargetBitmap();
@@ -49,7 +70,7 @@ public sealed partial class MainWindow
         {
             // Mica is outside the XAML bitmap; use the semantic theme base to avoid transparent pixels in evidence.
             RootLayout.Background = (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["SolidBackgroundFillColorBaseBrush"];
-            await bitmap.RenderAsync(RootLayout);
+            await bitmap.RenderAsync(element ?? RootLayout);
         }
         finally { RootLayout.Background = previous; }
         var pixels = await bitmap.GetPixelsAsync();

@@ -63,6 +63,7 @@ public sealed partial class NewScriptPage
     /// <summary>Blocks draft changes in flight while allowing navigation to other app pages.</summary>
     private void SetEditingEnabled(bool enabled)
     {
+        if (!enabled) CloseLibraryMenus();
         EditorGrid.IsHitTestVisible = enabled; ActionList.IsEnabled = enabled; TriggerButton.IsEnabled = enabled;
         foreach (var control in new Control[] { TriggerKindCombo, TriggerKeyCombo, ScopeCombo, ApplicationBox, CtrlCheck, AltCheck, ShiftCheck, WinCheck,
             FolderCombo, ActionValueBox, SendKeysCombo, WaitBox }) control.IsEnabled = enabled;

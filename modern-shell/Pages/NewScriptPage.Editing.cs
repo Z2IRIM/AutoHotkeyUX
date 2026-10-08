@@ -9,7 +9,7 @@ public sealed partial class NewScriptPage
 {
     /// <summary>Adds a supported action with useful starter parameters and selects its property editor.</summary>
     private void Library_Click(object sender, RoutedEventArgs e)
-    { if (_busy || sender is not Button { Tag: FlowActionKind kind } || VisualFlowTree.Walk(_session.Document.Actions).Count() >= VisualFlowCodec.MaximumActions) return; AddAction(kind); }
+    { if (_busy || sender is not MenuFlyoutItem { Tag: FlowActionKind kind } || VisualFlowTree.Walk(_session.Document.Actions).Count() >= VisualFlowCodec.MaximumActions) return; AddAction(kind); }
 
     /// <summary>Appends one action through the shared history boundary without executing it.</summary>
     private void AddAction(FlowActionKind kind)
