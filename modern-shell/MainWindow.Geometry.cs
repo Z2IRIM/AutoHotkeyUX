@@ -23,18 +23,53 @@ public sealed partial class MainWindow
             var screen = display.OuterBounds;
             var work = display.WorkArea;
             var bounds = CalculateInitialBounds(screen, work);
-            // WorkArea coordinates are display-relative; the overload applies the monitor's screen offset.
-            AppWindow.MoveAndResize(bounds, display);
+            // WorkArea already includes the monitor's physical screen offset.
+            AppWindow.MoveAndResize(bounds);
             _initialDisplayBounds = screen;
             _initialWorkArea = work;
             _initialWindowBounds = bounds;
-            ServiceDiagnostics.Write("Window", $"Startup size {bounds.Width}x{bounds.Height}; display {screen.Width}x{screen.Height}; scale {InitialWindowScale:P0}.");
+            ServiceDiagnostics.Write("Window", $"Startup bounds {bounds.X},{bounds.Y} {bounds.Width}x{bounds.Height}; display {screen.X},{screen.Y} {screen.Width}x{screen.Height}; work {work.X},{work.Y} {work.Width}x{work.Height}; scale {InitialWindowScale:P0}.");
         }
         catch (Exception ex)
         {
             ServiceDiagnostics.Write("Window", "Screen placement failed; using the previous startup size.", ex);
-            AppWindow.Resize(new SizeInt32(1280, 820));
+            AppWindow.MoveAndResize(new RectInt32(32, 32, 1280, 820));
         }
+    }
+
+    /// <summary>Recovers an inaccessible normal window while preserving reachable manual placement and maximized state.</summary>
+    internal void EnsureWindowVisible()
+    {
+        if (AppWindow.Presenter is OverlappedPresenter { State: not OverlappedPresenterState.Restored }) return;
+        try
+        {
+            var bounds = new RectInt32(AppWindow.Position.X, AppWindow.Position.Y, AppWindow.Size.Width, AppWindow.Size.Height);
+            var displays = DisplayArea.FindAll();
+            for (var index = 0; index < displays.Count; index++)
+                if (IsTitleBarReachable(bounds, displays[index].WorkArea)) return;
+            var display = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest) ?? DisplayArea.Primary;
+            var work = display.WorkArea;
+            if (work.Width <= 0 || work.Height <= 0) throw new InvalidOperationException("The selected display has no usable work area.");
+            var width = Math.Clamp(bounds.Width, 1, work.Width);
+            var height = Math.Clamp(bounds.Height, 1, work.Height);
+            var recovered = new RectInt32(work.X + (work.Width - width) / 2, work.Y + (work.Height - height) / 2, width, height);
+            AppWindow.MoveAndResize(recovered);
+            ServiceDiagnostics.Write("Window", $"Recovered inaccessible bounds {bounds.X},{bounds.Y} {bounds.Width}x{bounds.Height} to {recovered.X},{recovered.Y} {recovered.Width}x{recovered.Height}.");
+        }
+        catch (Exception ex)
+        {
+            ServiceDiagnostics.Write("Window", "Unable to query display visibility; moving the title bar onto the primary desktop.", ex);
+            AppWindow.Move(new PointInt32(32, 32));
+        }
+    }
+
+    /// <summary>Requires a usable title-bar intersection, allowing deliberate placement across adjacent displays.</summary>
+    internal static bool IsTitleBarReachable(RectInt32 bounds, RectInt32 work)
+    {
+        if (bounds.Width <= 0 || bounds.Height <= 0 || work.Width <= 0 || work.Height <= 0) return false;
+        var visibleWidth = Math.Min((long)bounds.X + bounds.Width, (long)work.X + work.Width) - Math.Max(bounds.X, work.X);
+        var visibleHeight = Math.Min((long)bounds.Y + Math.Min(32, bounds.Height), (long)work.Y + work.Height) - Math.Max(bounds.Y, work.Y);
+        return visibleWidth >= Math.Min(96, bounds.Width) && visibleHeight >= Math.Min(24, bounds.Height);
     }
 
     /// <summary>Fits one uniform screen scale to the work area, honoring usable minima when space permits.</summary>
@@ -73,12 +108,12 @@ public sealed partial class MainWindow
         var position = AppWindow.Position;
         var size = AppWindow.Size;
         if (size.Width != bounds.Width || size.Height != bounds.Height
-            || position.X != screen.X + bounds.X || position.Y != screen.Y + bounds.Y)
+            || position.X != bounds.X || position.Y != bounds.Y)
             throw new InvalidOperationException("The native startup window differs from the requested monitor placement.");
         foreach (var layout in new[]
         {
             (screen, work),
-            (new RectInt32(-1920, 0, 1920, 1080), new RectInt32(0, 0, 1920, 1040)),
+            (new RectInt32(-1920, 0, 1920, 1080), new RectInt32(-1920, 0, 1920, 1040)),
             (new RectInt32(0, 0, 2560, 1600), new RectInt32(60, 0, 2500, 1600)),
             (new RectInt32(0, 0, 3440, 1440), new RectInt32(0, 0, 3440, 1392)),
             (new RectInt32(0, 0, 1080, 1920), new RectInt32(0, 0, 1080, 1872)),
