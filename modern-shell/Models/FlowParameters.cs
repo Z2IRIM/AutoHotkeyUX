@@ -1,8 +1,11 @@
+using System.Text.Json.Serialization;
+
 namespace AutoHotkeyUX.Modern.Models;
 
 internal enum FlowInputKind { Literal, Result }
-internal enum FlowResultField { Path, Directory, Name, Extension, Text, ProcessId, WindowId }
-internal enum FlowConditionKind { None, IsFolder, IsFile, IsArchive, ExtensionEquals, IsEmpty, IsNotEmpty }
+internal enum FlowResultField { Path, Directory, Name, Extension, Text, ProcessId, WindowId,
+    ParentDirectory, BaseName, TargetKind, Exists, Success, MouseX, MouseY }
+internal enum FlowConditionKind { None, IsFolder, IsFile, IsArchive, ExtensionEquals, IsEmpty, IsNotEmpty, PathExists }
 
 /// <summary>Represents a fixed value or one typed earlier result, never an executable expression.</summary>
 internal sealed record FlowInput
@@ -28,6 +31,14 @@ internal sealed record FlowParameters
     public string Comparison { get; init; } = "";
     public FlowAction[] Then { get; init; } = [];
     public FlowAction[] Else { get; init; } = [];
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public FlowTerminalOptions? Terminal { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public FlowExtractionOptions? Extraction { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public FlowContextOptions? Context { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public FlowJoinPathOptions? JoinPath { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public FlowDirectoryOptions? Directory { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public FlowStopOptions? Stop { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public FlowNotificationOptions? Notification { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public FlowFailureOptions? Failure { get; init; }
 }
 
 /// <summary>Names an insertion sequence independently of action selection and undo history.</summary>

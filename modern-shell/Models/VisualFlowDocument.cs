@@ -6,7 +6,8 @@ internal enum FlowTriggerKind { Hotkey, Startup }
 internal enum FlowScopeKind { AnyApplication, ActiveApplication, ExplorerDesktop }
 [Flags] internal enum FlowModifiers { None = 0, Ctrl = 1, Alt = 2, Shift = 4, Win = 8 }
 internal enum FlowActionKind { OpenProgram, OpenFolder, OpenWebsite, SendText, SendKeys, Wait,
-    GetClickedObject, GetSelectedObject, GetCurrentDirectory, ReadClipboard, OpenTerminal, ExtractArchive, SetClipboard, WaitForWindow, ActivateWindow, IfElse }
+    GetClickedObject, GetSelectedObject, GetCurrentDirectory, ReadClipboard, OpenTerminal, ExtractArchive, SetClipboard, WaitForWindow, ActivateWindow, IfElse,
+    GetPathProperties, JoinPath, CreateDirectory, StopWorkflow, Notify }
 internal enum FlowFolderKind { Documents, Desktop, Custom }
 
 /// <summary>Stores a versioned visual workflow independently of the WinUI editor and generated source.</summary>
@@ -38,6 +39,7 @@ internal sealed record FlowAction
     [JsonRequired] public string Value { get; init; } = "";
     [JsonRequired] public FlowFolderKind Folder { get; init; }
     [JsonRequired] public int DelayMs { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? DisplayName { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public FlowParameters? Parameters { get; init; }
 }
 

@@ -24,8 +24,9 @@ internal sealed class VisualEditorSession
     internal void Replace(VisualFlowDocument value)
     {
         VisualFlowValidation.ValidateTree(value.Actions);
-        if (VisualFlowTree.Walk(value.Actions).Any(item => item.Action.Kind > FlowActionKind.Wait || item.Action.Parameters is not null)
-            || value.Trigger.Scope == FlowScopeKind.ExplorerDesktop || value.Trigger.Key.EndsWith("Button", StringComparison.Ordinal)) value = value with { SchemaVersion = 2 };
+        if (VisualFlowTree.Walk(value.Actions).Any(item => VisualFlowSchema.NeedsV3(item.Action))) value = VisualFlowSchema.Upgrade(value);
+        else if (value.SchemaVersion < 2 && (VisualFlowTree.Walk(value.Actions).Any(item => item.Action.Kind > FlowActionKind.Wait || item.Action.Parameters is not null)
+            || value.Trigger.Scope == FlowScopeKind.ExplorerDesktop || value.Trigger.Key.EndsWith("Button", StringComparison.Ordinal))) value = value with { SchemaVersion = 2 };
         if (VisualFlowTree.Walk(value.Actions).Count() > VisualFlowCodec.MaximumActions) throw new InvalidDataException("The draft exceeds the supported action count.");
         if (Same(value, Document)) return;
         _undo.Add(Copy(Document));

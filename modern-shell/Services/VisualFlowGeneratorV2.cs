@@ -106,10 +106,12 @@ internal static class VisualFlowGeneratorV2
     private static string L(string value) => VisualFlowGenerator.Literal(value);
     /// <summary>Formats numbers deterministically regardless of the host's locale.</summary>
     private static string N(int value) => value.ToString(CultureInfo.InvariantCulture);
-    /// <summary>Reads canonical helper source from the same assembly resources as the existing core.</summary>
+    /// <summary>Reads frozen v2 helper bytes independently of later core and workflow changes.</summary>
     private static string Resource(string name)
     {
-        using var stream = typeof(VisualFlowGeneratorV2).Assembly.GetManifestResourceStream("AutoHotkeyUX.Modern." + name)
+        var frozen = name switch { "VisualFlow.Runtime.ahk" => "Runtime", "ExplorerShortcuts.Shell.ahk" => "Shell",
+            "ExplorerShortcuts.Actions.ahk" => "Actions", "ExplorerShortcuts.Preferences.ahk" => "Preferences", _ => throw new InvalidDataException("Unknown v2 helper.") };
+        using var stream = typeof(VisualFlowGeneratorV2).Assembly.GetManifestResourceStream("AutoHotkeyUX.Modern.VisualFlow.V2." + frozen + ".ahk")
             ?? throw new InvalidDataException("Missing workflow helper: " + name);
         using var reader = new StreamReader(stream, VisualFlowCodec.Utf8);
         return reader.ReadToEnd().Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\n", "\r\n", StringComparison.Ordinal) + "\r\n";

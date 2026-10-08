@@ -50,7 +50,7 @@ internal static class VisualFlowCodec
     /// <summary>Constrains executable semantics independently of UI controls and JSON serialization.</summary>
     internal static void Validate(VisualFlowDocument value)
     {
-        if (value is null || value.SchemaVersion is not (1 or 2) || value.Id == Guid.Empty || value.Revision < 0
+        if (value is null || value.SchemaVersion is not (1 or 2 or 3) || value.Id == Guid.Empty || value.Revision < 0
             || value.Revision == long.MaxValue || value.SourceSha256 is null)
             throw new InvalidDataException("Unsupported workflow version or identity.");
         var trigger = value.Trigger;
@@ -79,7 +79,8 @@ internal static class VisualFlowCodec
             _ = Utf8.GetByteCount(action.Value);
             if (value.SchemaVersion == 1 && (action.Parameters is not null || action.Kind > FlowActionKind.Wait))
                 throw new InvalidDataException("This action needs workflow version 2.");
-            if (value.SchemaVersion == 2) VisualFlowValidation.ValidateAction(value, action);
+            if (value.SchemaVersion < 3 && VisualFlowSchema.NeedsV3(action)) throw new InvalidDataException("This action needs workflow version 3.");
+            if (value.SchemaVersion >= 2) VisualFlowValidation.ValidateAction(value, action);
             if (action.Kind != FlowActionKind.Wait && action.DelayMs != 0
                 || action.Kind != FlowActionKind.OpenFolder && action.Folder != FlowFolderKind.Documents)
                 throw new InvalidDataException("An action contains parameters from a different action type.");
@@ -112,7 +113,7 @@ internal static class VisualFlowCodec
                     break;
             }
         }
-        if (value.SchemaVersion == 2) VisualFlowValidation.ValidateTree(value.Actions);
+        if (value.SchemaVersion >= 2) VisualFlowValidation.ValidateTree(value.Actions);
     }
 
     /// <summary>Accepts literal Windows paths while keeping arguments, control characters and wildcards out.</summary>

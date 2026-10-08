@@ -44,10 +44,23 @@ internal static class VisualFlowTree
     /// <summary>Ignores replacement array identities while checking every parameter and both branch sequences.</summary>
     private static bool SameParameters(FlowParameters? left, FlowParameters? right) => left is null || right is null ? left == right
         : left.Input == right.Input && left.Arguments == right.Arguments && left.ArgumentInput == right.ArgumentInput && left.WorkingDirectory == right.WorkingDirectory && left.Destination == right.Destination
-          && left.TimeoutMs == right.TimeoutMs && left.Condition == right.Condition && left.Comparison == right.Comparison && Same(left.Then, right.Then) && Same(left.Else, right.Else);
+          && left.TimeoutMs == right.TimeoutMs && left.Condition == right.Condition && left.Comparison == right.Comparison
+          && left.Terminal == right.Terminal && left.Context == right.Context && left.Directory == right.Directory && left.Stop == right.Stop && left.Failure == right.Failure
+          && SameExtraction(left.Extraction, right.Extraction) && SameParts(left.JoinPath?.Segments, right.JoinPath?.Segments)
+          && (left.Notification is null || right.Notification is null ? left.Notification == right.Notification
+              : SameParts(left.Notification.Title.Parts, right.Notification.Title.Parts) && SameParts(left.Notification.Message.Parts, right.Notification.Message.Parts))
+          && Same(left.Then, right.Then) && Same(left.Else, right.Else);
+    /// <summary>Compares composed extraction names by value rather than by array allocation.</summary>
+    private static bool SameExtraction(FlowExtractionOptions? left, FlowExtractionOptions? right) => left is null || right is null ? left == right
+        : left.Mode == right.Mode && left.Destination == right.Destination && left.Naming == right.Naming && left.Collision == right.Collision && SameParts(left.Name.Parts, right.Name.Parts);
+    /// <summary>Compares literal/result parts without ignoring their order.</summary>
+    private static bool SameParts(FlowInput[]? left, FlowInput[]? right) => left is null || right is null ? left == right : left.SequenceEqual(right);
     /// <summary>Copies arrays recursively so retained history cannot be mutated by a native collection.</summary>
     internal static FlowAction[] Copy(FlowAction[] actions) => actions.Select(action => action.Parameters is not { } p ? action
-        : action with { Parameters = p with { Then = Copy(p.Then), Else = Copy(p.Else) } }).ToArray();
+        : action with { Parameters = p with { Then = Copy(p.Then), Else = Copy(p.Else),
+            Extraction = p.Extraction is { } e ? e with { Name = e.Name with { Parts = [.. e.Name.Parts] } } : null,
+            JoinPath = p.JoinPath is { } join ? join with { Segments = [.. join.Segments] } : null,
+            Notification = p.Notification is { } notice ? notice with { Title = notice.Title with { Parts = [.. notice.Title.Parts] }, Message = notice.Message with { Parts = [.. notice.Message.Parts] } } : null } }).ToArray();
     /// <summary>Lists only earlier outputs definitely available on the selected action's execution path.</summary>
     internal static IReadOnlyList<FlowAction> Available(FlowAction[] actions, Guid id) => FindAvailable(actions, id, []) ?? [];
     /// <summary>Carries ancestor inputs into each branch and discards branch-only outputs at the merge.</summary>
@@ -69,9 +82,22 @@ internal static class VisualFlowTree
     /// <summary>Defines the closed output vocabulary shared by validation and dropdowns.</summary>
     internal static FlowResultField[] Outputs(FlowActionKind kind) => kind switch
     {
-        FlowActionKind.GetClickedObject or FlowActionKind.GetSelectedObject or FlowActionKind.GetCurrentDirectory =>
-            [FlowResultField.Path, FlowResultField.Directory, FlowResultField.Name, FlowResultField.Extension],
+        FlowActionKind.GetClickedObject or FlowActionKind.GetSelectedObject or FlowActionKind.GetCurrentDirectory or FlowActionKind.GetPathProperties =>
+            [FlowResultField.Path, FlowResultField.Directory, FlowResultField.Name, FlowResultField.Extension, FlowResultField.ParentDirectory,
+                FlowResultField.BaseName, FlowResultField.TargetKind, FlowResultField.Exists],
         FlowActionKind.ReadClipboard => [FlowResultField.Text], FlowActionKind.OpenProgram => [FlowResultField.ProcessId],
-        FlowActionKind.WaitForWindow => [FlowResultField.WindowId], FlowActionKind.ExtractArchive => [FlowResultField.Path, FlowResultField.Directory], _ => []
+        FlowActionKind.WaitForWindow => [FlowResultField.WindowId], FlowActionKind.ExtractArchive => [FlowResultField.Path, FlowResultField.Directory, FlowResultField.Success],
+        FlowActionKind.OpenTerminal => [FlowResultField.Directory, FlowResultField.WindowId, FlowResultField.Success],
+        FlowActionKind.JoinPath => [FlowResultField.Path], FlowActionKind.CreateDirectory => [FlowResultField.Path, FlowResultField.Directory, FlowResultField.Success], _ => []
     };
+    /// <summary>Exposes only fields guaranteed by the document version and operation readiness setting.</summary>
+    internal static FlowResultField[] Outputs(FlowAction action, int schemaVersion = 3)
+    {
+        if (schemaVersion < 3) return action.Kind == FlowActionKind.OpenTerminal ? [] : Outputs(action.Kind).Where(field => field <= FlowResultField.WindowId).ToArray();
+        var fields = Outputs(action.Kind);
+        if (action.Kind == FlowActionKind.GetClickedObject) fields = [.. fields, FlowResultField.MouseX, FlowResultField.MouseY];
+        if (action.Kind == FlowActionKind.OpenTerminal && action.Parameters?.Terminal?.WaitReady == false)
+            fields = fields.Where(field => field is not (FlowResultField.WindowId or FlowResultField.Success)).ToArray();
+        return fields;
+    }
 }

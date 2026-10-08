@@ -7,8 +7,9 @@ namespace AutoHotkeyUX.Modern.Services;
 internal static class VisualFlowValidation
 {
     /// <summary>Checks closed parameters and branch scope independently of the editor's source picker.</summary>
-    internal static void ValidateAction(VisualFlowDocument flow, FlowAction action)
+    internal static void ValidateAction(VisualFlowDocument flow, FlowAction action, bool legacyRules = false)
     {
+        if (flow.SchemaVersion == 3 && !legacyRules) { VisualFlowValidationV3.Validate(flow, action); return; }
         var p = action.Parameters;
         if (p is null)
         {
@@ -53,14 +54,14 @@ internal static class VisualFlowValidation
             || (p.Condition == FlowConditionKind.ExtensionEquals && !Regex.IsMatch(p.Comparison, "^\\.?[a-zA-Z0-9]+(?:\\.[a-zA-Z0-9]+)*$", RegexOptions.CultureInvariant)))) Fail("Choose a condition and a valid extension when applicable.");
     }
     /// <summary>Rejects unknown fields and values outside the previous-step visibility boundary.</summary>
-    private static void ValidateInput(VisualFlowDocument flow, FlowAction action, FlowInput input)
+    internal static void ValidateInput(VisualFlowDocument flow, FlowAction action, FlowInput input)
     {
         if (!Enum.IsDefined(input.Kind) || !Enum.IsDefined(input.Field) || input.Literal is null || input.Literal.Contains('\0') || input.Literal.Length > 4096) Fail("Invalid input source.");
         _ = VisualFlowCodec.Utf8.GetByteCount(input.Literal!);
         if (input.Kind == FlowInputKind.Literal)
         { if (input.StepId != Guid.Empty || input.Field != FlowResultField.Path) Fail("Fixed values cannot carry a result reference."); return; }
         var producer = VisualFlowTree.Available(flow.Actions, action.Id).FirstOrDefault(step => step.Id == input.StepId);
-        if (input.Literal!.Length != 0 || producer is null || !VisualFlowTree.Outputs(producer.Kind).Contains(input.Field)) Fail("This result is missing, later, or outside this branch. Choose an earlier result.");
+        if (input.Literal!.Length != 0 || producer is null || !VisualFlowTree.Outputs(producer, flow.SchemaVersion).Contains(input.Field)) Fail("This result is missing, later, or outside this branch. Choose an earlier result.");
     }
     /// <summary>Bounds recursive conditions without requiring a nonempty branch.</summary>
     internal static void ValidateTree(FlowAction[] actions, int conditions = 0)
@@ -74,9 +75,9 @@ internal static class VisualFlowValidation
         }
     }
     /// <summary>Checks fixed absolute paths and limits reference fields to path-bearing outputs.</summary>
-    private static void ValidatePathInput(FlowInput input, string label)
+    internal static void ValidatePathInput(FlowInput input, string label)
     {
-        if (input.Kind == FlowInputKind.Literal ? !VisualFlowCodec.IsPath(input.Literal) : input.Field is not (FlowResultField.Path or FlowResultField.Directory or FlowResultField.Text)) Fail("Choose an absolute " + label + " or an earlier path result.");
+        if (input.Kind == FlowInputKind.Literal ? !VisualFlowCodec.IsPath(input.Literal) : input.Field is not (FlowResultField.Path or FlowResultField.Directory or FlowResultField.ParentDirectory or FlowResultField.Text)) Fail("Choose an absolute " + label + " or an earlier path result.");
     }
     /// <summary>Uses one recognizable validation exception at every v2 language boundary.</summary>
     private static void Fail(string message) => throw new InvalidDataException(message);

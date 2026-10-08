@@ -5,6 +5,13 @@ using System.Formats.Tar;
 using System.IO.Compression;
 using System.Text;
 
+if (args.Length >= 2 && args[0] == "--configurable-model")
+{
+    Directory.CreateDirectory(args[1]);
+    ConfigurableActionChecks.Model(args[1], args.Contains("--capture-baseline"));
+    return;
+}
+
 // Runs a bounded service integration probe using isolated files and real test-owned AutoHotkey interpreters.
 var runtime = Path.GetFullPath(args[0]);
 var root = Path.GetFullPath(args[1]);
