@@ -16,6 +16,7 @@ internal sealed class ExplorerShortcutInstaller
         ["Actions"] = "04E4D73D5C18B7E61DDC1BEC22D27819EC4716F939FE28A09A9797CDB7BDB591"
     };
     private const string PreviousMarker = "; AutoHotkeyUX Explorer shortcuts v1";
+    private const string PreviousV3ActionsHash = "EFE46F26918874B073B9ABB31AC9732F275E9C5685150F5AD5C37A2ADEBD403A";
     private const string PreviousHash = "52A86335474FBD5A76FA81825F93F365F3E5AD52E4E459778D0E2AB0D831941D";
     private readonly string _path;
     internal string? Warning { get; private set; }
@@ -110,7 +111,8 @@ internal sealed class ExplorerShortcutInstaller
                 using var reader = new StreamReader(new MemoryStream(before), Encoding.UTF8, true);
                 var existing = reader.ReadToEnd();
                 if (Hash(existing) == Hash(shipped)) continue;
-                if (Hash(existing) == Hash(ReadResource("VisualFlow.V2." + name + ".ahk"))) replacements.Add((name, file, before, shipped));
+                if (Hash(existing) == Hash(ReadResource("VisualFlow.V2." + name + ".ahk"))
+                    || name == "Actions" && Hash(existing) == PreviousV3ActionsHash) replacements.Add((name, file, before, shipped));
                 else PreserveWarning($"The v3 {name} helper has user edits.");
             }
             if (!allowUpgrade || Warning is not null || replacements.Count == 0) return false;

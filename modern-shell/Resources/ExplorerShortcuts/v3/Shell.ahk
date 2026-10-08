@@ -25,9 +25,9 @@ GetShellView(context) {
     return document ? {Folder: document.Folder, Directory: document.Folder.Self.Path, Document: document} : false
 }
 
-; Caches tab identity while reading its current folder anew after navigation.
+; Caches the tab's browser, but reacquires its Document after every folder navigation.
 GetActiveExplorerDocument(hwnd) {
-    static lastWindow := 0, lastTab := 0, lastDocument := false
+    static lastWindow := 0, lastTab := 0, lastBrowser := false
     activeTab := 0
     for control in WinGetControlsHwnd("ahk_id " hwnd) {
         if WinGetClass("ahk_id " control) = "ShellTabWindowClass" && DllCall("IsWindowVisible", "ptr", control) {
@@ -36,14 +36,13 @@ GetActiveExplorerDocument(hwnd) {
             activeTab := control
         }
     }
-    if lastDocument && lastWindow = hwnd && lastTab = activeTab {
+    if lastBrowser && lastWindow = hwnd && lastTab = activeTab {
         try {
-            folder := lastDocument.Folder
-            return lastDocument
+            if lastBrowser.HWND = hwnd
+                return lastBrowser.Document
         }
-        catch Error {
-            lastDocument := false
-        }
+        catch Error
+            lastBrowser := false
     }
     matches := []
     for window in GetShellApplication().Windows {
@@ -57,11 +56,11 @@ GetActiveExplorerDocument(hwnd) {
             if tab != activeTab
                 continue
         }
-        matches.Push(window.Document)
+        matches.Push(window)
     }
     lastWindow := hwnd, lastTab := activeTab
-    lastDocument := matches.Length = 1 ? matches[1] : false
-    return lastDocument
+    lastBrowser := matches.Length = 1 ? matches[1] : false
+    return lastBrowser ? lastBrowser.Document : false
 }
 
 ; Caches Windows UI Automation and its raw walker; temporary element references remain scoped to each hit.

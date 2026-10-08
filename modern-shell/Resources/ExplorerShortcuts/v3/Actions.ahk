@@ -138,7 +138,7 @@ OpenQueuedTerminal() {
     }
 }
 
-; Finishes placement after creation and stops polling immediately; existing terminal windows are never moved.
+; Places and activates only the verified new terminal, then stops discovery polling.
 PositionTerminal(job) {
     try {
         className := job.Terminal ? "CASCADIA_HOSTING_WINDOW_CLASS" : "ConsoleWindowClass"
@@ -152,12 +152,15 @@ PositionTerminal(job) {
             rectangle := GetPopupRectangle(job.X, job.Y, width, height, job.Work, job.Gap, job.Position)
             WinMove rectangle.X, rectangle.Y,,, "ahk_id " window
             WinGetPos &actualX, &actualY, &width, &height, "ahk_id " window
+            WinActivate "ahk_id " window
+            if !WinWaitActive("ahk_id " window,, 0.25)
+                throw Error("The new terminal was created, but Windows did not grant it foreground focus.")
             if job.Completion {
                 job.Completion.WindowId := window
                 job.Completion.Done := true
             }
             FinishTerminalLaunch(job)
-            LogShortcut("terminal-ready", "readyMs=" (A_TickCount - job.Started) " x=" actualX " y=" actualY)
+            LogShortcut("terminal-ready", "readyMs=" (A_TickCount - job.Started) " x=" actualX " y=" actualY " foreground=1 directory=" job.Directory)
             if job.Report != "" {
                 FileAppend "passed=1`nx=" actualX "`ny=" actualY "`nwidth=" width "`nheight=" height
                     . "`nanchorX=" job.X "`nanchorY=" job.Y "`nworkLeft=" job.Work.Left "`nworkTop=" job.Work.Top
