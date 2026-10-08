@@ -70,6 +70,28 @@ public sealed partial class SettingsPage : Page
         _loadedSettings = true;
     }
 
+    /// <summary>Stacks setting controls below their labels when the row cannot fit the normal desktop columns.</summary>
+    private void SettingRow_SizeChanged(object sender, SizeChangedEventArgs args)
+    {
+        var row = (Grid)sender;
+        if (row.Children.Count != 2 || row.Children[0] is not FrameworkElement label
+            || row.Children[1] is not FrameworkElement control) return;
+        var stacked = args.NewSize.Width - row.Padding.Left - row.Padding.Right < 640;
+        if (Grid.GetRow(control) == (stacked ? 1 : 0) && Grid.GetColumn(control) == (stacked ? 0 : 1)) return;
+        row.ColumnDefinitions[1].Width = stacked ? new GridLength(0) : control switch
+        {
+            ComboBox => new GridLength(275),
+            Grid => new GridLength(475),
+            _ => GridLength.Auto
+        };
+        row.RowSpacing = stacked ? 12 : 0;
+        Grid.SetColumnSpan(label, stacked ? 2 : 1);
+        Grid.SetColumn(control, stacked ? 0 : 1);
+        Grid.SetColumnSpan(control, stacked ? 2 : 1);
+        Grid.SetRow(control, stacked ? 1 : 0);
+        if (control is ToggleSwitch toggle) toggle.HorizontalAlignment = HorizontalAlignment.Right;
+    }
+
     /// <summary>Subscribes to live shortcut state only while the settings page is visible.</summary>
     private void SettingsPage_Loaded(object sender, RoutedEventArgs e)
     {

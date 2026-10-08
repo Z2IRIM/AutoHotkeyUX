@@ -108,7 +108,8 @@ public partial class App : Application
             if (verifyIndex >= 0 && verifyIndex + 1 < _arguments.Length)
             {
                 ShowWindow();
-                var report = verifyVisualIndex >= 0 ? (_arguments.Contains("--placement-only")
+                var report = verifyVisualIndex >= 0 ? (_arguments.Contains("--settings-layout-only")
+                    ? await _window.VerifySettingsLayoutAsync(_arguments[verifyIndex + 1]) : _arguments.Contains("--placement-only")
                     ? await _window.VerifyWindowPlacementAsync(ShowWindow) : _arguments.Contains("--configurable-only")
                     ? await _window.VerifyConfigurableActionsAsync(_arguments[verifyIndex + 1], _arguments.Contains("--with-runtime")) : _arguments.Contains("--layout-only")
                     ? await _window.VerifyWorkflowLayoutOnlyAsync(_arguments[verifyIndex + 1])

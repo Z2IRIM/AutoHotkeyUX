@@ -3,9 +3,12 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
+    <ScrollViewer x:Name="SettingsScroll" VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled" HorizontalContentAlignment="Stretch">
         <StackPanel
+            Width="{Binding ViewportWidth, ElementName=SettingsScroll, Mode=OneWay}"
             MaxWidth="1080"
+            HorizontalAlignment="Center"
             Padding="44,40,44,56"
             Spacing="30">
 
@@ -19,6 +22,7 @@
                 <TextBlock
                     Text="Control background startup, Explorer shortcuts, the built-in runtime and your script tools."
                     Style="{StaticResource PageSubtitleTextStyle}"
+                    HorizontalAlignment="Left"
                     MaxWidth="760" />
             </StackPanel>
 
@@ -26,7 +30,8 @@
                 <TextBlock Text="Background and shortcuts" Style="{StaticResource SectionTitleTextStyle}" />
                 <Border Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel>
-                        <Grid Padding="22,21" ColumnSpacing="24">
+                        <Grid Padding="22,21" ColumnSpacing="24" SizeChanged="SettingRow_SizeChanged">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -40,7 +45,8 @@
                                           AutomationProperties.Name="Start with Windows" Toggled="StartWithWindowsToggle_Toggled" />
                         </Grid>
                         <Rectangle Height="1" Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
-                        <Grid Padding="22,21" ColumnSpacing="24">
+                        <Grid Padding="22,21" ColumnSpacing="24" SizeChanged="SettingRow_SizeChanged">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -125,7 +131,8 @@
 
                 <Border Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel>
-                        <Grid Padding="22,21" ColumnSpacing="24">
+                        <Grid Padding="22,21" ColumnSpacing="24" SizeChanged="SettingRow_SizeChanged">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -154,7 +161,8 @@
                             Height="1"
                             Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
 
-                        <Grid Padding="22,21" ColumnSpacing="24">
+                        <Grid Padding="22,21" ColumnSpacing="24" SizeChanged="SettingRow_SizeChanged">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="275" />
@@ -200,7 +208,8 @@
 
                 <Border Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel>
-                        <Grid Padding="22,21" ColumnSpacing="24">
+                        <Grid Padding="22,21" ColumnSpacing="24" SizeChanged="SettingRow_SizeChanged">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="475" />
@@ -242,7 +251,8 @@
                             Height="1"
                             Fill="{ThemeResource DividerStrokeColorDefaultBrush}" />
 
-                        <Grid Padding="22,21" ColumnSpacing="24">
+                        <Grid Padding="22,21" ColumnSpacing="24" SizeChanged="SettingRow_SizeChanged">
+                            <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
@@ -273,19 +283,19 @@
             <Border
                 Style="{StaticResource SurfaceCardStyle}"
                 Padding="20,16">
-                <StackPanel
-                    Orientation="Horizontal"
-                    Spacing="9">
+                <Grid ColumnSpacing="9">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
                     <FontIcon
                         Glyph="&#xE946;"
                         FontSize="16"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     <TextBlock
+                        Grid.Column="1"
                         Text="Changes are stored per user and applied without reinstalling the modern shell."
                         FontSize="15"
                         TextWrapping="Wrap"
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                </StackPanel>
+                </Grid>
             </Border>
 
             <InfoBar
