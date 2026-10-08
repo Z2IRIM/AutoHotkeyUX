@@ -44,13 +44,21 @@ git diff --check
 
 ## 实机验证与交付状态
 
-待确认并执行：隔离原生诊断，以及正式 EXE 更新和管理器重开。此前协调会话转交了用户“真实 App 操作前先列出步骤、测试数据和影响，并获得事前通知确认”的要求。已给出明确实机清单，未把等待时间或默认选项视为确认。
+用户在收到步骤、测试数据和影响范围后明确回复“可以，就这么做”，已据此执行隔离原生诊断及正式 EXE 更新。未把等待时间或默认选项视为确认。
 
-预定命令：`AutoHotkeyUX.Modern.exe --verify-visual-creation <绝对报告路径> --layout-only`。诊断使用独立目录及临时注册表设置，12 个 Wait 动作仅在内存中展示，不保存或执行，不向用户应用发送键鼠输入。窗口和菜单会在本机短暂显示，结果和截图写入任务证明目录。物理键鼠关闭/选择行为在本轮未验证。
+执行命令：`AutoHotkeyUX.Modern.exe --verify-visual-creation C:\DESKTOP\AutoHotkeyUX\.verification\action-library-flyout\native-layout.json --layout-only`。测试 PID48972，退出码0。诊断使用独立目录及临时注册表设置，12 个 Wait 动作仅在内存中展示，不保存或执行，不向用户应用发送键鼠输入。
+
+实际原生结果：宽／中／窄 Mode=0/1/2 全部通过；四个分类菜单展开前后三栏及分类按钮的位置、宽高不变。真实 MenuFlyoutItem 的调用添加一个 Wait 动作并关闭菜单。条目容器实测 58.67 DIP（含边框），列表高度分别 561.33／501.33／440 DIP，列表自身视口内完整容纳8／7／6条。该数值是列表容量，不是整页未滚动时的屏幕可见条目数。三个场景 ExecutionCount=0、BodyX=0，无横向溢出。
+
+报告及宽／窄页面、菜单 PNG 保存在主目录 `.verification/action-library-flyout`。捕获为实际 WinUI RenderTargetBitmap；系统标题按钮、Mica 和弹层 Acrylic 合成背景不包含在像素里，菜单图包含透明背景，不能将其称为完整桌面截图。物理键鼠关闭/选择、不同字体缩放及其他显示器在本轮未验证。
+
+正式文件为 `C:\DESKTOP\AutoHotkeyUX\modern-shell\artifacts\win-x64\AutoHotkeyUX.Modern.exe`，SHA256 `0FDB199DD6348F5EDA014C815FB520639FA80C688580676085521DCC42351584`。更新前实际没有运行的管理器或 AHK 进程；使用正常退出命令后替换程序并打开。新管理器 PID28036、核心 PID45848，窗口已显示，核心 Running、Error=null、StartupWarning=null。加载的 `AutoHotkeyUX.Modern.dll` SHA256 `E7BAE0500C67E4C27FA3C7D9E7051799C4BEC0CC94E7B064D2CB8582320D1E92` 与验证构建一致。
+
+实现提交 `62de149` 已快进合入现有 `codex/script-manager-core`。更新前后原开机静默命令、ExecutablePath、Explorer 开关、快捷键偏好及启动脚本选择一致；四个用户目录核心文件逐字节哈希一致。原有临时文件、取消的转译草案保留。本次不包含 AHK 反向转译。已在主目录保存候选及原 EXE、构建日志、完整性检查、原生报告和交付校验，归档托管工作区后仍可核对及回滚。
 
 ## 兼容性、风险与回滚
 
-无数据库、外部 API、工作流格式或迁移变化。`--layout-only` 只作为已有开发诊断的过滤参数。关闭管理器可能丢失尚未保存的编辑草稿，正式切换前须确认草稿已保存。
+无数据库、外部 API、工作流格式或迁移变化。`--layout-only` 只作为已有开发诊断的过滤参数。关闭管理器可能丢失尚未保存的编辑草稿；用户在告知此影响后已授权此次切换。
 
 可从任务证明目录的原 EXE 恢复程序文件，并以施工基线对照恢复本轮 UI 源码；恢复前保存新的工作，不批量重置仓库或删除用户脚本。源码增量包使用基线 `c369df8`，仅包含本轮源文件与记录，不含依赖、测试、构建产物和取消的转译草案；交付目录为 `C:\DESKTOP\srcpack_Area\AutoHotkeyUX`。
 
