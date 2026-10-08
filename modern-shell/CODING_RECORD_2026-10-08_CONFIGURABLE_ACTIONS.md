@@ -18,6 +18,10 @@
 
 ## 工程决定与理由
 
+从空白搭建推荐分流：选择 Alt＋左键和 Explorer／桌面作用域 → 获取点击对象 → If「Is folder」的真分支添加终端（来源为点击对象的 Usable directory）→ Else 内再判断「Is archive」，真分支添加解压（来源为点击对象的 Path）和打开文件夹（来源为解压的 Usable directory），其余分支添加停止本次流程。终端和解压分别在 Configuration 中选 Custom 后设置参数。保存后在 Scripts 启动；同键冲突时明确改键或替换内置。只做独立脚本也可选终端／解压示例，并使用不同快捷键。
+
+保存为“我的动作”只保存选定节点的配置，不把整个流程封装成动作组；动态输入在新流程插入时重新选择。此边界使预设可跨流程使用，避免绑定到已删除的旧步骤。
+
 1. 新能力使用 schema v3。v1/v2 生成规则保持不变，v2 的四份辅助资源固化为快照；旧流程不会因当前终端资源更新被误判为手改。首次保存升级前，在相邻 `.flow.backups` 目录保留原始文件对。
 2. 保留原动作枚举顺序，按节点增加独立参数记录。文本组合只包含固定文字或类型明确的前序字段，不接受代码表达式。
 3. 复用原终端队列、窗口归属和 DPI／工作区裁剪；唯一窗口名避免复用旧终端。没有触发时不安装调度轮询，只在当前任务就绪／完成等待期间短时检查。
@@ -40,9 +44,11 @@
 
 ## 已执行验证
 
-- `dotnet run --project tools/ModernShell.SmokeTests/ModernShell.SmokeTests.csproj -c Release --no-restore -- --configurable-model <任务目录>/model`：37 项 PASS。覆盖旧 v2 生成字节、新模型、结果可见性、历史、协议边界、预设重绑定／持久化／复制、启动补偿、队列去重／容量／排空及结果发布失败。使用隔离文件和注入工作；未启动解释器、窗口或真实解压。
+- `dotnet run --project tools/ModernShell.SmokeTests/ModernShell.SmokeTests.csproj -c Release --no-restore -- --configurable-model <任务目录>/model`：整体审阅修复后 45 项 PASS。覆盖旧 v2 生成字节、首次升级语义、新模型、结果可见性、历史、协议边界、预设重绑定／持久化／复制、运行候选保护与启动补偿、跨所有者结果保护、队列去重／容量／排空及结果发布失败。使用隔离文件和注入工作；未启动解释器、窗口或真实解压。
 - `dotnet publish modern-shell/AutoHotkeyUX.Modern.csproj -c Release -r win-x64 --no-restore -p:Platform=x64 -p:DirectoryBuildTargetsPath=<已核验资源复用 targets> -o modern-shell/artifacts/configurable-candidate`：PASS。复用基线同字节的解释器、UX ZIP 和编译器资源。
 - 修复编译发现的 WinUI 字体命名空间和诊断默认参数遗漏。最终候选构建成功。
+
+一次 fresh-context 整体审阅发现 5 项 Important 与 1 项 Minor，统一修复：首次升级保留归档旁输出、旧错误通知及异步终端顺序；claim 原子发布且未取得所有权者禁止写结果；运行中的候选流程要求用户先明确停止，失败补偿按本次 PID／启动时间操作；暖／冷进程退出时优先读取已发布结果；原生探针包含实际终端资源；空路径输入先走公共校验。旧升级和跨所有者污染分别先由定向断言检出 FAIL，再修复为 PASS。新 v3 空白和示例保留默认静默策略。
 
 ## 待授权的实机步骤
 

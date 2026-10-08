@@ -21,6 +21,7 @@ internal static class VisualFlowValidationV3
             || p.Stop is not null && action.Kind != FlowActionKind.StopWorkflow
             || p.Notification is not null && action.Kind != FlowActionKind.Notify) Fail("An action contains options belonging to another action.");
         if (p.Context is { } context && !Enum.IsDefined(context.Missing)) Fail("Choose a supported missing-target policy.");
+        foreach (var input in VisualFlowSchema.Inputs(action)) VisualFlowValidation.ValidateInput(flow, action, input);
         if (action.Kind <= FlowActionKind.IfElse)
         {
             VisualFlowValidation.ValidateAction(flow, action with { Parameters = p with
@@ -39,7 +40,6 @@ internal static class VisualFlowValidationV3
             }
             else if (p.Input is not null) Fail("This action uses composed text or stop options instead of a path input.");
         }
-        foreach (var input in VisualFlowSchema.Inputs(action)) VisualFlowValidation.ValidateInput(flow, action, input);
         if (action.Kind == FlowActionKind.IfElse && p.Condition is FlowConditionKind.IsFolder or FlowConditionKind.IsFile or FlowConditionKind.IsArchive or FlowConditionKind.PathExists)
             VisualFlowValidation.ValidatePathInput(p.Input!, "condition path");
         if (p.Input is { Kind: FlowInputKind.Result } target && target.Field is FlowResultField.Exists or FlowResultField.Success or FlowResultField.MouseX or FlowResultField.MouseY)

@@ -136,14 +136,22 @@ FlowExtract3(path, destination, options, context) {
     }
     started := A_TickCount, queried := started
     while !FileExist(report) && A_TickCount - started < 600000 {
-        if endpoint && !FlowEndpointAlive(endpoint)
+        if endpoint && !FlowEndpointAlive(endpoint) {
+            if FileExist(report)
+                break
             throw Error("Manager exited before reporting this request; it was not repeated. Request " requestId)
-        if !endpoint && !ProcessExist(helperPid)
+        }
+        if !endpoint && !ProcessExist(helperPid) {
+            if FileExist(report)
+                break
             throw Error("The extraction helper exited without a result. Request " requestId)
+        }
         if endpoint && A_TickCount - queried >= 1000 {
             status := FlowSend("flow-status`n" endpoint.Token "`n" requestId, endpoint), queried := A_TickCount
             if status.Delivered && status.Result = 5
                 throw Error("The manager could not publish the extraction result; it was not repeated. Request " requestId)
+            if status.Delivered && status.Result = 6
+                throw Error("The request identity belongs to different extraction options; it was not repeated. Request " requestId)
         }
         Sleep 50
     }

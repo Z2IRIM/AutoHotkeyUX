@@ -22,11 +22,13 @@ internal static class VisualFlowReports
         Directory.CreateDirectory(root);
         if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0) throw new IOException("Workflow result directory cannot be a link.");
         var claim = PathFor(root, request.RequestId) + ".claim";
+        var staging = claim + "." + Guid.NewGuid().ToString("N") + ".tmp";
         var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request))));
         try
         {
-            using var stream = new FileStream(claim, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
-            stream.Write(Encoding.ASCII.GetBytes(fingerprint)); stream.Flush(true);
+            using (var stream = new FileStream(staging, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            { stream.Write(Encoding.ASCII.GetBytes(fingerprint)); stream.Flush(true); }
+            File.Move(staging, claim, overwrite: false);
             return true;
         }
         catch (IOException) when (File.Exists(claim))
@@ -35,6 +37,7 @@ internal static class VisualFlowReports
                 || File.ReadAllText(claim) != fingerprint) throw new InvalidDataException("Request identity already belongs to different extraction options.");
             return false;
         }
+        finally { if (File.Exists(staging)) File.Delete(staging); }
     }
 
     /// <summary>Commits one result atomically; callers cannot choose or overwrite another file.</summary>

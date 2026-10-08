@@ -203,6 +203,16 @@ internal sealed class ScriptExecutionService : IDisposable
         }
     }
 
+    /// <summary>Stops only the exact process identity created by a failed activation attempt.</summary>
+    internal void StopAttempt(RunningScriptSession attempted)
+    {
+        lock (_gate)
+        {
+            if (!_sessions.TryGetValue(attempted.ScriptPath, out var current) || current.ProcessId != attempted.ProcessId || current.ProcessStartUtc != attempted.ProcessStartUtc) return;
+            Stop(attempted.ScriptPath);
+        }
+    }
+
     /// <summary>Claims visual source before stopping it, preserving a live interpreter when a save is unfinished or in flight.</summary>
     internal RunningScriptSession Restart(string scriptPath, bool workflowClaimHeld = false, bool requireWorkflowReady = false)
     {

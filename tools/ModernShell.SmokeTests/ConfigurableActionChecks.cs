@@ -38,6 +38,8 @@ internal static class ConfigurableActionChecks
         var generated = VisualFlowGenerator.Generate(configured);
         Check(generated.Contains("FlowTerminal3(") && generated.Contains("1000") && generated.Contains("below"), "v3 generator emits independent terminal parameters");
         Reject(() => VisualFlowCodec.Validate(configured with { SchemaVersion = 2 }), "v2 cannot smuggle configurable v3 settings");
+        Reject(() => VisualFlowCodec.Validate(configured with { Actions = [new() { Kind = FlowActionKind.GetPathProperties,
+            Parameters = new() { Input = new() { Literal = null! } } }] }), "null path input fails at the validation boundary");
         var terminal = configured.Actions[0];
         var activate = new FlowAction { Kind = FlowActionKind.ActivateWindow, Parameters = new() { Input = FlowInput.Reference(terminal.Id, FlowResultField.WindowId), TimeoutMs = 3000 } };
         VisualFlowCodec.Validate(configured with { Actions = [terminal, activate] });
@@ -52,6 +54,7 @@ internal static class ConfigurableActionChecks
         var branch = new FlowAction { Kind = FlowActionKind.IfElse, Parameters = new() { Input = new() { Literal = @"C:\Windows" }, Condition = FlowConditionKind.IsFolder, Then = [terminal] } };
         Reject(() => VisualFlowCodec.Validate(configured with { Actions = [branch, notice] }), "composed text cannot read another branch's result");
         Protocol();
+        LegacyMigration();
         Presets(root, configured);
         Replacement();
         QueueAndReports(root);
@@ -112,9 +115,28 @@ internal static class ConfigurableActionChecks
         File.WriteAllText(Path.Combine(root, "example-explorer-v3.ahk"), VisualFlowGenerator.Generate(VisualFlowExamples.ExplorerV3()), VisualFlowCodec.Utf8);
     }
 
+    /// <summary>Preserves operation and failure behavior when a cosmetic edit first upgrades a legacy document.</summary>
+    private static void LegacyMigration()
+    {
+        var legacy = VisualFlowExamples.Explorer(); var upgraded = VisualFlowSchema.Upgrade(legacy);
+        var actions = VisualFlowTree.Walk(upgraded.Actions).Select(item => item.Action).ToArray();
+        var extraction = actions.Single(action => action.Kind == FlowActionKind.ExtractArchive).Parameters!.Extraction!;
+        Check(extraction.Mode == FlowConfigurationMode.Custom && extraction.Destination == FlowArchiveDestination.BesideArchive, "legacy empty extraction destination still means beside the archive after upgrade");
+        Check(actions.Single(action => action.Kind == FlowActionKind.GetClickedObject).Parameters?.Context?.Missing == FlowMissingTarget.Error
+            && actions.All(action => action.Parameters?.Failure?.Notify == true), "legacy missing-target and error visibility survive upgrade");
+        Check(actions.Single(action => action.Kind == FlowActionKind.OpenTerminal).Parameters?.Terminal?.WaitReady == false, "legacy terminal keeps its asynchronous sequencing until readiness is explicitly selected");
+        var fresh = VisualFlowSchema.Upgrade(VisualFlowExamples.ExplorerV3());
+        Check(VisualFlowTree.Walk(fresh.Actions).All(item => item.Action.Parameters?.Failure?.Notify != true)
+            && fresh.Actions[0].Parameters?.Context?.Missing == FlowMissingTarget.StopSilently, "new v3 workflows retain their deliberate quiet defaults");
+    }
+
     /// <summary>Exercises transaction compensation without starting processes or changing real startup settings.</summary>
     private static void Replacement()
     {
+        var running = new RunningScriptSession("fixture.ahk", 456, DateTime.UtcNow, DateTime.UtcNow, ScriptState.Running);
+        var refused = false;
+        try { VisualWorkflowActivationService.RequireStoppedCandidate(running.ScriptPath, [running]); } catch (InvalidOperationException) { refused = true; }
+        Check(refused, "replacement requires an explicit Stop of an already running candidate and preserves its snapshot");
         var enabled = true; var login = false; var attemptRunning = false;
         try
         {
@@ -146,6 +168,11 @@ internal static class ConfigurableActionChecks
         try
         {
             Check(queue.TryEnqueue(Payload(first)) == 1 && entered.Wait(TimeSpan.FromSeconds(2)), "explicit request reaches worker while acceptance remains nonblocking");
+            var competitor = new ShortcutCommandService(IntPtr.Zero, settings, (_, _) => { }, workflowResultRoot: Path.Combine(owner, "workflow-results"), workflowExtract: _ => throw new Exception("must not execute"));
+            competitor.TryEnqueue("flow-extract\n" + competitor.Token + "\n" + JsonSerializer.Serialize(first with { Name = "Changed" }, serializer));
+            competitor.DrainAsync().GetAwaiter().GetResult();
+            Check(!File.Exists(VisualFlowReports.PathFor(Path.Combine(owner, "workflow-results"), first.RequestId)), "another owner with different options cannot poison the active request's result");
+            Check(competitor.TryEnqueue("flow-status\n" + competitor.Token + "\n" + first.RequestId) == 6, "cross-owner identity conflict has a bounded rejection status");
             Check(queue.TryEnqueue(Payload(first)) == 2 && queue.TryEnqueue(Payload(first with { Name = "Changed" })) == 0, "request identity deduplicates exact options and rejects changed options");
             Check(Enumerable.Range(0, 4).All(_ => queue.TryEnqueue(Payload(Request())) == 1) && queue.TryEnqueue(Payload(Request())) == 3, "shared workflow queue rejects overflow without accepting extra work");
         }

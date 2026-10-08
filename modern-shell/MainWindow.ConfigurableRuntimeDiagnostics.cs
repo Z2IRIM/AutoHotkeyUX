@@ -15,7 +15,7 @@ public sealed partial class MainWindow
         var archive = Path.Combine(root, "sample 中文.zip");
         using (var zip = ZipFile.Open(archive, ZipArchiveMode.Create))
         { using var writer = new StreamWriter(zip.CreateEntry("nested/hello.txt").Open()); writer.Write("fixture payload"); }
-        var helpers = VisualFlowGenerator.Generate(new() { SchemaVersion = 3, Trigger = new() { Kind = FlowTriggerKind.Startup }, Actions = [new() { Kind = FlowActionKind.Wait }] });
+        var helpers = VisualFlowGenerator.Generate(VisualFlowExamples.Terminal() with { Trigger = new() { Kind = FlowTriggerKind.Startup } });
         var terminal = Path.Combine(root, "terminal.txt"); var warm = Path.Combine(root, "warm.txt"); var cold = Path.Combine(root, "cold.txt");
         await RunConfigurableProbeAsync(runtime, root, "terminal", TerminalProbe(root, terminal), helpers);
         if (!File.ReadAllText(terminal).StartsWith("ready\n", StringComparison.Ordinal)) throw new InvalidOperationException("The native terminal did not return its ready window.");
@@ -94,8 +94,8 @@ public sealed partial class MainWindow
         var saved = _services.Settings.Read("Modern", ShortcutPreferenceCodec.SettingName);
         var preferences = ShortcutPreferences.Default with { TerminalShortcut = "ctrl-alt-middle", ArchiveEnabled = false, TerminalProgram = "powershell" };
         _services.Settings.Write("Modern", ShortcutPreferenceCodec.SettingName, ShortcutPreferenceCodec.Encode(new(Guid.NewGuid().ToString("N"), preferences)));
-        ScriptExecutionService? execution = null; var launches = 0; var core = Path.Combine(fixture, "Explorer Shortcuts.ahk");
-        execution = new(() => ++launches == 2 ? Path.Combine(fixture, "missing-runtime.exe") : runtime,
+        ScriptExecutionService? execution = null; var failNextLaunch = false; var core = Path.Combine(fixture, "Explorer Shortcuts.ahk");
+        execution = new(() => { if (!failNextLaunch) return runtime; failNextLaunch = false; return Path.Combine(fixture, "missing-runtime.exe"); },
             new ScriptSessionStore(Path.Combine(fixture, "sessions.json")),
             (path, trigger) => VisualHotkeyConflicts.Check(path, execution!.Snapshot(), _services.Settings, core, trigger),
             registryBase: _services.Settings.BaseKey, diagnosticLocalDataRoot: Path.GetDirectoryName(_services.StateDirectory));
@@ -107,6 +107,17 @@ public sealed partial class MainWindow
         try
         {
             startup.SetExplorerEnabled(true);
+            var previous = new VisualFlowStore().Create(fixture, "running-candidate", flow with
+            { Id = Guid.NewGuid(), Trigger = flow.Trigger with { Modifiers = FlowModifiers.Ctrl | FlowModifiers.Alt | FlowModifiers.Shift } });
+            var live = execution.Run(previous.ScriptPath); Thread.Sleep(200);
+            if (execution.Snapshot().Single(session => session.ScriptPath == previous.ScriptPath).State != ScriptState.Running)
+                throw new InvalidOperationException("The original candidate did not remain running.");
+            new VisualFlowStore().Update(previous, previous.Document with { Trigger = flow.Trigger });
+            var preserved = false;
+            try { activation.ReplaceBuiltIn(previous.ScriptPath); } catch (InvalidOperationException) { preserved = true; }
+            if (!preserved || !startup.ExplorerEnabled || execution.Snapshot().Single(session => session.ScriptPath == previous.ScriptPath).ProcessId != live.ProcessId)
+                throw new InvalidOperationException("Replacement affected an already running candidate snapshot.");
+            execution.Stop(previous.ScriptPath); failNextLaunch = true;
             var failed = false;
             try { activation.ReplaceBuiltIn(opened.ScriptPath); } catch (InvalidOperationException) { failed = true; }
             if (!failed || !startup.ExplorerEnabled || startup.IsRunAtSignIn(opened.ScriptPath)
@@ -115,7 +126,7 @@ public sealed partial class MainWindow
             var ready = activation.ReplaceBuiltIn(opened.ScriptPath);
             if (ready.State != ScriptState.Running || startup.ExplorerEnabled || !startup.IsRunAtSignIn(opened.ScriptPath))
                 throw new InvalidOperationException("A ready native replacement did not commit its startup choice.");
-            return new { Passed = true, FailedLaunchRecovery = true, ExactReadyAcknowledgement = true, StartupTransferred = true };
+            return new { Passed = true, RunningCandidatePreserved = true, FailedLaunchRecovery = true, ExactReadyAcknowledgement = true, StartupTransferred = true };
         }
         finally
         {

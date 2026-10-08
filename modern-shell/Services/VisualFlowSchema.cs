@@ -23,7 +23,7 @@ internal static class VisualFlowSchema
             || p.Condition > FlowConditionKind.IsNotEmpty || Inputs(action).Any(input => input.Field > FlowResultField.WindowId));
 
     /// <summary>Adds operation defaults only when an editing action explicitly introduces v3 semantics.</summary>
-    internal static VisualFlowDocument Upgrade(VisualFlowDocument flow) => flow with { SchemaVersion = 3, Actions = UpgradeActions(flow.Actions) };
+    internal static VisualFlowDocument Upgrade(VisualFlowDocument flow) => flow with { SchemaVersion = 3, Actions = UpgradeActions(flow.Actions, flow.SchemaVersion < 3) };
 
     /// <summary>Transforms sources in the same stable order used by portable preset slots.</summary>
     internal static FlowAction MapInputs(FlowAction action, Func<FlowInput, FlowInput> map)
@@ -40,15 +40,18 @@ internal static class VisualFlowSchema
     }
 
     /// <summary>Preserves older extraction destinations while adding immutable per-operation defaults.</summary>
-    private static FlowAction[] UpgradeActions(FlowAction[] actions) => actions.Select(action =>
+    private static FlowAction[] UpgradeActions(FlowAction[] actions, bool legacy) => actions.Select(action =>
     {
         var p = action.Parameters;
-        if (p is null && action.Kind <= FlowActionKind.Wait) return action;
+        if (p is null && action.Kind <= FlowActionKind.Wait && !legacy) return action;
         p ??= new();
-        p = p with { Then = UpgradeActions(p.Then), Else = UpgradeActions(p.Else) };
-        if (action.Kind == FlowActionKind.OpenTerminal) p = p with { Terminal = p.Terminal ?? new() };
+        p = p with { Then = UpgradeActions(p.Then, legacy), Else = UpgradeActions(p.Else, legacy) };
+        if (legacy) p = p with { Failure = p.Failure ?? new() { Notify = true } };
+        if (action.Kind is FlowActionKind.GetClickedObject or FlowActionKind.GetSelectedObject or FlowActionKind.GetCurrentDirectory)
+            p = p with { Context = p.Context ?? new() { Missing = legacy ? FlowMissingTarget.Error : FlowMissingTarget.StopSilently } };
+        if (action.Kind == FlowActionKind.OpenTerminal) p = p with { Terminal = p.Terminal ?? new() { WaitReady = !legacy } };
         if (action.Kind == FlowActionKind.ExtractArchive) p = p with { Extraction = p.Extraction ?? new()
-            { Mode = p.Destination is null ? FlowConfigurationMode.Inherit : FlowConfigurationMode.Custom,
+            { Mode = legacy || p.Destination is not null ? FlowConfigurationMode.Custom : FlowConfigurationMode.Inherit,
                 Destination = p.Destination is null ? FlowArchiveDestination.BesideArchive : FlowArchiveDestination.Custom } };
         return action with { Parameters = p };
     }).ToArray();

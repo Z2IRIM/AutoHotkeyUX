@@ -26,21 +26,21 @@ internal sealed class VisualWorkflowActivationService(ScriptStartupService start
         {
             using var claim = VisualFlowStore.ClaimForExecution(path);
             var opened = new VisualFlowStore().Open(path, claimHeld: true);
+            RequireStoppedCandidate(path, execution.Snapshot());
             var enabled = startup.ExplorerEnabled; var running = BuiltInRunning(); var login = startup.IsRunAtSignIn(path);
             if (opened.Document.SchemaVersion != 3 || VisualHotkeyConflicts.BuiltIn(opened.Document.Trigger, preferences.Saved, enabled || running) is null)
                 throw new InvalidOperationException("The built-in conflict changed. Review the shortcut again before replacing it.");
-            var launchAttempted = false;
+            RunningScriptSession? attempted = null;
             return Replace(
                 () => startup.SetExplorerEnabled(false),
                 () =>
                 {
-                    launchAttempted = true;
-                    var result = execution.Restart(path, workflowClaimHeld: true, requireWorkflowReady: true);
+                    var result = attempted = execution.Run(path, workflowClaimHeld: true, requireWorkflowReady: true);
                     if (result.State == ScriptState.Failed) throw new InvalidOperationException(result.Error);
                     return execution.WaitForWorkflowReady(result, opened.Document.Id);
                 },
                 () => { startup.SetRunAtSignIn(path, login || enabled); ServiceDiagnostics.Write("VisualFlow", "Explicitly replaced built-in shortcuts with " + path); },
-                () => { if (launchAttempted) execution.Stop(path); },
+                () => { if (attempted?.ProcessId is not null) execution.StopAttempt(attempted); },
                 () => startup.SetRunAtSignIn(path, login),
                 () =>
                 {
@@ -52,6 +52,13 @@ internal sealed class VisualWorkflowActivationService(ScriptStartupService start
                     }
                 });
         }
+    }
+
+    /// <summary>Preserves a currently running source snapshot; replacement requires an explicit prior Stop.</summary>
+    internal static void RequireStoppedCandidate(string path, IReadOnlyList<RunningScriptSession> sessions)
+    {
+        if (sessions.Any(session => session.ScriptPath.Equals(path, StringComparison.OrdinalIgnoreCase) && session.State is ScriptState.Starting or ScriptState.Running or ScriptState.Stopping))
+            throw new InvalidOperationException("Stop this workflow explicitly before replacing the built-in. Its current session was preserved.");
     }
 
     /// <summary>Reads only the built-in session that this manager already owns.</summary>

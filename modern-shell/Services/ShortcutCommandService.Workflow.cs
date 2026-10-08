@@ -65,8 +65,14 @@ internal sealed partial class ShortcutCommandService
         {
             VisualFlowReports.Prune(_workflowResultRoot);
             if (!VisualFlowReports.Begin(_workflowResultRoot, request)) return;
-            output = _workflowExtract(request);
         }
+        catch (Exception ownershipError)
+        {
+            lock (_gate) _workflowStatuses[request.RequestId] = ownershipError is InvalidDataException ? 6 : 5;
+            ServiceDiagnostics.Write("VisualFlow", $"Request {request.RequestId}: ownership was not acquired; no result was published.", ownershipError);
+            return;
+        }
+        try { output = _workflowExtract(request); }
         catch (Exception ex) { failure = ex; }
         var status = failure is null ? 2 : 4;
         try { VisualFlowReports.Complete(_workflowResultRoot, request.RequestId, output, failure); }
